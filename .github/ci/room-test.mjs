@@ -10,7 +10,9 @@ const c = await open(); await wait(1000);
 console.log('A got', JSON.stringify(a.got)); console.log('B got', JSON.stringify(b.got)); console.log('C got', JSON.stringify(c.got));
 const ok = a.got.some(m => m.t === 'hello' && m.role === 'p1') && b.got.some(m => m.t === 'hello' && m.role === 'p2') &&
   a.got.some(m => m.t === 'ready') && b.got.some(m => m.t === 'start') && a.got.some(m => m.t === 'act') && c.got.some(m => m.t === 'full');
+const leftEarly = a.got.some(m => m.t === 'left') || b.got.some(m => m.t === 'left');
+console.log('left before anyone quit?', leftEarly);
 b.ws.close(); await wait(1200); console.log('A after B left', JSON.stringify(a.got.slice(-1)));
 const ok2 = a.got.some(m => m.t === 'left');
 a.ws.close(); c.ws.close();
-if (!ok || !ok2) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');
+if (!ok || !ok2 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');

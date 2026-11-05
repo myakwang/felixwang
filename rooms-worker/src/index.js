@@ -35,6 +35,8 @@ export class Room {
   }
 
   webSocketClose(ws) {
+    const tag = this.ctx.getTags(ws)[0];
+    if (tag !== 'p1' && tag !== 'p2') { try { ws.close(1000, 'bye'); } catch (e) {} return; } // a turned-away 3rd visitor
     for (const s of this.players()) if (s !== ws) { try { s.send(JSON.stringify({ t: 'left' })); } catch (e) {} }
     try { ws.close(1000, 'bye'); } catch (e) {}
   }
