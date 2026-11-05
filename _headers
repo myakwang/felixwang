@@ -1,0 +1,7 @@
+# Service workers and manifests must always be re-checked so updates reach players.
+/sw.js
+  Cache-Control: no-cache
+/*/sw.js
+  Cache-Control: no-cache
+/*/manifest.webmanifest
+  Cache-Control: no-cache
