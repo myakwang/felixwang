@@ -186,9 +186,13 @@ const ZMODES={};ZNAMES.forEach((nm,i)=>{const n=i+1,mix=n<3?{zombie:7,runner:3}:
     start:100+n*8,mul:0.85+(n-1)*0.17,pmul:1.1+(n-1)*0.07,bmul:(0.85+(n-1)*0.1)*(n===5?1.3:1),boss:n===1?null:n===10?'zking':'giant',bossAt:n===5||n===10?0.75:0.6,towerHp:1200+n*60,
     gems:2+Math.floor(n/3)+(n%5===0?3:0),bossLv:n%5===0,theme:ZTHEMES[i]};});
 const ZCOUNT=ZNAMES.length;
-const VS1=['sword','thrower','bubble','titan','bolt'],VS2K=['bug','err','blaster','beetle','zap'];
-const VS2={bug:{name:'Bug',cost:15,cool:45},err:{name:'Err Blob',cost:30,cool:100},blaster:{name:'1010 Blaster',cost:35,cool:110},beetle:{name:'Big Beetle',cost:110,cool:320},zap:{name:'Crack Zap',cost:50,cool:1200}};
-const VS_MUL=2.0,VS_RATE=4;
+const VS1=['sword','thrower','bubble','titan','bolt'],VS2K=['bug','blaster','err','beetle','zap'];
+// In VS each bug is an exact mirror of a Star Army soldier, so both sides are equally strong.
+const VS_MIRROR={bug:'sword',blaster:'thrower',err:'bubble',beetle:'titan'};
+const VS2={bug:{name:'Bug'},blaster:{name:'1010 Blaster'},err:{name:'Err Blob'},beetle:{name:'Big Beetle'},zap:{name:'Crack Zap',cost:50,cool:1200}};
+for(const k in VS_MIRROR){const m=UNITS[VS_MIRROR[k]];VS2[k].cost=m.cost;VS2[k].cool=m.cool;}
+function vsDef(k){const m=UNITS[VS_MIRROR[k]],e=ENEMIES[k];return Object.assign({},m,{name:e.name,fly:e.fly,proj:m.proj?(e.proj||m.proj):undefined,reward:0});}
+const VS_MUL=1,VS_RATE=4;
 function zombieStage(k){const z=ZMODES[k];return Object.assign({n:0,short:z.name,big:'brute',small:'runner',mid:'zombie',angry:'The graveyard is getting ANGRY!'},z);}
 function startMode(key){finishMode.paid=false;G=null;
   if(key==='night')startBattle({n:0,name:'Survive Till Sunrise',short:'Survive Till Sunrise',baseHp:99999,int:220,mix:{zombie:8,runner:2},beetle:[900,900],start:110,mul:1.1,pmul:1.3,bmul:1.1,boss:null,towerHp:1500,big:'brute',small:'runner',mid:'zombie'},'night',key);
@@ -268,7 +272,7 @@ function lightning(){if(state!=='play'||G.ending)return;G.press.bolt=8;
   for(const u of foes){G.bolts.push({x:u.x,y:u.y-u.def.h/2-(u.def.fly?20:0),life:22});dmg(u,lv.d);}}
 function deploy2(k){if(state!=='play'||G.ending)return;if(k==='zap'){zap2();return;}const c=VS2[k];
   if(G.cards2[k]>0)return;if(G.stars2<c.cost){tip('P2 needs more stars!');return;}if(G.units.filter(u=>u.team<0&&!u.dead).length>=MAX_ARMY){tip('Bug Army is full!');return;}
-  G.stars2-=c.cost;G.cards2[k]=c.cool;G.press['p2'+k]=8;const def=ENEMIES[k];const u=makeUnit(-1,k,def,G.ebase.x-G.ebase.w/2-def.w/2,VS_MUL);u.reward=Math.round(c.cost*0.3);G.units.push(u);sfx('deploy');}
+  G.stars2-=c.cost;G.cards2[k]=c.cool;G.press['p2'+k]=8;const def=vsDef(k);const u=makeUnit(-1,k,def,G.ebase.x-G.ebase.w/2-def.w/2,VS_MUL);u.reward=Math.round(c.cost*0.3);G.units.push(u);sfx('deploy');}
 function zap2(){G.press.p2zap=8;if(G.boltCd2>0)return;if(G.stars2<VS2.zap.cost){tip('P2 needs more stars!');return;}
   G.stars2-=VS2.zap.cost;G.boltCd2=VS2.zap.cool;G.flash=10;sfx('bolt');const lv=BOLT_LV[3];
   const foes=G.units.filter(u=>u.team>0&&!u.dead).sort((a,b)=>b.x-a.x).slice(0,lv.n);if(!foes.length)floater(500,200,'Nothing to zap!');
@@ -276,7 +280,7 @@ function zap2(){G.press.p2zap=8;if(G.boltCd2>0)return;if(G.stars2<VS2.zap.cost){
 function cpuThink(){if(G.time%30)return;const p1=G.units.filter(u=>u.team>0&&!u.dead),p2=G.units.filter(u=>u.team<0&&!u.dead);
   if(p1.filter(u=>u.x>500).length>=3&&G.boltCd2<=0&&G.stars2>=VS2.zap.cost&&Math.random()<0.6)zap2();
   G.cmd2=(p2.length<3&&p1.length>p2.length+1)?'defend':'attack';
-  if(!G.cpuPlan)G.cpuPlan=pickMix({bug:5,err:3,blaster:2,beetle:Math.min(3,G.time/1800)+0.01});
+  if(!G.cpuPlan)G.cpuPlan=pickMix({bug:5,blaster:3,err:2,beetle:Math.min(3,G.time/1800)+0.01});
   const c=VS2[G.cpuPlan];if(G.stars2>=c.cost&&G.cards2[G.cpuPlan]<=0){deploy2(G.cpuPlan);G.cpuPlan=null;}}
 function nightSpawner(){const p=Math.min(1,G.time/NIGHT_LEN);G.s.mul=1.0+p*0.7;
   if(--G.spawnT<=0){const mix=p<0.3?{zombie:8,runner:2}:p<0.6?{zombie:6,runner:3,spitter:2}:{zombie:5,runner:4,spitter:3};
