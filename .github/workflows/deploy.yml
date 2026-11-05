@@ -23,11 +23,20 @@ jobs:
           set -euo pipefail
           BUILD="${GITHUB_SHA::8}"
           mkdir dist
-          rsync -a ./ dist/ --exclude .git --exclude .github --exclude dist --exclude README.md --exclude '*.md'
+          rsync -a ./ dist/ --exclude .git --exclude .github --exclude dist --exclude README.md --exclude '*.md' \
+            --exclude functions --exclude rooms-worker --exclude wrangler.toml --exclude node_modules
           # Give every game's offline cache a fresh name so installed players get the update.
           find dist -mindepth 2 -name sw.js -print0 | xargs -0 -r sed -i "s/__BUILD__/${BUILD}/g"
           if grep -rl "__BUILD__" dist --include=sw.js; then echo "Unstamped service worker found"; exit 1; fi
           echo "Build ${BUILD}:"; find dist -type f | sort
+
+      - name: Deploy room relay worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: afdb11ecec3aff5a3683d7eb1fb38bbb
+          workingDirectory: rooms-worker
+          command: deploy
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3

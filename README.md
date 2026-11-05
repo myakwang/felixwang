@@ -15,11 +15,24 @@ assets/               Files used by the lobby only
 sw.js                 Retired root service worker (cleans up the first release). Leave it.
 _headers              Cloudflare headers: service workers are never cached
 star-army/            Star Army vs. The Bugs
+star-army-online/     Star Army Online: two players on two devices (uses the room relay)
   index.html          The game
   manifest.webmanifest, sw.js, icons/   Makes it an installable, offline PWA
   thumb.jpg           Picture shown on the lobby card
 .github/workflows/deploy.yml
+functions/api/room/   Cloudflare Pages Function: /api/room/<CODE> (WebSocket) -> room relay
+rooms-worker/         Worker with the Room Durable Object that relays messages between 2 players
+wrangler.toml         Pages config: binds ROOMS to the felixwang-rooms worker
 ```
+
+## Online play (room relay)
+
+`star-army-online/` connects two devices through `/api/room/<4-letter code>` on this same site.
+The Pages Function in `functions/` forwards the WebSocket to a `Room` Durable Object in `rooms-worker/`
+(worker name `felixwang-rooms`). The relay only forwards messages between the two players in a room and stores nothing.
+The deploy workflow deploys the worker first, then the site. The Cloudflare API token needs
+**Workers Scripts: Edit** and **Cloudflare Pages: Edit** permissions on the account.
+To test locally, run any WebSocket relay with the same protocol and open `star-army-online/?server=http://localhost:8787`.
 
 ## Rules that keep games independent
 
