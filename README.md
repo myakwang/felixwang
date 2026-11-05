@@ -4,6 +4,8 @@ Games designed and drawn by Felix. Live at **https://felixwang.pages.dev**
 
 Every push to `main` deploys automatically to Cloudflare Pages (project `felixwang`) through GitHub Actions.
 
+For AI assistants working in this repo, see **CLAUDE.md** (includes how to update a game without breaking the PWA).
+
 ## Layout
 
 ```
