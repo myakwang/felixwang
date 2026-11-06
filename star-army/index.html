@@ -65,7 +65,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
         <li><b>Lightning</b> zaps every bug on the screen at once!</li>
     <li>Use <b>ATTACK</b> and <b>DEFEND</b> at the top to tell your army to charge or guard the tower.</li>
     <li>You start with only <b>Swordy</b>. Win stages to unlock new soldiers and earn <b>◆ gems</b> for upgrades!</li>
-    <li>20 stages, with a <b>BOSS</b> every 5 stages!</li>
+    <li>30 stages, with a <b>BOSS</b> every 5 stages!</li>
     <li>Tap one of your soldiers to <b>control it yourself</b>! Use ◀ ▶ to move and HIT to attack.</li>
     <li>More modes: <b>VS</b> a friend or the computer, <b>Zombie Attack</b>, and <b>Survive Till Sunrise</b>!</li>
   </ul>
@@ -79,14 +79,14 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
   <div class="modes">
     <div class="mode"><b>⭐ Story</b><span>20 stages and 4 bosses. Unlock new soldiers and earn gems!</span><div class="opts"><button data-m="story">Play Story</button></div></div>
     <div class="mode"><b>⚔ VS Mode</b><span>Star Army vs. Bug Army. Player 2 (or the computer) controls the bugs!</span><div class="opts"><button data-m="vs2">2 Players</button><button data-m="vscpu">vs Computer</button></div></div>
-    <div class="mode"><b>🧟 Zombie Attack</b><span>10 levels of zombies coming out of graveyards. Smash them! Bosses on levels 5 and 10.</span><div class="opts"><button data-m="zsel">Play Zombie Attack</button></div></div>
+    <div class="mode"><b>🧟 Zombie Attack</b><span>15 levels of zombies coming out of graveyards. Smash them! Bosses on levels 5, 10 and 15.</span><div class="opts"><button data-m="zsel">Play Zombie Attack</button></div></div>
     <div class="mode"><b>🌙 Survive Till Sunrise</b><span>Zombies attack all night long. Protect your tower for 3 minutes until the sun comes up!</span><div class="opts"><button data-m="night">Start the night</button></div></div>
   </div>
   <button class="btn" id="modeUp">◆ Upgrades</button><button class="btn" id="modeBack">Back</button>
 </div></div>
 <div id="zSelOv" class="ov"><div class="card">
   <h2>🧟 Zombie Attack</h2>
-  <p class="small">Smash the graveyard to unlock the next level. Levels 5 and 10 are <b style="color:#c0392b">BOSS LEVELS</b>!</p>
+  <p class="small">Smash the graveyard to unlock the next level. Levels 5, 10 and 15 are <b style="color:#c0392b">BOSS LEVELS</b>!</p>
   <div class="grid" id="zGrid"></div>
   <button class="btn" id="zBack">Back</button>
 </div></div>
@@ -158,18 +158,25 @@ const ENEMIES={
   spitter:{name:'Spitter',    hp:38,  dmg:7, range:140,rate:75,speed:0.5, w:22,h:46,reward:8,proj:'goo'},
   brute:  {name:'Brute Zombie',hp:240,dmg:18,range:18, rate:60,speed:0.35,w:44,h:70,reward:30},
   giant:  {name:'Giant Zombie',hp:1500,dmg:30,range:24,rate:70,speed:0.25,w:84,h:124,reward:200,splash:40,boss:true},
+  spider: {name:'Mega Spider',summon:'bug',hp:2600,dmg:30,range:20,rate:60,speed:0.34,w:120,h:62,reward:300,splash:40,boss:true},
+  crackking:{name:'Crack King',summon:'err',hp:3400,dmg:42,range:24,rate:70,speed:0.24,w:104,h:118,reward:500,splash:50,boss:true},
   zking:  {name:'Zombie King',hp:2600,dmg:34,range:24,rate:70,speed:0.22,w:90,h:134,reward:300,splash:45,boss:true,summon:'zombie'},
   king:   {name:'Glitch King',hp:1000,dmg:20,range:24, rate:70,speed:0.3, w:92,h:96,reward:200,splash:40,boss:true},
   megabeetle:{name:'Mega Beetle',hp:2200,dmg:32,range:22,rate:75,speed:0.33,w:124,h:66,reward:220,splash:45,boss:true},
   queen:  {name:'Bug Queen',  summon:'bug',hp:2000,dmg:24,range:20, rate:65,speed:0.3, w:96,h:84,reward:250,splash:30,boss:true},
   golem:  {name:'Crack Golem',hp:2800,dmg:38,range:24, rate:80,speed:0.26,w:110,h:132,reward:400,splash:55,boss:true},
 };
-const BOSSES=['king','megabeetle','queen','golem'];
+const BOSSES=['king','megabeetle','queen','golem','spider','crackking'];
 const STAGE_NAMES=['Sunny Park','The Playground','Deep Forest','Dusty Desert','BOSS: Glitch King','Beach Day','Snowy Hills','Big City','Farm Town','BOSS: Mega Beetle',
-  'Candy Land','Rocky Mountains','Swampy Swamp','Campfire Night','BOSS: Bug Queen','Under the Sea','School Yard','Moon Base','Inside the Computer','FINAL BOSS: Crack Golem'];
+  'Candy Land','Rocky Mountains','Swampy Swamp','Campfire Night','BOSS: Bug Queen','Under the Sea','School Yard','Moon Base','Inside the Computer','BOSS: Crack Golem',
+  'Sunset Park','Night Playground','Autumn Forest','Desert Storm','BOSS: Mega Spider','Stormy Beach','Frozen City','Candy Night','Lava Mountains','FINAL BOSS: Crack King'];
+// stages 21-30 reuse a place with a new time of day or weather
+const STAGE_THEMES=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 0,1,2,3,4,5,7,10,11,19];
+const STAGE_TINTS=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,
+  'rgba(255,140,60,.22)','rgba(20,24,80,.35)','rgba(200,110,30,.2)','rgba(200,150,70,.3)','rgba(20,24,80,.38)','rgba(70,80,100,.3)','rgba(150,200,255,.3)','rgba(90,40,140,.3)','rgba(220,60,30,.25)','rgba(120,0,0,.25)'];
 const STAGES=STAGE_NAMES.map((nm,i)=>{const n=i+1,mix={bug:7,err:n>=8?4:3};if(n>=3)mix.blaster=Math.min(4,1+(n>>2));
-  return {n,name:'Stage '+n+': '+nm,short:nm,baseHp:1600+n*300,int:Math.max(90,185-n*5),mix,beetle:[n>=2?Math.max(700,2600-n*100):1e9,Math.max(500,1900-n*70)],
-    start:80+n*6,mul:1+(n-1)*0.065,pmul:1+(n-1)*0.055,bmul:0.85+(n-5)*0.035,boss:n%5===0?BOSSES[n/5-1]:null,towerHp:1000+n*40};});
+  return {n,name:'Stage '+n+': '+nm,short:nm,baseHp:1600+n*300,int:n>20?Math.max(50,90-(n-20)*4):Math.max(90,185-n*5),mix,beetle:[n>=2?Math.max(n>20?400:700,2600-n*100):1e9,n>20?Math.max(260,500-(n-20)*25):Math.max(500,1900-n*70)],
+    start:80+n*6,mul:1+(n-1)*0.065+Math.max(0,n-20)*0.3,pmul:1+(n-1)*0.055,bmul:0.85+(n-5)*0.035+Math.max(0,n-20)*0.2,boss:n%5===0?BOSSES[n/5-1]:null,towerHp:1000+n*40};});
 const BOLT_COST=50,BOLT_CD=1200,BOLT_DMG=90,MAX_MINE=6,MAX_ARMY=30;
 const TRICKLE=1.5,MAX_MINERS=9;
 function rate(){return G&&G.mode==='vs'?VS_RATE:TRICKLE;}
@@ -179,11 +186,12 @@ function mineCost(){return 30+30*G.mine;}
 /* ---------- state ---------- */
 let NID=1,state='title',stageIdx=0,G=null,speed=1;
 const NIGHT_LEN=60*180,GRAVE_THEME=20;
-const ZNAMES=['Graveyard Gate','Foggy Path','Spooky Woods','Old Church','BOSS: Giant Zombie','Haunted Farm','Creepy Swamp','Ghost Town','The Crypt','BOSS: Zombie King'];
-const ZTHEMES=[20,20,2,20,20,8,12,7,20,20];
+const ZNAMES=['Graveyard Gate','Foggy Path','Spooky Woods','Old Church','BOSS: Giant Zombie','Haunted Farm','Creepy Swamp','Ghost Town','The Crypt','BOSS: Zombie King',
+  'Haunted Beach','Spooky School','Moon Graves','Zombie City','BOSS: King & Giant'];
+const ZTHEMES=[20,20,2,20,20,8,12,7,20,20,5,16,17,7,20];
 const ZMODES={};ZNAMES.forEach((nm,i)=>{const n=i+1,mix=n<3?{zombie:7,runner:3}:n<6?{zombie:6,runner:3,spitter:2}:{zombie:5,runner:4,spitter:3};
   ZMODES['z'+n]={n,name:'Zombie Level '+n+': '+nm,short:nm,baseHp:2400+n*350,int:Math.max(105,205-n*10),mix,beetle:[Math.max(900,2500-n*160),Math.max(650,1900-n*120)],
-    start:100+n*8,mul:0.85+(n-1)*0.17,pmul:1.1+(n-1)*0.07,bmul:(0.85+(n-1)*0.1)*(n===5?1.3:1),boss:n===1?null:n===10?'zking':'giant',bossAt:n===5||n===10?0.75:0.6,towerHp:1200+n*60,
+    start:100+n*8,mul:0.85+(n-1)*0.17+Math.max(0,n-10)*0.25,pmul:1.1+(n-1)*0.07,bmul:(0.85+(n-1)*0.1)*(n===5?1.3:1),boss:n===1?null:n===10||n===15?'zking':'giant',boss2:n===15?'giant':null,bossAt:n===5||n===10?0.75:0.6,towerHp:1200+n*60,
     gems:2+Math.floor(n/3)+(n%5===0?3:0),bossLv:n%5===0,theme:ZTHEMES[i]};});
 const ZCOUNT=ZNAMES.length;
 const VS1=['sword','thrower','bubble','titan','bolt'],VS2K=['bug','blaster','err','beetle','zap'];
@@ -201,7 +209,7 @@ function startMode(key){finishMode.paid=false;G=null;
   state='play';}
 function startStage(i){stageIdx=i;startBattle(STAGES[i],'story','story');}
 function startBattle(s,mode,key){const vs=mode==='vs';
-  G={s,mode,modeKey:key,vsCpu:key==='vscpu',theme:mode==='story'?stageIdx:mode==='vs'?((Math.random()*19)|0):GRAVE_THEME,stars2:s.start,cards2:{},boltCd2:300,cmd2:'attack',cpuPlan:null,time:0,stars:s.start,mine:0,units:[],proj:[],parts:[],floats:[],bolts:[],flash:0,
+  G={s,mode,modeKey:key,vsCpu:key==='vscpu',theme:mode==='story'?STAGE_THEMES[stageIdx]:mode==='vs'?((Math.random()*19)|0):GRAVE_THEME,stars2:s.start,cards2:{},boltCd2:300,cmd2:'attack',cpuPlan:null,time:0,stars:s.start,mine:0,units:[],proj:[],parts:[],floats:[],bolts:[],flash:0,
     pbase:{id:NID++,isBase:true,team:1,x:72,w:110,y:GROUND,hp:s.towerHp*(vs?1:1+0.2*save.up.tower),max:s.towerHp*(vs?1:1+0.2*save.up.tower),flash:0,cd:60},
     ores:vs?[]:makeOres(),ebase:{id:NID++,isBase:true,team:-1,kind:mode==='zombie'||mode==='night'?'grave':'crack',x:885,w:130,y:GROUND,hp:s.baseHp,max:s.baseHp,flash:0,cd:90},
     cannons:[],shells:[],spawnT:150,beetleT:s.beetle[0],kingDone:false,panic:false,cmd:'attack',boss:null,bossSpawned:false,shieldMsg:0,cards:{},boltCd:300,banner:180,bannerText:s.name,ending:null,press:{}};
@@ -381,7 +389,7 @@ function spawner(){const s=G.s;
   if(--G.spawnT<=0){spawnEnemy(pickMix(s.mix),0);const k=Math.max(0.55,1-G.time/(60*180));G.spawnT=s.int*k*(0.7+Math.random()*0.6);}
   if(--G.beetleT<=0){spawnEnemy(s.big||'beetle',0);G.beetleT=s.beetle[1];}
   if(!G.panic&&G.ebase.hp<G.ebase.max*0.7){G.panic=true;for(let i=0;i<3;i++)spawnEnemy(s.small||'bug',i*36);G.bannerText=G.mode==='zombie'?'The zombies are angry!':'The bugs are angry!';G.banner=120;}
-  if(s.boss&&!G.bossSpawned&&(G.mode==='zombie'?G.ebase.hp<G.ebase.max*(s.bossAt||0.6):G.time>2700)){G.bossSpawned=true;G.boss=spawnEnemy(s.boss,0);G.bannerText='BOSS: '+G.boss.def.name+'!';G.banner=170;sfx('boom');G.flash=8;}
+  if(s.boss&&!G.bossSpawned&&(G.mode==='zombie'?G.ebase.hp<G.ebase.max*(s.bossAt||0.6):G.time>2700)){G.bossSpawned=true;G.boss=spawnEnemy(s.boss,0);if(s.boss2)spawnEnemy(s.boss2,70);G.bannerText='BOSS: '+G.boss.def.name+'!';G.banner=170;sfx('boom');G.flash=8;}
   if(!G.kingDone&&G.ebase.hp<G.ebase.max*0.5){G.kingDone=true;for(let i=0;i<Math.min(3,1+(G.mode==='story'?stageIdx/6|0:1));i++)spawnEnemy(s.big||'beetle',i*50);spawnEnemy(s.mid||'err',20);G.bannerText=s.angry||'The Crack is getting ANGRY!';G.banner=150;sfx('boom');}}
 
 function burst(x,y,n,col){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=1.5+Math.random()*3.5;G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:24+Math.random()*14,a:Math.random()*6,len:4+Math.random()*7,col:col||INK});}}
@@ -448,7 +456,7 @@ function finish(won){if(G.mode!=='story'){finishMode(won);return;}state='over';c
   const again=()=>{finish.paid=false;};
   if(stageIdx<STAGES.length-1){const nx=STAGES[stageIdx+1];if(nx.boss)html+='<br>Watch out — the next stage is a <b>BOSS FIGHT!</b>';
     showMsg('Stage '+st.n+' cleared! 🎉',html,[['Next: Stage '+nx.n+' ▶',()=>{again();go(stageIdx+1);}],['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
-  else showMsg('YOU WIN! 🏆','Your Star Army beat the Crack Golem and sealed every crack in the computer! You are a true bug buster!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
+  else showMsg('YOU WIN! 🏆','Your Star Army beat the '+ENEMIES[st.boss].name+' and sealed every crack in the computer! You are a true bug buster!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
     [['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
 function playStory(){if(save.unlocked<=1){hideAll();go(0);}else showSelect(false);}
 let modeFromGame=false;
@@ -568,6 +576,19 @@ function drawQueen(u,col,f){ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=2;ct
   drawBugShape(u.x,u.y,f,2.8,col,u.id,true);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.fillStyle='#fff';const cx=u.x+f*48,cy=u.y-52;
   ctx.beginPath();ctx.moveTo(cx-14,cy);ctx.lineTo(cx-14,cy-16);ctx.lineTo(cx-7,cy-8);ctx.lineTo(cx,cy-20);ctx.lineTo(cx+7,cy-8);ctx.lineTo(cx+14,cy-16);ctx.lineTo(cx+14,cy);ctx.closePath();ctx.fill();ctx.stroke();
   hatch(cx-14,cy-20,28,20,4,'rgba(0,0,0,.4)',1);}
+function drawSpider(u,col,f){const x=u.x,y=u.y-30;ctx.strokeStyle=col;ctx.lineWidth=3;
+  for(let side=-1;side<=1;side+=2)for(let i=0;i<4;i++){const k=Math.sin(u.walk*1.4+i*1.3)*6,bx=x+(i-1.5)*16,kx=bx+side*0+(i-1.5)*10,ky=y-34-k;
+    ctx.beginPath();ctx.moveTo(bx,y-6);ctx.lineTo(kx+side*14,ky);ctx.lineTo(bx+(i-1.5)*14+side*8,u.y);ctx.stroke();}
+  ctx.lineWidth=2.6;ctx.beginPath();ctx.ellipse(x-f*12,y-8,40,26,0,0,7);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();hatch(x-f*12-40,y-34,80,52,4,'rgba(0,0,0,.45)',1);
+  ctx.strokeStyle=RED;ctx.lineWidth=2;sline(x-f*12-14,y-20,x-f*12+14,y+4,0.4);sline(x-f*12+14,y-20,x-f*12-14,y+4,0.4);ctx.strokeStyle=col;
+  ctx.beginPath();ctx.arc(x+f*30,y-4,18,0,7);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();
+  ctx.fillStyle=RED;for(const [ex,ey] of [[34,-12],[40,-8],[28,-8],[36,-2],[44,-2],[30,0],[40,4],[34,6]])ctx.fillRect(x+f*ex-2,y+ey-2,4,4);
+  ctx.lineWidth=3;sline(x+f*42,y+8,x+f*48,y+18,0.4);sline(x+f*34,y+10,x+f*36,y+20,0.4);}
+function drawCrackKing(u,col){const cx=u.x,cy=u.y-70;ctx.strokeStyle='rgba(192,57,43,.6)';ctx.lineWidth=3;
+  for(let i=0;i<6;i++){const a=t*0.025+i*1.047;zigzag(cx+Math.cos(a)*62,cy+Math.sin(a)*62,cx+Math.cos(a)*84,cy+Math.sin(a)*84,3,5);}
+  drawErrShape(cx,cy,54,col,'ERR');ctx.strokeStyle=RED;ctx.lineWidth=3;zigzag(cx-30,cy-48,cx+20,cy+50,7,10);
+  ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(cx-32,cy-46);ctx.lineTo(cx-32,cy-78);ctx.lineTo(cx-16,cy-60);ctx.lineTo(cx,cy-84);ctx.lineTo(cx+16,cy-60);ctx.lineTo(cx+32,cy-78);ctx.lineTo(cx+32,cy-46);ctx.closePath();ctx.fill();ctx.stroke();
+  hatch(cx-32,cy-84,64,38,4,'rgba(192,57,43,.6)',1.2);}
 function drawGolem(u,col,f){const x=u.x,y=u.y,st=Math.sin(u.walk)*4;ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.fillStyle='#fff';
   for(const lx of [-26,10]){ctx.fillRect(x+lx,y-34,18,34);srect(x+lx,y-34+(lx<0?st:-st)*0.3,18,34,1);}
   ctx.fillRect(x-44,y-112,88,80);srect(x-44,y-112,88,80,1.4);
@@ -596,7 +617,7 @@ function drawTitan(u,col,f,sc){const k=u.atk>0?1-u.atk/16:0;let ang=-1.25;if(u.a
   drawStick(0,0,f,1.75,u.walk,ang,24,col,false);
   const hx=f*10*1.75,hy=-21*1.75,tx=hx+Math.cos(ang)*24*1.75*f,ty=hy+Math.sin(ang)*24*1.75;
   seed((u.id||1)+7);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();ctx.ellipse(tx,ty,13,9,ang,0,7);ctx.fillStyle='#d9c3a5';ctx.fill();ctx.stroke();
-  ctx.fillStyle=RED;ctx.fillRect(-12,-76,24,5);
+  ctx.save();ctx.scale(f,1);ctx.fillStyle=RED;ctx.fillRect(-13,-73,26,5);ctx.fillRect(-15,-72,4,10);ctx.restore();
   if(u.atk>0&&u.atk<8&&sc===1){const r=(8-u.atk)*9;ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f*60,0,r,r*0.25,0,Math.PI,0);ctx.stroke();}
   ctx.restore();}
 function drawControls(){const h=G.ctl;if(!h||h.dead)return;seed(h.id+3);
@@ -641,7 +662,9 @@ function drawUnit(u){seed(u.id);const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:
     case 'king':drawKing(u,col);break;
     case 'megabeetle':drawBugShape(u.x,u.y,f,3.6,col,u.id,true);ctx.strokeStyle=col;ctx.lineWidth=4;sline(u.x+f*58,u.y-44,u.x+f*80,u.y-74,0.8);sline(u.x+f*62,u.y-36,u.x+f*90,u.y-50,0.8);break;
     case 'queen':drawQueen(u,col,f);break;
-    case 'golem':drawGolem(u,col,f);break;}
+    case 'golem':drawGolem(u,col,f);break;
+    case 'spider':drawSpider(u,col,f);break;
+    case 'crackking':drawCrackKing(u,col);break;}
   if(u.hp<u.max&&!u.def.boss){const bw=Math.max(26,u.def.w),bx=u.x-bw/2,by=u.y-u.def.h-(u.def.fly?34:12)-(u.type==='king'?30:0);
     ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(bx,by,bw,4);ctx.fillStyle=u.team>0?'#333':RED;ctx.fillRect(bx,by,bw*u.hp/u.max,4);}}
 
@@ -731,7 +754,7 @@ function drawCard(i,sl){const k=sl.k,x=sl.x,y=CARD_Y,CW=sl.w,p2=sl.team<0,pr=G.p
   else if(k==='bubble'){ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1.6;cpath(ix,iy-22,24,1);ctx.stroke();drawStick(ix,iy-2,1,0.66,0,-1,14,INK,false);}
   else if(k==='wallcannon'){ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.fillStyle='#fff';srect(ix-40,iy-50,22,50,1);for(let yy=iy-40;yy<iy;yy+=12)sline(ix-40,yy,ix-18,yy,0.5);
     ctx.save();ctx.translate(ix-18,iy-28);ctx.rotate(-0.4);ctx.fillRect(0,-7,34,14);srect(0,-7,34,14,0.7);ctx.restore();cpath(ix-18,iy-28,10,0.6);ctx.fill();ctx.stroke();}
-  else if(k==='titan')drawTitan({x:ix,y:iy+30,atk:0,walk:0,id:3},INK,1,0.62);
+  else if(k==='titan')drawTitan({x:ix,y:iy+4,atk:0,walk:0,id:3},INK,1,0.5);
   else if(k==='bolt'){ctx.strokeStyle=INK;ctx.lineWidth=4;zigzag(ix+10,y+12,ix-8,iy,5,9);}
   else{ctx.strokeStyle=INK;ctx.lineWidth=2.4;srect(ix-24,iy-36,48,34,1);starPath(ix-8,iy-20,8);ctx.fillStyle='#1d1d1d';ctx.fill();starPath(ix+10,iy-16,6);ctx.fill();text('↑',ix+18,iy-30,18,RED);}
   if(cdFrac>0){ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(x,y,CW,CARD_H*cdFrac);}
@@ -771,6 +794,7 @@ function draw(){const sc=cv.width/W;ctx.setTransform(sc,0,0,cv.height/H,0,0);ctx
   ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(getBG(),0,0);ctx.restore();
   hatch(0,GROUND,W,10,4,'rgba(0,0,0,.6)',1.5);hatch(0,GROUND+10,W,CARD_Y-GROUND-18,10,'rgba(0,0,0,.08)',1);
   seed(78);ctx.strokeStyle=INK;ctx.lineWidth=2.4;sline(0,GROUND,W/2,GROUND,1.5);sline(W/2,GROUND,W,GROUND,1.5);
+  if(G.mode==='story'&&STAGE_TINTS[stageIdx]){ctx.fillStyle=STAGE_TINTS[stageIdx];ctx.fillRect(0,0,W,GROUND+30);}
   if(G.mode==='night')drawNight();else if(G.mode==='zombie'&&G.theme!==GRAVE_THEME){ctx.fillStyle='rgba(40,30,70,.22)';ctx.fillRect(0,0,W,GROUND+30);}
   drawTower(G.pbase);if(G.ebase.kind==='grave')drawGrave(G.ebase);else drawCrack(G.ebase);for(const o of G.ores)drawOre(o);for(const c of G.cannons)drawWallCannon(c);hpBar(G.pbase,'STAR TOWER');if(G.mode!=='night')hpBar(G.ebase,G.ebase.kind==='grave'?'GRAVEYARD':'THE CRACK');
   const list=G.units.slice().sort((a,b)=>a.y-b.y);for(const u of list)drawUnit(u);
@@ -789,7 +813,7 @@ function draw(){const sc=cv.width/W;ctx.setTransform(sc,0,0,cv.height/H,0,0);ctx
   if(G.flash>0){ctx.fillStyle='rgba(255,255,255,'+(G.flash/20)+')';ctx.fillRect(0,0,W,H);}
   drawControls();
   G.tray.forEach((sl,i)=>drawCard(i,sl));
-  if(G.mode==='vs'){seed(61);ctx.strokeStyle=INK;ctx.lineWidth=2;sline(482,CARD_Y-4,482,H-4,1);}
+  if(G.mode==='vs'&&!G.net){seed(61);ctx.strokeStyle=INK;ctx.lineWidth=2;sline(482,CARD_Y-4,482,H-4,1);}
   drawHUD();}
 
 /* ---------- stage backgrounds ---------- */
