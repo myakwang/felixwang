@@ -1,0 +1,10 @@
+# Cloudflare Pages config for felixwang. The site's static files are built into dist/ by the deploy workflow.
+name = "felixwang"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-11-01"
+
+# Room relay for two-device games (see rooms-worker/).
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+script_name = "felixwang-rooms"
