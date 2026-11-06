@@ -57,7 +57,7 @@ Games are often developed elsewhere as a single `index.html` (plus images). That
 - **Never edit `__BUILD__`** in any `sw.js`. The deploy workflow replaces it with the commit id; that is how installed players get updates. Don't bump versions by hand.
 - **Each game folder is self-contained.** No runtime references to files outside the folder; relative paths only (`art.jpg`, not `/art.jpg`). Each game must be shippable alone (Capacitor → App Store / Google Play).
 - **Save keys must be prefixed with the game name** (all games share one origin's localStorage).
-- **No ads, analytics, trackers, third-party scripts, CDNs, or external links** inside games. (Exception approved by the owner: two-device games may open a WebSocket to this site's own room relay at `/api/room/<CODE>`; no names, chat or stored data.) The privacy policy promises this, and it keeps the games eligible for the App Store Kids category and Google Play Families policy. If a change would need any of these, stop and ask.
+- **No ads, analytics, trackers, third-party scripts, CDNs, or external links** inside games. (Exception approved by the owner: two-device games may open a WebSocket to this site's own room relay at `/api/room/<CODE>`; no typed names, chat or stored data; players pick a nickname from a fixed list in the game, sent as list positions only.) The privacy policy promises this, and it keeps the games eligible for the App Store Kids category and Google Play Families policy. If a change would need any of these, stop and ask.
 - No personal data about Felix or the family beyond his first name.
 - Don't commit secrets. The Cloudflare token lives only in the GitHub secret `CLOUDFLARE_API_TOKEN`.
 
