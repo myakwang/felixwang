@@ -16,6 +16,7 @@ sw.js                 Retired root service worker (cleans up the first release).
 _headers              Cloudflare headers: service workers are never cached
 star-army/            Star Army vs. The Bugs
 star-army-online/     Star Army Online: two players on two devices (uses the room relay)
+counter/              Owner page: live count of Star Army Online players (not linked from the lobby)
   index.html          The game
   manifest.webmanifest, sw.js, icons/   Makes it an installable, offline PWA
   thumb.jpg           Picture shown on the lobby card
