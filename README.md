@@ -30,6 +30,7 @@ wrangler.toml         Pages config: binds ROOMS to the felixwang-rooms worker
 `star-army-online/` connects two devices through `/api/room/<4-letter code>` on this same site.
 The Pages Function in `functions/` forwards the WebSocket to a `Room` Durable Object in `rooms-worker/`
 (worker name `felixwang-rooms`). The relay only forwards messages between the two players in a room and stores nothing.
+A second Durable Object, `Stats`, keeps the live number of players in rooms; `GET /api/online` returns `{"players": N}` for the lobby and the online game.
 The deploy workflow deploys the worker first, then the site. The Cloudflare API token needs
 **Workers Scripts: Edit** and **Cloudflare Pages: Edit** permissions on the account.
 To test locally, run any WebSocket relay with the same protocol and open `star-army-online/?server=http://localhost:8787`.

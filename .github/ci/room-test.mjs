@@ -6,6 +6,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const a = await open(); await wait(800);
 const b = await open(); await wait(1200);
 a.ws.send(JSON.stringify({ t: 'start', th: 3 })); b.ws.send(JSON.stringify({ t: 'act', a: 'd', k: 'bug' })); await wait(1200);
+const count = async () => (await (await fetch(process.argv[2] + '/api/online', { cache: 'no-store' })).json()).players;
+const during = await count(); console.log('players online during test:', during);
 const c = await open(); await wait(1000);
 console.log('A got', JSON.stringify(a.got)); console.log('B got', JSON.stringify(b.got)); console.log('C got', JSON.stringify(c.got));
 const ok = a.got.some(m => m.t === 'hello' && m.role === 'p1') && b.got.some(m => m.t === 'hello' && m.role === 'p2') &&
@@ -14,5 +16,7 @@ const leftEarly = a.got.some(m => m.t === 'left') || b.got.some(m => m.t === 'le
 console.log('left before anyone quit?', leftEarly);
 b.ws.close(); await wait(1200); console.log('A after B left', JSON.stringify(a.got.slice(-1)));
 const ok2 = a.got.some(m => m.t === 'left');
+await wait(800); const after = await count(); console.log('players online after B left:', after);
+const ok3 = during >= 2 && after < during;
 a.ws.close(); c.ws.close();
-if (!ok || !ok2 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');
+if (!ok || !ok2 || !ok3 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');

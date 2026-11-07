@@ -35,6 +35,7 @@ a.card:active{transform:translate(3px,4px);box-shadow:2px 3px 0 var(--ink)}
 .card h2{margin:2px 0 0;font-size:25px;line-height:1.1}
 .card p{margin:0;font-size:16px;line-height:1.35;flex:1}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
+.online{font-weight:bold;font-size:14px;margin:6px 0 0;color:#1e7a3a;min-height:18px}
 .tag{font-size:13px;border:2px solid var(--ink);border-radius:999px;padding:1px 9px;background:var(--paper)}
 .play{align-self:flex-start;font:inherit;font-size:20px;font-weight:bold;background:var(--star);
   border:3px solid var(--ink);border-radius:10px 14px 9px 13px;padding:5px 18px;box-shadow:3px 3px 0 var(--ink)}
@@ -78,14 +79,15 @@ const GAMES = [
     title: 'Star Army Online',
     blurb: 'Two players, two devices! Make a room, tell your friend the 4-letter code, and battle Star Army vs. Star Army.',
     thumb: 'star-army-online/thumb.jpg',
-    tags: ['Strategy', '2 players', '2 devices', 'Online']
+    tags: ['Strategy', '2 players', '2 devices', 'Online'],
+    online: true
   },
   {
     path: 'star-army/',
     title: 'Star Army vs. The Bugs',
     blurb: 'Bugs broke into the computer! Hire miners, build an army, protect your Star Tower and seal up The Crack.',
     thumb: 'star-army/thumb.jpg',
-    tags: ['Strategy', '20 stages', 'Zombie mode', '2 players']
+    tags: ['Strategy', '30 stages', 'Zombie mode', '2 players']
   },
 ];
 
@@ -97,6 +99,7 @@ main.innerHTML = GAMES.map(g => `
     <h2>${esc(g.title)}</h2>
     <p>${esc(g.blurb)}</p>
     <div class="tags">${(g.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    ${g.online ? '<div class="online" id="onlineCount"></div>' : ''}
     <span class="play">▶ Play</span>
   </a>`).join('') + `
   <div class="card soon">
@@ -104,6 +107,12 @@ main.innerHTML = GAMES.map(g => `
     <h2>Next game</h2>
     <p>Felix is drawing it right now…</p>
   </div>`;
+
+// Live count of players in Star Army Online rooms (a single number from this site's room relay).
+async function showOnline(){const el=document.getElementById('onlineCount');if(!el)return;
+  try{const r=await fetch('api/online',{cache:'no-store'});const j=await r.json();const n=j.players|0;
+    el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
+showOnline();setInterval(()=>{if(!document.hidden)showOnline();},20000);
 </script>
 </body>
 </html>
