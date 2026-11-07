@@ -19,4 +19,9 @@ const ok2 = a.got.some(m => m.t === 'left');
 await wait(800); const after = await count(); console.log('players online after B left:', after);
 const ok3 = during >= 2 && after < during;
 a.ws.close(); c.ws.close();
-if (!ok || !ok2 || !ok3 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');
+// quick match: two searchers get the same new room code
+const mm = () => new Promise((res, rej) => { const ws = new WebSocket(`${base}/api/match`); ws.onmessage = e => { const m = JSON.parse(e.data); if (m.t === 'match') res(m); }; ws.onerror = () => rej(new Error('match ws error')); });
+const m1p = mm(); await wait(700); const m2 = await mm(); const m1 = await m1p;
+console.log('quick match:', JSON.stringify(m1), JSON.stringify(m2));
+const ok4 = m1.code === m2.code && /^[A-Z]{4}$/.test(m1.code) && m1.role === 'p1' && m2.role === 'p2';
+if (!ok || !ok2 || !ok3 || !ok4 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');

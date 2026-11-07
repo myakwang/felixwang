@@ -58,7 +58,8 @@ export class Room {
       return new Response(null, { status: 101, webSocket: client });
     }
     const taken = players.map(s => this.ctx.getTags(s)[0]);
-    const role = taken.includes('p1') ? 'p2' : 'p1';
+    const want = new URL(request.url).searchParams.get('role'); // quick match asks for its role
+    const role = (want === 'p1' || want === 'p2') && !taken.includes(want) ? want : (taken.includes('p1') ? 'p2' : 'p1');
     this.ctx.acceptWebSocket(server, [role]);
     server.send(JSON.stringify({ t: 'hello', role }));
     if (players.length === 1) for (const s of [...players, server]) { try { s.send(JSON.stringify({ t: 'ready' })); } catch (e) {} }
@@ -81,6 +82,33 @@ export class Room {
   }
 
   async webSocketError(ws) { await this.webSocketClose(ws); }
+}
+
+// Quick match ("Find a player"): players who are searching at the same moment are paired
+// and sent the same new room code. Nothing is stored; a searcher who gives up just disconnects.
+const CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+function randCode() { let c = ''; for (let i = 0; i < 4; i++) c += CODE_ABC[Math.floor(Math.random() * CODE_ABC.length)]; return c; }
+export class Matchmaker {
+  constructor(ctx, env) { this.ctx = ctx; }
+  async fetch(request) {
+    if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
+    const [client, server] = Object.values(new WebSocketPair());
+    const waiting = this.ctx.getWebSockets('wait').filter(s => s.readyState === WebSocket.OPEN);
+    if (waiting.length) {
+      const other = waiting[0], code = randCode();
+      this.ctx.acceptWebSocket(server, ['paired']);
+      try { other.send(JSON.stringify({ t: 'match', code, role: 'p1' })); other.close(1000, 'matched'); } catch (e) {}
+      server.send(JSON.stringify({ t: 'match', code, role: 'p2' }));
+      server.close(1000, 'matched');
+    } else {
+      this.ctx.acceptWebSocket(server, ['wait']);
+      server.send(JSON.stringify({ t: 'searching' }));
+    }
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  webSocketMessage() {}
+  webSocketClose(ws) { try { ws.close(1000, 'bye'); } catch (e) {} }
+  webSocketError(ws) { this.webSocketClose(ws); }
 }
 
 export default { fetch() { return new Response('Felix game rooms', { status: 200 }); } };

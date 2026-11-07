@@ -13,3 +13,8 @@ script_name = "felixwang-rooms"
 name = "STATS"
 class_name = "Stats"
 script_name = "felixwang-rooms"
+
+[[durable_objects.bindings]]
+name = "MATCH"
+class_name = "Matchmaker"
+script_name = "felixwang-rooms"
