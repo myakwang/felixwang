@@ -68,7 +68,7 @@ input{-webkit-user-select:text;user-select:text}
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="tools"><button id="menu">menu</button><button id="speed">speed 1×</button><button id="music">music on</button><button id="mute">sound on</button></div>
+<div id="tools"><button class="homeBtn" style="display:none">🏠 home</button><button id="menu">menu</button><button id="speed">speed 1×</button><button id="music">music on</button><button id="mute">sound on</button></div>
 
 <div id="title" class="ov on"><div class="card">
   <h1>STAR ARMY ONLINE</h1>
@@ -77,14 +77,13 @@ input{-webkit-user-select:text;user-select:text}
   <img class="art" src="art.jpg" alt="The original hand-drawn picture this game is based on" onerror="this.remove()">
   <ul>
     <li>Each player picks a fun <b>nickname</b> (like Captain Comet) so you don't get mixed up.</li>
-    <li>No friend nearby? Tap <b>Find a player</b> to play anyone who is searching, or play the computer.</li>
     <li>One player taps <b>Make a room</b> and gets a 4-letter code. The other player taps <b>Join a room</b> and types the code.</li>
     <li>You are the <b>Black team</b> on the left, or the <b>Blue team</b> on the right.</li>
     <li>Stars ★ fill up by themselves, and squashing enemy soldiers gives you more.</li>
     <li>Send Swordy, Pencil Throwers, Bubble Guards and Giants, and zap with Lightning!</li>
     <li>Use <b>ATTACK</b> and <b>DEFEND</b> to tell your army to charge or guard your tower.</li>
   </ul>
-  <button class="btn" id="playBtn">▶ Play with a friend</button>
+  <button class="btn" id="playBtn">▶ Play with a friend</button><button class="btn homeBtn" style="display:none">🏠 All games</button>
   <p class="small">Both devices need the internet. Only game moves and your picked nickname are sent between your two devices: no real names, no chat, nothing saved.</p>
   <p class="small" id="rot">Tip: turn your phone sideways for a bigger battlefield</p>
 </div></div>
@@ -102,17 +101,9 @@ input{-webkit-user-select:text;user-select:text}
     <div class="mode"><b>🔑 Join a room</b><span>Type the code your friend tells you.</span>
       <input id="codeIn" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
       <div class="opts"><button id="joinBtn">Join</button></div></div>
-    <div class="mode"><b>⚡ Find a player</b><span>No friend nearby? Search for 10 seconds for anyone else who is searching right now.</span><div class="opts"><button id="findBtn">Find a player</button></div></div>
   </div>
   <p id="netMsg" class="small">&nbsp;</p>
   <button class="btn" id="netBack">Back</button>
-</div></div>
-<div id="searchOv" class="ov"><div class="card">
-  <h2>⚡ Find a player</h2>
-  <div class="bigcode" id="searchCount">10</div>
-  <p id="searchMsg">Searching for a player…</p>
-  <div id="searchBtns" style="display:none"><button class="btn" id="cpuBtn">🤖 Play vs Computer</button><button class="btn" id="againBtn">🔍 Search again</button></div>
-  <button class="btn" id="searchCancel">Back</button>
 </div></div>
 <div id="waitOv" class="ov"><div class="card">
   <h2>Your room code</h2>
@@ -461,7 +452,7 @@ function update(){G.time++;
 
 /* ---------- flow ---------- */
 let prevState=null,upReturn=null;
-function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv','netOv','waitOv','searchOv'].forEach(id=>$(id).classList.remove('on'));}
+function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv','netOv','waitOv'].forEach(id=>$(id).classList.remove('on'));}
 function showMsg(title,html,buttons){$('msgTitle').textContent=title;$('msgText').innerHTML=html;const box=$('msgBtns');box.innerHTML='';
   buttons.forEach(([label,fn])=>{const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=()=>{hideAll();fn();};box.appendChild(b);});
   hideAll();$('msgOv').classList.add('on');}
@@ -474,7 +465,7 @@ function showSelect(fromGame){prevState=fromGame?state:null;if(fromGame&&state==
   hideAll();$('selOv').classList.add('on');}
 $('selUp').onclick=()=>showUpgrades(()=>{$('selOv').classList.add('on');});
 $('selBack').onclick=()=>{hideAll();if(prevState==='paused'){state='play';}else if(prevState==='over'){$('msgOv').classList.add('on');}else{showModes(false);}};
-$('menu').onclick=()=>{unlockAudio();if(state==='title'||!G)return;if(G.net){if(state==='play')showMsg('Leave the game?','The game keeps going while this is open. If you leave, your friend wins.',[['Keep playing',()=>{}],['Leave',()=>{netLeave();}]]);return;}if(state==='play')showMsg('Leave the game?','',[['Keep playing',()=>{}],['Leave',()=>{hideAll();state='title';$('title').classList.add('on');}]]);};
+$('menu').onclick=()=>{unlockAudio();if(state==='title'||!G)return;if(G.net){if(state==='play')showMsg('Leave the game?','The game keeps going while this is open. If you leave, your friend wins.',[['Keep playing',()=>{}],['Leave',()=>{netLeave();}]]);return;}if(G.mode==='story')showSelect(true);else showModes(true);};
 function showUpgrades(back){upReturn=back;renderUpgrades();$('upMsg').innerHTML='&nbsp;';hideAll();$('upOv').classList.add('on');}
 function renderUpgrades(){$('gemCount').textContent=save.gems;const list=$('upList');list.innerHTML='';
   UPGRADES.forEach(u=>{const lv=save.up[u.k],isMax=lv>=u.max,lock=u.need&&lockedStory(u.need);
@@ -511,7 +502,7 @@ function showZombieLevels(){const g=$('zGrid');g.innerHTML='';const zu=save.zUnl
 $('zBack').onclick=()=>{hideAll();if(state==='over')$('msgOv').classList.add('on');else showModes(false);};
 $('modeUp').onclick=()=>showUpgrades(()=>{$('modeOv').classList.add('on');});
 $('modeBack').onclick=()=>{hideAll();if(modeFromGame&&state==='paused')state='play';else if(state==='over'){$('msgOv').classList.add('on');}else{state='title';$('title').classList.add('on');}};
-function finishMode(won){if(G.net){finishNet(won);return;}state='over';const m=G.mode,key=G.modeKey,again=()=>{finishMode.paid=false;startMode(key);},modes=()=>{finishMode.paid=false;hideAll();state='title';$('netMsg').innerHTML='&nbsp;';$('netOv').classList.add('on');};
+function finishMode(won){if(G.net){finishNet(won);return;}state='over';const m=G.mode,key=G.modeKey,again=()=>{finishMode.paid=false;startMode(key);},modes=()=>{finishMode.paid=false;showModes(false);};
   const pay=g=>{if(!finishMode.paid){save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b>'+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
   if(m==='vs'){if(G.vsCpu)showMsg(won?'YOU WIN! 🏆':'The Computer wins!',won?'Your Star Army smashed the Bug Army!'+pay(3):'The bugs knocked down your Star Tower. Try again!',[['Rematch',again],['Modes',modes]]);
     else showMsg(won?'PLAYER 1 WINS! ⭐':'PLAYER 2 WINS! 🐛',won?'The Star Army sealed the Crack!':'The Bug Army knocked down the Star Tower!',[['Rematch',again],['Modes',modes]]);return;}
@@ -989,8 +980,8 @@ function isGuest(){return !!(G&&G.net&&G.net.role==='p2');}
 function netTray(role){const team=role==='p1'?1:-1,keys=role==='p1'?VS1:VS2K;return keys.map((k,i)=>({k,team,x:160+i*130,w:CARD_W}));}
 function netCmdBtns(role){const team=role==='p1'?1:-1;return [{k:'attack',team,x:W/2-128,y:34,w:122,h:34,label:'⚔ ATTACK'},{k:'defend',team,x:W/2+6,y:34,w:122,h:34,label:'⛨ DEFEND'}];}
 function randCode(){let c='';for(let i=0;i<4;i++)c+=CODE_ABC[(Math.random()*CODE_ABC.length)|0];return c;}
-function netUrl(code,role){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}
-  const base=q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev');return base.replace(/^http/,'ws')+'/api/room/'+code+(role?'?role='+role:'');}
+function netUrl(code){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}
+  const base=q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev');return base.replace(/^http/,'ws')+'/api/room/'+code;}
 function apiBase(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}
   return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
 async function showOnlineNow(){const els=[$('onlineTitle'),$('onlineNet')];
@@ -1001,20 +992,18 @@ showOnlineNow();setInterval(()=>{if(!document.hidden&&state!=='play')showOnlineN
 function netSend(o){if(NET.ws&&NET.ws.readyState===1){try{NET.ws.send(JSON.stringify(o));}catch(e){}}}
 function netClose(){clearTimeout(NET.timer);NET.friend=null;const w=NET.ws;NET.ws=null;NET.state='idle';NET.meAgain=NET.otherAgain=false;if(w){try{w.close();}catch(e){}}}
 function netFail(msg){netClose();hideAll();$('netMsg').textContent=msg;$('netOv').classList.add('on');if(state==='play'||state==='over')state='title';}
-function netOpen(code,want,quick){netClose();NET.code=code;NET.want=want;NET.quick=!!quick;NET.state='connecting';let ws;
-  try{ws=new WebSocket(netUrl(code,quick?want:null));}catch(e){netFail('Could not connect. Check the internet and try again.');return;}
+function netOpen(code,want){netClose();NET.code=code;NET.want=want;NET.state='connecting';let ws;
+  try{ws=new WebSocket(netUrl(code));}catch(e){netFail('Could not connect. Check the internet and try again.');return;}
   NET.ws=ws;ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data);}catch(_){return;}netOnMsg(m);};
   ws.onclose=()=>{if(NET.ws!==ws)return;NET.ws=null;netLost();};ws.onerror=()=>{};
   NET.timer=setTimeout(()=>{if(NET.state==='connecting')netFail('Could not reach the game server. Check the internet and try again.');},9000);}
 function netOnMsg(m){switch(m.t){
   case 'hello':clearTimeout(NET.timer);NET.role=m.role;
-    if(NET.quick){if(m.role!==NET.want){netFail('The match did not work. Try Find a player again.');return;}NET.state='waiting';
-      NET.timer=setTimeout(()=>{if(NET.state==='waiting')netFail('The other player did not show up. Try Find a player again.');},8000);return;}
     if(NET.want==='p1'&&m.role!=='p1'){netOpen(randCode(),'p1');return;}
     if(NET.want==='p2'&&m.role!=='p2'){netFail('There is no room with the code '+NET.code+'. Check the code and try again.');return;}
     NET.state='waiting';if(m.role==='p1')showWait(NET.code);else $('netMsg').textContent='Joined! Starting the game…';break;
   case 'full':netFail('That room already has two players.');break;
-  case 'ready':clearTimeout(NET.timer);NET.state='ready';sendNick();if(NET.role==='p1')hostStart();break;
+  case 'ready':NET.state='ready';sendNick();if(NET.role==='p1')hostStart();break;
   case 'name':{const a=m.a|0,b=m.b|0;if(NICK_A[a]&&NICK_B[b]){const first=!NET.friend;NET.friend=[a,b];if(first&&G&&G.net&&state==='play'){G.bannerText=friendName()+' joined!';G.banner=100;}}}break;
   case 'start':if(NET.role==='p2')startNet(m.th);break;
   case 's':if(NET.role==='p2'&&G&&G.net&&state==='play')applySnap(m);break;
@@ -1071,21 +1060,6 @@ $('nameB').onchange=()=>setNick([myNick[0],+$('nameB').value]);
 $('nameDice').onclick=()=>{unlockAudio();setNick([(Math.random()*NICK_A.length)|0,(Math.random()*NICK_B.length)|0]);sfx('deploy',true);};
 ['nameA','nameB'].forEach(id=>{$(id).addEventListener('keydown',e=>e.stopPropagation());$(id).addEventListener('pointerdown',e=>e.stopPropagation());});
 fillNick();
-const MM={ws:null,timer:null,left:0};
-function mmClose(){clearInterval(MM.timer);MM.timer=null;const w=MM.ws;MM.ws=null;if(w){try{w.close();}catch(e){}}}
-function mmNone(msg){mmClose();MM.left=0;$('searchMsg').textContent=msg;$('searchCount').textContent='😴';$('searchBtns').style.display='';}
-function quickMatch(){netClose();mmClose();hideAll();$('searchOv').classList.add('on');$('searchBtns').style.display='none';
-  $('searchMsg').textContent='Hi '+myName()+'! Searching for a player…';MM.left=10;$('searchCount').textContent=MM.left;
-  let ws;try{ws=new WebSocket(apiBase().replace(/^http/,'ws')+'/api/match');}catch(e){mmNone('Could not reach the game server. Check the internet.');return;}
-  MM.ws=ws;
-  ws.onmessage=e=>{if(MM.ws!==ws)return;let m;try{m=JSON.parse(e.data);}catch(_){return;}
-    if(m.t==='match'&&/^[A-Z]{4}$/.test(m.code)&&(m.role==='p1'||m.role==='p2')){mmClose();$('searchCount').textContent='🎉';$('searchMsg').textContent='Found a player! Starting…';sfx('buy',true);netOpen(m.code,m.role,true);}};
-  ws.onclose=()=>{if(MM.ws!==ws)return;MM.ws=null;if(MM.left>0)mmNone('Lost the connection to the game server.');};ws.onerror=()=>{};
-  MM.timer=setInterval(()=>{MM.left--;if(MM.left>0)$('searchCount').textContent=MM.left;else mmNone('Nobody else is searching right now.');},1000);}
-$('findBtn').onclick=()=>{unlockAudio();quickMatch();};
-$('againBtn').onclick=()=>quickMatch();
-$('cpuBtn').onclick=()=>{mmClose();netClose();hideAll();startMode('vscpu');};
-$('searchCancel').onclick=()=>{mmClose();netClose();hideAll();$('netMsg').innerHTML='&nbsp;';$('netOv').classList.add('on');};
 $('hostBtn').onclick=()=>{unlockAudio();$('netMsg').textContent='Making a room…';netOpen(randCode(),'p1');};
 $('joinBtn').onclick=()=>{unlockAudio();const c=$('codeIn').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('netMsg').textContent='The code has 4 letters.';return;}$('netMsg').textContent='Joining room '+c+'…';netOpen(c,'p2');};
 $('codeIn').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')$('joinBtn').click();});
@@ -1151,6 +1125,15 @@ function jingle(won){if(!MUSIC.on||!AC)return;try{const t=AC.currentTime+0.05;
 function setMusic(on){MUSIC.on=on;try{localStorage.setItem(MUSIC_KEY,on?'on':'off');}catch(e){}const b=$('music');if(b)b.textContent='music '+(on?'on':'off');}
 $('music').onclick=()=>{unlockAudio();setMusic(!MUSIC.on);};
 setMusic(MUSIC.on);
+
+
+/* ---------- home button (back to the games page; only on the website) ---------- */
+const ON_SITE=/^https?:$/.test(location.protocol);
+function goHome(){location.href=new URL('../',location.href).href;}
+function askHome(){unlockAudio();
+  if(state==='play'&&G&&!G.ending){showMsg('Go back to all games?',G.net?'You will leave this online game, and your friend wins.':'This battle will stop. Your unlocked soldiers, gems and upgrades are saved.',[['Keep playing',()=>{}],['🏠 Go to all games',()=>{if(G.net&&typeof netClose==='function')netClose();goHome();}]]);}
+  else goHome();}
+if(ON_SITE){document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';b.onclick=askHome;});}
 
 /* ---------- loop ---------- */
 let last=performance.now(),acc=0;

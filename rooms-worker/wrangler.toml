@@ -11,10 +11,6 @@ class_name = "Room"
 name = "STATS"
 class_name = "Stats"
 
-[[durable_objects.bindings]]
-name = "MATCH"
-class_name = "Matchmaker"
-
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
@@ -23,6 +19,11 @@ new_sqlite_classes = ["Room"]
 tag = "v2"
 new_sqlite_classes = ["Stats"]
 
+# "Find a player" was removed again; v3 created its class, v4 deletes it.
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["Matchmaker"]
+
+[[migrations]]
+tag = "v4"
+deleted_classes = ["Matchmaker"]

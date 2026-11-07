@@ -56,9 +56,10 @@ Games are often developed elsewhere as a single `index.html` (plus images). That
 ## Hard rules
 
 - **Never edit `__BUILD__`** in any `sw.js`. The deploy workflow replaces it with the commit id; that is how installed players get updates. Don't bump versions by hand.
+- **Home button:** games show a 🏠 button that goes to `../` (the games page) only when served from the website (http/https); it stays hidden in app builds.
 - **Each game folder is self-contained.** No runtime references to files outside the folder; relative paths only (`art.jpg`, not `/art.jpg`). Each game must be shippable alone (Capacitor → App Store / Google Play).
 - **Save keys must be prefixed with the game name** (all games share one origin's localStorage).
-- **No ads, analytics, trackers, third-party scripts, CDNs, or external links** inside games. (Exception approved by the owner: two-device games may open a WebSocket to this site's own room relay at `/api/room/<CODE>`; no typed names, chat or stored data; players pick a nickname from a fixed list in the game, sent as list positions only. "Find a player" quick match pairs two players searching at the same moment via `/api/match`.) The privacy policy promises this, and it keeps the games eligible for the App Store Kids category and Google Play Families policy. If a change would need any of these, stop and ask.
+- **No ads, analytics, trackers, third-party scripts, CDNs, or external links** inside games. (Exception approved by the owner: two-device games may open a WebSocket to this site's own room relay at `/api/room/<CODE>`; no typed names, chat or stored data; players pick a nickname from a fixed list in the game, sent as list positions only. Star Army's title screen may also read the live online-player number from `/api/online` (a GET that sends nothing about the player).) The privacy policy promises this, and it keeps the games eligible for the App Store Kids category and Google Play Families policy. If a change would need any of these, stop and ask.
 - No personal data about Felix or the family beyond his first name.
 - Don't commit secrets. The Cloudflare token lives only in the GitHub secret `CLOUDFLARE_API_TOKEN`.
 

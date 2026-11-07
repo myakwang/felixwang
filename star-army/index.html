@@ -46,16 +46,18 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
 .sbtn{font:inherit;background:#fff;color:#222;border:2px solid #222;border-radius:8px 11px 9px 12px;padding:6px 2px;cursor:pointer;touch-action:manipulation;min-height:58px}
 .sbtn b{display:block;font-size:20px}.sbtn span{font-size:10px;display:block;line-height:1.1}
 .sbtn.boss{border:3px solid #c0392b;color:#c0392b}.sbtn:disabled{opacity:.3;cursor:default}.sbtn.done{background:#eee}
+.onlinenow{font-weight:bold;color:#1e7a3a;min-height:20px;margin:2px 0 6px}
 #rot{display:none}
 @media (orientation:portrait) and (pointer:coarse){#rot{display:block}}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="tools"><button id="menu">menu</button><button id="speed">speed 1×</button><button id="music">music on</button><button id="mute">sound on</button></div>
+<div id="tools"><button class="homeBtn" style="display:none">🏠 home</button><button id="menu">menu</button><button id="speed">speed 1×</button><button id="music">music on</button><button id="mute">sound on</button></div>
 
 <div id="title" class="ov on"><div class="card">
   <h1>STAR ARMY vs. THE BUGS</h1>
+  <p class="onlinenow" id="onlineTitle"></p>
   <p>Bugs have taken over the computer! Build an army, protect your <b>Star Tower</b>, and seal up <b>The Crack</b> in the wall where they come from.</p>
   <img class="art" src="art.jpg" alt="The original hand-drawn picture this game is based on" onerror="this.remove()">
   <ul>
@@ -69,7 +71,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
     <li>Tap one of your soldiers to <b>control it yourself</b>! Use ◀ ▶ to move and HIT to attack.</li>
     <li>More modes: <b>VS</b> a friend or the computer, <b>Zombie Attack</b>, and <b>Survive Till Sunrise</b>!</li>
   </ul>
-  <button class="btn" id="playBtn">▶ Play</button>
+  <button class="btn" id="playBtn">▶ Play</button><button class="btn homeBtn" style="display:none">🏠 All games</button>
   <p class="small">Keyboard: 1–7 cards · Space fires a cannon · A attack · D defend · H control a soldier, ← → move, ↑ hit, ↓ let go</p>
   <p class="small" id="rot">Tip: turn your phone sideways for a bigger battlefield</p>
 </div></div>
@@ -997,6 +999,21 @@ function jingle(won){if(!MUSIC.on||!AC)return;try{const t=AC.currentTime+0.05;
 function setMusic(on){MUSIC.on=on;try{localStorage.setItem(MUSIC_KEY,on?'on':'off');}catch(e){}const b=$('music');if(b)b.textContent='music '+(on?'on':'off');}
 $('music').onclick=()=>{unlockAudio();setMusic(!MUSIC.on);};
 setMusic(MUSIC.on);
+
+
+/* ---------- home button (back to the games page; only on the website) ---------- */
+const ON_SITE=/^https?:$/.test(location.protocol);
+function goHome(){location.href=new URL('../',location.href).href;}
+function askHome(){unlockAudio();
+  if(state==='play'&&G&&!G.ending){showMsg('Go back to all games?',G.net?'You will leave this online game, and your friend wins.':'This battle will stop. Your unlocked soldiers, gems and upgrades are saved.',[['Keep playing',()=>{}],['🏠 Go to all games',()=>{if(G.net&&typeof netClose==='function')netClose();goHome();}]]);}
+  else goHome();}
+if(ON_SITE){document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';b.onclick=askHome;});}
+
+/* ---------- how many people are in Star Army Online right now (reads one number; sends nothing) ---------- */
+async function showOnlineNowSP(){const el=$('onlineTitle');if(!el||!/^https?:$/.test(location.protocol))return;
+  try{const r=await fetch(location.origin+'/api/online',{cache:'no-store'});const n=((await r.json()).players)|0;
+    el.textContent=n>0?'🟢 '+n+(n===1?' player is':' players are')+' in Star Army Online right now':'🟢 Nobody in Star Army Online yet. Be the first!';}catch(e){el.textContent='';}}
+showOnlineNowSP();setInterval(()=>{if(!document.hidden&&state!=='play')showOnlineNowSP();},20000);
 
 /* ---------- loop ---------- */
 let last=performance.now(),acc=0;
