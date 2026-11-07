@@ -1009,12 +1009,20 @@ function askHome(){unlockAudio();
   else goHome();}
 if(ON_SITE){document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';b.onclick=askHome;});}
 
-/* ---------- how many people are in Star Army Online right now (reads one number; sends nothing) ---------- */
+/* ---------- live player counts ---------- */
+// Anonymous "still playing" signal for the single-player count: a random id made fresh every time the
+// game opens (never saved), sent every 60 s while the game is on screen. Nothing else is sent.
+const PLAY_ID=(()=>{try{const a=new Uint8Array(8);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');}catch(e){return null;}})();
+function playBeat(bye){if(!PLAY_ID||!/^https?:$/.test(location.protocol))return;const body=JSON.stringify({id:PLAY_ID,bye:bye?1:0});
+  try{if(bye&&navigator.sendBeacon){navigator.sendBeacon(location.origin+'/api/playing',new Blob([body],{type:'application/json'}));return;}
+    fetch(location.origin+'/api/playing',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{});}catch(e){}}
+playBeat();setInterval(()=>{if(document.visibilityState==='visible')playBeat();},60000);
+document.addEventListener('visibilitychange',()=>{playBeat(document.visibilityState!=='visible');if(document.visibilityState==='visible')setTimeout(showOnlineNowSP,800);});
+addEventListener('pagehide',()=>playBeat(true));
 async function showOnlineNowSP(){const el=$('onlineTitle');if(!el||!/^https?:$/.test(location.protocol))return;
-  try{const r=await fetch(location.origin+'/api/online',{cache:'no-store'});const n=((await r.json()).players)|0;
-    el.textContent=n>0?'🟢 '+n+(n===1?' player is':' players are')+' in Star Army Online right now':'🟢 Nobody in Star Army Online yet. Be the first!';}catch(e){el.textContent='';}}
-showOnlineNowSP();setInterval(()=>{if(!document.hidden&&state!=='play')showOnlineNowSP();},20000);
-
+  try{const r=await fetch(location.origin+'/api/online',{cache:'no-store'});const j=await r.json(),solo=Math.max(1,j.solo|0),on=j.players|0;
+    el.textContent='🟢 '+solo+(solo===1?' player':' players')+' in Star Army right now (with you) · '+on+' in Star Army Online';}catch(e){el.textContent='';}}
+setTimeout(showOnlineNowSP,800);setInterval(()=>{if(!document.hidden&&state!=='play')showOnlineNowSP();},20000);
 /* ---------- loop ---------- */
 let last=performance.now(),acc=0;
 function frame(now){acc+=Math.min(100,now-last);last=now;boil=Math.floor(now/140)%4;

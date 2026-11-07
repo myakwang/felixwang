@@ -87,7 +87,8 @@ const GAMES = [
     title: 'Star Army vs. The Bugs',
     blurb: 'Bugs broke into the computer! Hire miners, build an army, protect your Star Tower and seal up The Crack.',
     thumb: 'star-army/thumb.jpg',
-    tags: ['Strategy', '30 stages', 'Zombie mode', '2 players']
+    tags: ['Strategy', '30 stages', 'Zombie mode', '2 players'],
+    solo: true
   },
 ];
 
@@ -99,7 +100,7 @@ main.innerHTML = GAMES.map(g => `
     <h2>${esc(g.title)}</h2>
     <p>${esc(g.blurb)}</p>
     <div class="tags">${(g.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
-    ${g.online ? '<div class="online" id="onlineCount"></div>' : ''}
+    ${g.online ? '<div class="online" id="onlineCount"></div>' : ''}${g.solo ? '<div class="online" id="soloCount"></div>' : ''}
     <span class="play">▶ Play</span>
   </a>`).join('') + `
   <div class="card soon">
@@ -108,10 +109,11 @@ main.innerHTML = GAMES.map(g => `
     <p>Felix is drawing it right now…</p>
   </div>`;
 
-// Live count of players in Star Army Online rooms (a single number from this site's room relay).
-async function showOnline(){const el=document.getElementById('onlineCount');if(!el)return;
-  try{const r=await fetch('api/online',{cache:'no-store'});const j=await r.json();const n=j.players|0;
-    el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
+// Live player counts from this site's own server (numbers only).
+async function showOnline(){const el=document.getElementById('onlineCount'),sl=document.getElementById('soloCount');
+  try{const r=await fetch('api/online',{cache:'no-store'});const j=await r.json();const n=j.players|0,s=j.solo|0;
+    if(el)el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online now':'🟢 Be the first player online!';
+    if(sl)sl.textContent=s>0?'🟢 '+s+(s===1?' player':' players')+' playing now':'';}catch(e){if(el)el.textContent='';if(sl)sl.textContent='';}}
 showOnline();setInterval(()=>{if(!document.hidden)showOnline();},20000);
 </script>
 </body>

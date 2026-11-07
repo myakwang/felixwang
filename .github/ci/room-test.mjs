@@ -19,4 +19,11 @@ const ok2 = a.got.some(m => m.t === 'left');
 await wait(800); const after = await count(); console.log('players online after B left:', after);
 const ok3 = during >= 2 && after < during;
 a.ws.close(); c.ws.close();
-if (!ok || !ok2 || !ok3 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');
+// single-player "still playing" signal: count goes up, then down after "bye"
+const sid = Array.from(crypto.getRandomValues(new Uint8Array(8)), x => x.toString(16).padStart(2, '0')).join('');
+const soloNow = async () => (await (await fetch(process.argv[2] + '/api/online', { cache: 'no-store' })).json()).solo | 0;
+const beat = bye => fetch(process.argv[2] + '/api/playing', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: sid, bye }) });
+const s0 = await soloNow(); await beat(0); await wait(500); const s1 = await soloNow(); await beat(1); await wait(500); const s2 = await soloNow();
+console.log('single-player count: before', s0, 'signal', s1, 'after bye', s2);
+const ok5 = s1 === s0 + 1 && s2 === s0;
+if (!ok || !ok2 || !ok3 || !ok5 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');

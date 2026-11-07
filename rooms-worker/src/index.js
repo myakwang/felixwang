@@ -8,8 +8,18 @@ const MAX_MSG = 64 * 1024;
 // only how many players it has (a number); no names or other details are kept,
 // and a room's entry is removed when it empties.
 const STALE_MS = 6 * 3600 * 1000;
+// Single-player Star Army sends an anonymous "still playing" signal (a random id that changes
+// every time the game is opened) every 60 s while it is on screen. Each id is kept only until
+// it goes quiet (150 s), then deleted; it is never linked to anything else.
+const SOLO_MS = 150 * 1000;
 export class Stats {
   constructor(ctx, env) { this.ctx = ctx; }
+  async soloCount() {
+    const now = Date.now(); let n = 0; const stale = [];
+    for (const [k, ts] of await this.ctx.storage.list({ prefix: 's:' })) { if (now - ts > SOLO_MS) stale.push(k); else n++; }
+    for (let i = 0; i < stale.length; i += 128) await this.ctx.storage.delete(stale.slice(i, i + 128));
+    return n;
+  }
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === '/report' && request.method === 'POST') {
@@ -20,6 +30,12 @@ export class Stats {
       else await this.ctx.storage.delete('r:' + room);
       return new Response('ok');
     }
+    if (url.pathname === '/beat' && request.method === 'POST') {
+      let b = {}; try { b = await request.json(); } catch (e) {}
+      if (typeof b.id !== 'string' || !/^[0-9a-f]{16}$/.test(b.id)) return new Response('bad', { status: 400 });
+      if (b.bye) await this.ctx.storage.delete('s:' + b.id); else await this.ctx.storage.put('s:' + b.id, Date.now());
+      return new Response('ok');
+    }
     if (url.pathname === '/count') {
       const now = Date.now(); let players = 0, rooms = 0; const stale = [];
       for (const [k, v] of await this.ctx.storage.list({ prefix: 'r:' })) {
@@ -27,7 +43,7 @@ export class Stats {
         players += v.n; rooms++;
       }
       if (stale.length) await this.ctx.storage.delete(stale);
-      return Response.json({ players, rooms });
+      return Response.json({ players, rooms, solo: await this.soloCount() });
     }
     return new Response('not found', { status: 404 });
   }
