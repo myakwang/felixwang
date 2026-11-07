@@ -83,4 +83,7 @@ export class Room {
   async webSocketError(ws) { await this.webSocketClose(ws); }
 }
 
+// Leftover of the removed "Find a player" feature; unused. Kept only so Cloudflare can retire it safely.
+export class Matchmaker { constructor(ctx) { this.ctx = ctx; } async fetch() { return new Response('Gone', { status: 410 }); } }
+
 export default { fetch() { return new Response('Felix game rooms', { status: 200 }); } };

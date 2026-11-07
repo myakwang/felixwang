@@ -19,11 +19,8 @@ new_sqlite_classes = ["Room"]
 tag = "v2"
 new_sqlite_classes = ["Stats"]
 
-# "Find a player" was removed again; v3 created its class, v4 deletes it.
+# "Find a player" was removed again; v3 created its class. It stays as an unused stub until
+# the live site no longer binds it, then a later v4 migration can delete it.
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["Matchmaker"]
-
-[[migrations]]
-tag = "v4"
-deleted_classes = ["Matchmaker"]
