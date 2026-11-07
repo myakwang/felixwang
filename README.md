@@ -15,7 +15,7 @@ assets/               Files used by the lobby only
 sw.js                 Retired root service worker (cleans up the first release). Leave it.
 _headers              Cloudflare headers: service workers are never cached
 star-army/            Star Army vs. The Bugs
-paper-adventure/      Felix's Paper Adventure: 8-level platformer from Felix's paper drawings
+paper-adventure/      Felix's Paper Adventure: 30-level platformer from Felix's paper drawings (boss every 5 levels)
 star-army-online/     Star Army Online: two players on two devices (uses the room relay)
 counter/              Owner page: live count of Star Army Online players (not linked from the lobby)
   index.html          The game

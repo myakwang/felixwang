@@ -24,16 +24,18 @@ canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
 #home{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(116px + env(safe-area-inset-right));width:44px;height:44px;font-size:20px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.7);z-index:2;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #ov .home{font-size:16px;padding:6px 16px;margin-left:8px;background:#fff}
 #menu{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(64px + env(safe-area-inset-right));width:44px;height:44px;font-size:20px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.7);z-index:2;display:flex;align-items:center;justify-content:center;cursor:pointer}
-#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(251,250,245,.82);overflow:auto}
-#ov .card{background:#fff;border:3px solid #333;border-radius:18px 14px 20px 12px;padding:20px 26px;text-align:center;max-width:86vw;box-shadow:4px 5px 0 #333;margin:10px}
+#ov{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;z-index:5;background:rgba(251,250,245,.82);overflow:auto}
+#ov .card{background:#fff;border:3px solid #333;border-radius:18px 14px 20px 12px;padding:20px 26px;text-align:center;max-width:86vw;box-shadow:4px 5px 0 #333;margin:auto}
 #ov h1{margin:0 0 6px;font-size:28px}
 #ov p{margin:6px 0 12px;font-size:17px;line-height:1.35}
 #ov button{font:inherit;font-size:22px;padding:10px 30px;border:3px solid #333;border-radius:14px 10px 16px 9px;background:#ffd646;cursor:pointer;box-shadow:3px 3px 0 #333}
 #ov .lv{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 12px}
-#ov .lv button{font-size:18px;padding:6px 0;width:46px;background:#fff;box-shadow:2px 2px 0 #333}
+#ov .lv button{font-size:18px;padding:6px 0;width:46px;min-height:40px;background:#fff;box-shadow:2px 2px 0 #333}
 #ov .lv button.bug{background:#ffe0e0}
+#ov .lv button.boss{background:#ffd646;font-size:15px;line-height:1.05}
 #ov .lv button:disabled{opacity:.3;cursor:default}
 .hide{display:none!important}
+@media (max-height:440px){#ov .card{padding:10px 18px}#ov h1{font-size:22px;margin:0}#ov p{font-size:14px;margin:3px 0 6px}#ov .lv{gap:6px;margin:2px 0 6px}#ov .lv button{min-height:34px;padding:3px 0;width:42px;font-size:16px}#ov button{font-size:18px;padding:6px 22px}}
 </style>
 </head>
 <body>
@@ -59,7 +61,7 @@ addEventListener('resize',resize);resize();
  fans: up {x,y,w,h,dir:'up',top} | right {x,y,w,h,dir:'right',reach}
  mobs: ['walk'|'fly'|'boss', minX, maxX, y]  (walk/boss: y = floor they stand on; fly: y = center height)
 ------------------------------------------------------------ */
-const LEVELS=[
+const HAND=[
 {name:"Level 1: The Fan Factory",width:2700,start:[60,420],
  solids:[[0,480,500,90],[560,420,50,20],[660,360,50,20],[760,300,260,24],[1080,480,240,90],[1280,160,240,24],[1640,480,280,90],[1820,210,200,24],[2100,480,600,90],[2300,220,60,260],[2400,410,50,20],[2500,330,30,150],[2460,310,110,20]],
  springs:[[1700,456,60,24],[2190,456,60,24]],
@@ -113,10 +115,75 @@ const LEVELS=[
  stars:[[500,350],[640,280],[860,210],[1300,430],[1600,250],[1810,100],[2050,430]],
  goal:{kind:'cage',x:2700,y:380,w:84,h:100,needBoss:true}}
 ];
-const WEAPON_FROM=LEVELS.findIndex(l=>l.weapon);
+
+/* ---------- bosses: one every 5 levels ---------- */
+const BOSSES=[null,
+ {name:'Beetle Queen',style:'beetle',w:64,h:50,hp:6,spd:1.6,hop:true},
+ {name:'Spider Boss',style:'spider',w:72,h:44,hp:9,spd:1.9,hop:true,spit:150},
+ {name:'Giant Wasp',style:'wasp',w:66,h:44,hp:10,spd:2.2,fly:true},
+ {name:'Beetle Queen II',style:'beetle',w:70,h:54,hp:14,spd:2.2,hop:true,spit:110},
+ {name:'Wasp Queen',style:'wasp',w:72,h:48,hp:16,spd:2.6,fly:true,spit:120},
+ {name:'Bug King',style:'king',w:84,h:62,hp:22,spd:2.4,hop:true,spit:95,summon:280}];
+const NAMES=['The Fan Factory','Star Sky','Moving Day','Windy Tower',"Beetle Queen's Nest",'Bug Alley','Bug Bounce','Bugs on the Move','Pencil Path',"Spider's Castle",
+ 'Eraser Hills','Crayon Canyon','Paperclip Pass','Ruler Ridge','The Wasp Hive','Scribble Swamp','Glue Gap','Sharpener Steps','Inkwell Island','The Queen Returns',
+ 'Doodle Drop','Marker Mountain','Sticky Note Sea','Stapler Storm',"Wasp Queen's Tower",'Highlighter Heights','Tape Trail','Crayon Clouds','The Last Page','The Bug King'];
+
+/* ---------- level builder: joins tested pieces ("chunks") ---------- */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function genLevel(n){
+  const R=rng(n*7919+13),ri=(a,b)=>a+Math.floor(R()*(b-a+1)),pick=a=>a[Math.floor(R()*a.length)];
+  const diff=(n-1)/29,boss=n%5===0;
+  const L={width:0,start:[40,420],solids:[[0,480,360,90]],crumbles:[],springs:[],movers:[],fans:[],mobs:[],stars:[],hearts:[],chunks:[]};
+  const S=a=>L.solids.push(a),wspd=1.1+diff*1.1,fspd=1.5+diff*1.2;
+  const ground=(gx,len)=>{S([gx,480,len,90]);
+    if(len>=240&&R()<0.55+diff*0.45){const k=(len>=330&&R()<diff*1.3)?2:1,seg=len/k;for(let j=0;j<k;j++)L.mobs.push(['walk',gx+j*seg+20,gx+(j+1)*seg-20,480,wspd]);}
+    if(R()<0.5)L.stars.push([gx+len/2,430]);
+    return gx+len;};
+  const CH={
+    gap:(x,len)=>{const g=ri(100,150+Math.round(diff*20));L.stars.push([x+g/2,380]);return ground(x+g,len);},
+    steps:(x,len)=>{S([x+50,410,150,20]);S([x+250,340,150,20]);S([x+450,270,150,20]);L.stars.push([x+325,290],[x+525,220]);return ground(x+680,len);},
+    spring:(x,len)=>{S([x+80,480,160,90]);L.springs.push([x+130,456,60,24]);S([x+250,210,200,24]);L.stars.push([x+190,250],[x+350,165]);return ground(x+530,len);},
+    wall:(x,len)=>{S([x+80,480,260,90]);L.springs.push([x+170,456,110,24]);S([x+280,220,60,260]);L.stars.push([x+310,165]);return ground(x+340,len);},
+    fanUp:(x,len)=>{S([x+80,480,160,90]);L.fans.push({x:x+120,y:460,w:80,h:20,dir:'up',top:70});S([x+270,120,220,24]);L.stars.push([x+160,260],[x+380,80]);return ground(x+570,len);},
+    rightFan:(x,len)=>{S([x+80,480,200,90]);S([x+400,400,300,24]);L.fans.push({x:x+702,y:330,w:28,h:80,dir:'right',reach:250});S([x+900,400,200,24]);L.stars.push([x+800,330],[x+1000,355]);return ground(x+1160,len);},
+    moverH:(x,len)=>{L.movers.push([x+60,430,120,20,'x',x+60,x+360,1.3+diff*0.6]);L.stars.push([x+240,380]);return ground(x+480,len);},
+    moverV:(x,len)=>{S([x+20,400,60,20]);L.movers.push([x+120,400,100,20,'y',160,400,1.2+diff*0.4]);S([x+280,160,220,24]);L.stars.push([x+170,250],[x+390,115]);return ground(x+570,len);},
+    crumbles:(x,len)=>{[[60,400],[300,350],[540,300],[780,350]].forEach(c=>L.crumbles.push([x+c[0],c[1],110,20]));L.stars.push([x+355,300],[x+595,250]);return ground(x+980,len);},
+    islands:(x,len)=>{S([x+120,480,120,90]);S([x+360,480,120,90]);L.stars.push([x+300,380]);return ground(x+600,len);}
+  };
+  const types=Object.keys(CH);
+  let x=360,last='';
+  const nChunks=boss?2+Math.floor(diff*2):5+Math.floor(diff*4);
+  for(let c=0;c<nChunks;c++){
+    let tp;do tp=pick(types);while(tp===last);last=tp;
+    const x0=x;L.chunks.push({type:tp,x0});
+    x=CH[tp](x,ri(240,380));
+    if(n>5&&R()<0.15+diff*0.5)L.mobs.push(['fly',x0+40,x-40,ri(230,350),fspd]);
+  }
+  if(n>=6&&R()<0.6)L.hearts.push([x-90,420]);
+  if(boss){const tier=n/5;
+    L.hearts.push([x-60,420]);
+    S([x+100,480,1150,90]);S([x+420,360,120,20]);S([x+820,360,120,20]);
+    L.mobs.push(['boss',x+260,x+1080,480,tier]);
+    L.stars.push([x+480,320],[x+880,320]);
+    L.goal={kind:'cage',x:x+1140,y:380,w:84,h:100,needBoss:true};L.width=x+1250;
+  }else{S([x+100,480,450,90]);L.goal={kind:'flag',x:x+430,y:410,w:70,h:70};L.width=x+560;}
+  return L;
+}
+const LEVELS=[];
+for(let n=1;n<=30;n++){
+  let L;
+  if(n<=4)L=HAND[n-1];
+  else if(n>=6&&n<=8)L=HAND[n-2];
+  else if(n===10){L=HAND[7];L.mobs=L.mobs.map(m=>m[0]==='boss'?['boss',m[1],m[2],m[3],2]:m);}
+  else L=genLevel(n);
+  L.name='Level '+n+': '+NAMES[n-1];L.weapon=n>=5;L.boss=n%5===0?BOSSES[n/5]:null;
+  LEVELS.push(L);
+}
+const WEAPON_FROM=4;
 
 /* ---------- state ---------- */
-let LV=0,lv,blocks,stars,fans,goal,mobs,shots,p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
+let LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
 let maxLevel=0;try{maxLevel=Math.min(LEVELS.length-1,parseInt(localStorage.getItem('paperAdventureMax')||'0',10)||0);}catch(e){}
 function saveMax(i){if(i>maxLevel){maxLevel=i;try{localStorage.setItem('paperAdventureMax',String(i));}catch(e){}}}
 function load(i){
@@ -130,20 +197,23 @@ function load(i){
   stars=lv.stars.map(s=>({x:s[0],y:s[1],got:false}));
   goal=lv.goal;
   mobs=(lv.mobs||[]).map((m,k)=>{
-    if(m[0]==='walk')return{type:'walk',min:m[1],max:m[2],w:34,h:22,x:m[1]+(m[2]-m[1]-34)*((k*37)%10)/10,y:m[3]-22,vx:1.2*(k%2?-1:1),hp:1,hit:0};
-    if(m[0]==='fly')return{type:'fly',min:m[1],max:m[2],w:30,h:20,x:(m[1]+m[2])/2,by:m[3],y:m[3],vx:1.6,hp:1,ph:k,hit:0};
-    return{type:'boss',min:m[1],max:m[2],w:64,h:50,x:(m[1]+m[2])/2,y:m[3]-50,vx:1.8,hp:8,maxhp:8,hit:0,hop:0,vy:0,floor:m[3]-50};
+    if(m[0]==='walk')return{type:'walk',min:m[1],max:m[2],w:34,h:22,x:m[1]+Math.max(0,m[2]-m[1]-34)*((k*37)%10)/10,y:m[3]-22,vx:(m[4]||1.2)*(k%2?-1:1),hp:1,hit:0};
+    if(m[0]==='fly')return{type:'fly',min:m[1],max:m[2],w:30,h:20,x:(m[1]+m[2])/2,by:m[3],y:m[3],vx:m[4]||1.6,hp:1,ph:k,hit:0};
+    const B=BOSSES[m[4]||1];
+    return{type:'boss',B,min:m[1],max:m[2],w:B.w,h:B.h,x:(m[1]+m[2])/2,y:m[3]-B.h,vx:B.spd,hp:B.hp,maxhp:B.hp,hit:0,hop:60,vy:0,floor:m[3]-B.h,ph:0,spitT:B.spit||0,sumT:B.summon||0};
   });
-  shots=[];hearts=3;fireCd=0;
+  shots=[];blobs=[];hearts=3;fireCd=0;
+  pickups=(lv.hearts||[]).map(h=>({x:h[0],y:h[1],got:false}));
   p={x:lv.start[0],y:lv.start[1],w:24,h:48,vx:0,vy:0,grounded:false,coyote:0,face:1,walk:0,ground:null,inv:0,kb:0,sprung:false};
   safe={x:p.x,y:p.y};parts=[];msg='';msgT=0;
   document.getElementById('bf').classList.toggle('hide',!lv.weapon);
 }
+function bossBanner(){if(lv.boss){msg='Boss level! Beat the '+lv.boss.name+'!';msgT=170;}}
 function startLevel(i){
   initAudio();load(i);
   if(i===WEAPON_FROM){state='intro';
-    showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>You have ❤️❤️❤️ hearts.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.</p>","Let's go!",()=>{state='play';});}
-  else state='play';
+    showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>You have ❤️❤️❤️ hearts.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
+  else{state='play';bossBanner();}
 }
 
 /* ---------- input ---------- */
@@ -185,18 +255,18 @@ ovh.addEventListener('click',goHome);
 function showOv(title,html,btn,action){ovh.classList.add('hide');ovt.textContent=title;ovp.innerHTML=html;ovb.textContent=btn;ovAction=action;ov.classList.remove('hide');}
 ovb.addEventListener('click',()=>{initAudio();ov.classList.add('hide');const a=ovAction;ovAction=null;if(a)a();});
 ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l);});
-function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+'</button>';});return h+'</div>';}
+function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
 function menu(){state='title';if(!lv)load(0);
   const portrait=innerHeight>innerWidth;
-  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞 and a pencil blaster ✏️!</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
 function winLevel(){state='won';sfx.win();
   const got=countStars(),all=stars.length;
   const m="<p>You got ⭐ "+got+" / "+all+(got===all?"<br>ALL the stars! Amazing!":"")+"</p>";
-  if(LV<LEVELS.length-1){saveMax(LV+1);showOv("Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
-  else showOv("You beat the Bug Queen! 🎉",m+"<p>Your friend is free. You finished all "+LEVELS.length+" levels!</p>","Back to levels",()=>menu());
+  if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
+  else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
 function loseLevel(){state='lost';sfx.fall();showOv("Oops! The bugs got you","<p>Try again. Tip: shoot them from far away ✏️</p>","Try again",()=>startLevel(LV));}
 
@@ -273,32 +343,47 @@ function step(dt){
     if(m.x<m.min){m.x=m.min;m.vx=Math.abs(m.vx);}
     if(m.x+m.w>m.max){m.x=m.max-m.w;m.vx=-Math.abs(m.vx);}
     if(m.type==='fly'){m.ph+=0.05*dt;m.y=m.by+Math.sin(m.ph)*34-m.h/2;}
-    if(m.type==='boss'){ // hops toward the player sometimes
-      m.hop-=dt;if(m.hop<=0&&m.y>=m.floor){m.vy=-9;m.hop=90+Math.random()*80;}
-      m.vy+=0.5*dt;m.y+=m.vy*dt;if(m.y>m.floor){m.y=m.floor;m.vy=0;}
-      const pcx=p.x+p.w/2;if(pcx>m.min&&pcx<m.max&&Math.random()<0.02*dt)m.vx=(pcx>m.x+m.w/2?1:-1)*Math.abs(m.vx);
-    }
+    if(m.type==='boss')bossAI(m,dt);
     if(overlap(p,m)&&state==='play'){
       const stomp=p.vy>0.5&&(p.y+p.h)-m.y<18;
       if(stomp){p.vy=keys.j?-12:-9;p.sprung=true;hitMob(m);}
       else hurtPlayer(m.x+m.w/2);
     }});
+  // boss spit blobs
+  blobs.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=0.22*dt;b.life-=dt;
+    if(bl.some(k=>b.x>k.x&&b.x<k.x+k.w&&b.y>k.y&&b.y<k.y+k.h)){b.life=0;puff(b.x,b.y,5,'#8c4');}
+    if(b.life>0&&b.x>p.x-6&&b.x<p.x+p.w+6&&b.y>p.y-6&&b.y<p.y+p.h+6&&state==='play'){b.life=0;hurtPlayer(b.x);}
+    shots.forEach(s=>{if(s.life>0&&Math.abs(s.x-b.x)<14&&Math.abs(s.y-b.y)<14){s.life=0;b.life=0;puff(b.x,b.y,5,'#8c4');}});});
+  blobs=blobs.filter(b=>b.life>0);
+  // heart pickups
+  pickups.forEach(h=>{if(!h.got&&Math.abs(h.x-(p.x+p.w/2))<26&&Math.abs(h.y-(p.y+p.h/2))<34){if(hearts<3){h.got=true;hearts=Math.min(3,hearts+1);tone(660,.1,'triangle');setTimeout(()=>tone(990,.15,'triangle'),90);}}});
   // stars
   stars.forEach(s=>{if(!s.got){const dx=s.x-(p.x+p.w/2),dy=s.y-(p.y+p.h/2);if(dx*dx+dy*dy<30*30){s.got=true;sfx.star();for(let i=0;i<10;i++){const a=Math.random()*6.28;parts.push({x:s.x,y:s.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}});
   // fall
   if(p.y>720){sfx.fall();p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);}
   // goal
   if(state==='play'&&overlap(p,goal)){
-    if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the Bug Queen first!';msgT=90;}}
+    if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the '+(lv.boss?lv.boss.name:'boss')+' first!';msgT=90;}}
     else winLevel();
   }
   if(msgT>0)msgT-=dt;
   parts.forEach(q=>{q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=0.2*dt;q.life-=dt;});parts=parts.filter(q=>q.life>0);
   if(flash>0)flash-=dt;
 }
+function bossAI(m,dt){
+  const B=m.B,pcx=p.x+p.w/2,mcx=m.x+m.w/2,near=Math.abs(pcx-mcx)<750;
+  if(pcx>m.min&&pcx<m.max&&Math.random()<0.02*dt)m.vx=(pcx>mcx?1:-1)*Math.abs(m.vx);
+  if(B.fly){m.ph+=0.022*dt;m.y=m.floor-(0.5+0.5*Math.cos(m.ph))*210;}
+  if(B.hop){m.hop-=dt;if(m.hop<=0&&m.y>=m.floor){m.vy=-9-(B.hp>12?2:0);m.hop=90+Math.random()*80;}
+    m.vy+=0.5*dt;m.y+=m.vy*dt;if(m.y>m.floor){m.y=m.floor;m.vy=0;}}
+  if(B.spit&&near){m.spitT-=dt;if(m.spitT<=0){m.spitT=B.spit*(0.7+Math.random()*0.6);const dx=pcx-mcx;
+    blobs.push({x:mcx+Math.sign(dx)*m.w*0.4,y:m.y+m.h*0.4,vx:Math.sign(dx)*Math.min(6.5,Math.max(2.5,Math.abs(dx)/45)),vy:-5.5,life:200});tone(150,.15,'square',300,.05);}}
+  if(B.summon&&near){m.sumT-=dt;if(m.sumT<=0){m.sumT=B.summon;if(mobs.filter(o=>o.summoned&&o.hp>0).length<3)
+    mobs.push({type:'fly',summoned:true,min:m.min,max:m.max,w:30,h:20,x:mcx,by:300,y:300,vx:2*(Math.random()<.5?1:-1),hp:1,ph:Math.random()*6,hit:0});}}
+}
 function hitMob(m){
   m.hp--;m.hit=12;
-  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,30,'#7a3');msg='The Bug Queen is beaten! Free your friend!';msgT=150;}}
+  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,40,'#7a3');blobs=[];mobs.forEach(o=>{if(o.summoned)o.hp=0;});msg='The '+m.B.name+' is beaten! Free your friend!';msgT=170;}}
   else{sfx.squash();puff(m.x+m.w/2,m.y+m.h/2,14,'#7a3');}
 }
 
@@ -332,6 +417,38 @@ function stick(x,y,face,walk,airborne,wave,armed){
     ctx.fillStyle='#ff9aa8';ctx.fillRect(-6,-4,4,8);ctx.strokeRect(-6,-4,4,8);ctx.restore();
   }
 }
+function drawBoss(m){
+  const B=m.B,cx=m.x+m.w/2,dir=m.vx>=0?1:-1,y=m.y,w=m.w,h=m.h;
+  ctx.save();if(m.hit>0&&Math.floor(m.hit/3)%2)ctx.globalAlpha=.4;
+  ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2.4;
+  if(B.style==='spider'){
+    const lg=Math.sin(t*0.4)*5;ctx.beginPath();
+    for(let k=0;k<4;k++){const ox=(k-1.5)*12;ctx.moveTo(cx+ox,y+h*0.5);ctx.lineTo(cx+ox-22-k*3,y+h*0.15+(k%2?lg:-lg));ctx.lineTo(cx+ox-30-k*4,y+h);
+      ctx.moveTo(cx+ox,y+h*0.5);ctx.lineTo(cx+ox+22+k*3,y+h*0.15+(k%2?-lg:lg));ctx.lineTo(cx+ox+30+k*4,y+h);}ctx.stroke();
+    ctx.fillStyle='#5b4a6e';ctx.beginPath();ctx.ellipse(cx-dir*8,y+h*0.45,w*0.38,h*0.42,0,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx+dir*w*0.3,y+h*0.55,w*0.2,h*0.3,0,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ff4d4d';for(let k=0;k<4;k++){ctx.beginPath();ctx.arc(cx+dir*(w*0.27+(k%2)*8),y+h*0.45+(k>1?8:0),3,0,7);ctx.fill();}
+  }else if(B.style==='wasp'){
+    const fl=Math.sin(t*0.8)*8;ctx.fillStyle='rgba(200,230,255,.75)';
+    ctx.beginPath();ctx.ellipse(cx-10,y-4-fl*.4,20,10+fl*.4,-0.4,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx+12,y-4-fl*.4,20,10+fl*.4,0.4,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.ellipse(cx,y+h*0.55,w*0.45,h*0.38,0,0,7);ctx.fill();ctx.stroke();
+    ctx.save();ctx.beginPath();ctx.ellipse(cx,y+h*0.55,w*0.45,h*0.38,0,0,7);ctx.clip();ctx.fillStyle='#2b2b2b';for(let k=-2;k<=1;k++)ctx.fillRect(cx+k*14+3,y,7,h);ctx.restore();
+    ctx.beginPath();ctx.moveTo(cx-dir*w*0.45,y+h*0.5);ctx.lineTo(cx-dir*(w*0.45+14),y+h*0.62);ctx.lineTo(cx-dir*w*0.44,y+h*0.66);ctx.fillStyle='#2b2b2b';ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.arc(cx+dir*w*0.48,y+h*0.45,12,0,7);ctx.fill();ctx.stroke();
+    eyes(cx+dir*(w*0.48+3),y+h*0.42,dir,3.2);
+    if(B.spit){ctx.fillStyle='#ffd646';ctx.beginPath();const c2=cx,c3=y-14;ctx.moveTo(c2-12,c3+8);ctx.lineTo(c2-12,c3-4);ctx.lineTo(c2-6,c3+2);ctx.lineTo(c2,c3-7);ctx.lineTo(c2+6,c3+2);ctx.lineTo(c2+12,c3-4);ctx.lineTo(c2+12,c3+8);ctx.closePath();ctx.fill();ctx.stroke();}
+  }else{ // king: big red-gold beetle with a tall crown
+    const r=w/2,leg=Math.sin(t*0.4)*7;
+    ctx.beginPath();for(let k=-1;k<=1;k++){const lx=cx+k*r*0.5;ctx.moveTo(lx,y+h*0.6);ctx.lineTo(lx-8+(k%2?leg:-leg),y+h);ctx.moveTo(lx,y+h*0.6);ctx.lineTo(lx+8+(k%2?-leg:leg),y+h);}ctx.stroke();
+    ctx.fillStyle='#e0453a';ctx.beginPath();ctx.ellipse(cx,y+h*0.55,r,h*0.42,0,Math.PI,0);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ffd646';[[-0.5,0.38],[0.3,0.3],[-0.15,0.2],[0.6,0.45],[0,0.42]].forEach(d=>{ctx.beginPath();ctx.arc(cx+d[0]*r,y+h*d[1]+4,5,0,7);ctx.fill();ctx.stroke();});
+    const hx=cx+dir*r*0.95,hy=y+h*0.45;ctx.fillStyle='#e0453a';ctx.beginPath();ctx.arc(hx,hy,15,0,7);ctx.fill();ctx.stroke();eyes(hx+dir*3,hy-1,dir,4);
+    ctx.fillStyle='#ffd646';ctx.beginPath();const c2=cx-6,c3=y-8;ctx.moveTo(c2-22,c3+12);ctx.lineTo(c2-22,c3-10);ctx.lineTo(c2-11,c3);ctx.lineTo(c2,c3-16);ctx.lineTo(c2+11,c3);ctx.lineTo(c2+22,c3-10);ctx.lineTo(c2+22,c3+12);ctx.closePath();ctx.fill();ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.fillRect(m.x,m.y-30,m.w,7);ctx.fillStyle='#ff6b6b';ctx.fillRect(m.x,m.y-30,m.w*m.hp/m.maxhp,7);ctx.strokeRect(m.x,m.y-30,m.w,7);
+  ctx.restore();
+}
 function drawBug(m){
   const cx=m.x+m.w/2,dir=m.vx>=0?1:-1;
   ctx.save();if(m.hit>0&&Math.floor(m.hit/3)%2)ctx.globalAlpha=.4;
@@ -347,16 +464,16 @@ function drawBug(m){
   }else{
     const big=m.type==='boss',r=m.w/2,leg=Math.sin(t*0.4)*(big?6:4);
     ctx.beginPath();for(let k=-1;k<=1;k++){const lx=cx+k*r*0.5;ctx.moveTo(lx,m.y+m.h*0.6);ctx.lineTo(lx-6+(k%2?leg:-leg),m.y+m.h);ctx.moveTo(lx,m.y+m.h*0.6);ctx.lineTo(lx+6+(k%2?-leg:leg),m.y+m.h);}ctx.stroke();
-    ctx.fillStyle=big?'#c97ad6':'#ff8a65';ctx.beginPath();ctx.ellipse(cx,m.y+m.h*0.55,r,m.h*0.42,0,Math.PI,0);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle=big?(m.B&&m.B.spit?'#6fa8dc':'#c97ad6'):'#ff8a65';ctx.beginPath();ctx.ellipse(cx,m.y+m.h*0.55,r,m.h*0.42,0,Math.PI,0);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.moveTo(cx,m.y+m.h*0.13);ctx.lineTo(cx,m.y+m.h*0.55);ctx.stroke();
     ctx.fillStyle='#2b2b2b';[[-0.45,0.36],[0.3,0.3],[-0.2,0.22],[0.55,0.45]].forEach(d=>{ctx.beginPath();ctx.arc(cx+d[0]*r,m.y+m.h*d[1]+4,big?4:2.5,0,7);ctx.fill();});
     const hx=cx+dir*r*0.95,hy=m.y+m.h*0.45;
-    ctx.fillStyle=big?'#c97ad6':'#ff8a65';ctx.beginPath();ctx.arc(hx,hy,big?12:7,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle=big?(m.B&&m.B.spit?'#6fa8dc':'#c97ad6'):'#ff8a65';ctx.beginPath();ctx.arc(hx,hy,big?12:7,0,7);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.moveTo(hx,hy-(big?10:6));ctx.quadraticCurveTo(hx+dir*4,hy-(big?24:15),hx+dir*10,hy-(big?26:16));ctx.stroke();
     eyes(hx+dir*2,hy-1,dir,big?3.5:2.2);
     if(big){ // crown + health bar
       ctx.fillStyle='#ffd646';ctx.beginPath();const cx2=cx-6,cy2=m.y-4;ctx.moveTo(cx2-16,cy2+10);ctx.lineTo(cx2-16,cy2-4);ctx.lineTo(cx2-8,cy2+3);ctx.lineTo(cx2,cy2-8);ctx.lineTo(cx2+8,cy2+3);ctx.lineTo(cx2+16,cy2-4);ctx.lineTo(cx2+16,cy2+10);ctx.closePath();ctx.fill();ctx.stroke();
-      ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.fillRect(m.x,m.y-26,m.w,7);ctx.fillStyle='#ff6b6b';ctx.fillRect(m.x,m.y-26,m.w*m.hp/m.maxhp,7);ctx.strokeRect(m.x,m.y-26,m.w,7);
+      ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.fillRect(m.x,m.y-26,m.w,7);ctx.fillStyle='#ff6b6b';ctx.fillRect(m.x,m.y-26,m.w*Math.max(0,m.hp)/m.maxhp,7);ctx.strokeRect(m.x,m.y-26,m.w,7);
     }
   }
   ctx.restore();
@@ -412,7 +529,9 @@ function render(){
   // stars
   stars.forEach((s,i)=>{if(s.got)return;ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;starShape(s.x,s.y+Math.sin(t*0.08+i)*3,14,'#ffe36e');});
   // mobs
-  mobs.forEach(m=>{if(m.hp>0)drawBug(m);});
+  mobs.forEach(m=>{if(m.hp>0)(m.type==='boss'&&m.B.style!=='beetle'?drawBoss(m):drawBug(m));});
+  blobs.forEach(b=>{ctx.fillStyle='#9ad04a';ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x,b.y,7,0,7);ctx.fill();ctx.stroke();});
+  pickups.forEach((h,i)=>{if(!h.got){ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;heart(h.x,h.y+Math.sin(t*0.1+i)*3,12,true);}});
   // shots
   shots.forEach(s=>{ctx.save();ctx.translate(s.x,s.y);ctx.scale(Math.sign(s.vx),1);ctx.strokeStyle='#2b2b2b';ctx.lineWidth=1.6;
     ctx.fillStyle='#ffd646';ctx.fillRect(-12,-3,16,6);ctx.strokeRect(-12,-3,16,6);ctx.fillStyle='#f4c9a0';ctx.beginPath();ctx.moveTo(4,-3);ctx.lineTo(10,0);ctx.lineTo(4,3);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();});
@@ -438,7 +557,7 @@ function loop(now){
   if(state==='play'){const n=dt>1?Math.ceil(dt):1;for(let i=0;i<n&&state==='play';i++)step(dt/n);}
   t+=dt;render();requestAnimationFrame(loop);
 }
-if(new URLSearchParams(location.search).has('test'))window.__game={get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
+if(new URLSearchParams(location.search).has('test'))window.__game={get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
 load(0);menu();requestAnimationFrame(loop);
 })();
 </script>
