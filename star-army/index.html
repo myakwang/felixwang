@@ -47,6 +47,10 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
 .sbtn b{display:block;font-size:20px}.sbtn span{font-size:10px;display:block;line-height:1.1}
 .sbtn.boss{border:3px solid #c0392b;color:#c0392b}.sbtn:disabled{opacity:.3;cursor:default}.sbtn.done{background:#eee}
 .onlinenow{font-weight:bold;color:#1e7a3a;min-height:20px;margin:2px 0 6px}
+.trophy,.shelfT{background:transparent!important;box-shadow:none!important}
+.trophy{width:min(220px,50vw,40vh);height:auto;display:block;margin:0 auto -6px}
+.shelf{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:4px 0}.shelf .slot{text-align:center;font-size:11px;font-weight:bold;width:92px}
+.shelfT{width:88px;height:auto;display:block;margin:0 auto}.shelfT.off{opacity:.25;filter:grayscale(1)}
 #rot{display:none}
 @media (orientation:portrait) and (pointer:coarse){#rot{display:block}}
 </style>
@@ -58,6 +62,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
 <div id="title" class="ov on"><div class="card">
   <h1>STAR ARMY vs. THE BUGS</h1>
   <p class="onlinenow" id="onlineTitle"></p>
+  <div class="shelf" id="shelf"></div>
   <p>Bugs have taken over the computer! Build an army, protect your <b>Star Tower</b>, and seal up <b>The Crack</b> in the wall where they come from.</p>
   <img class="art" src="art.jpg" alt="The original hand-drawn picture this game is based on" onerror="this.remove()">
   <ul>
@@ -419,6 +424,47 @@ function update(){G.time++;
   updateProj();
   G.units=G.units.filter(u=>!u.dead);}
 
+/* ---------- trophies ---------- */
+const TROPHY_COLORS={gold:['#f4c430','#c99a06'],silver:['#d9dde3','#9aa3ad'],sun:['#ffb347','#e07b00'],blue:['#7fb3ff','#2f6fd6'],bronze:['#e0a46a','#a8662c']};
+let trophyAnim=0;
+function drawTrophy(c,color,label,f){const x=c.getContext('2d'),w=c.width,h=c.height,[fill,dark]=TROPHY_COLORS[color]||TROPHY_COLORS.gold;
+  const prev=ctx,pb=boil,psb=SB,psc=SC;ctx=x;boil=Math.floor(f/8);seed(777);x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,w,h);
+  const s=w/220;x.scale(s,s);const bob=Math.sin(f/14)*4,cx=110;
+  /* shine rays */
+  x.save();x.translate(cx,92+bob);x.rotate(f/120);x.strokeStyle=fill;x.globalAlpha=.55;x.lineWidth=3;
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;x.beginPath();x.moveTo(Math.cos(a)*62,Math.sin(a)*62);x.lineTo(Math.cos(a)*84,Math.sin(a)*84);x.stroke();}x.restore();
+  x.save();x.translate(0,bob);x.lineWidth=3;x.strokeStyle=INK;x.lineJoin='round';
+  /* handles */
+  x.lineWidth=7;x.strokeStyle=INK;epath(cx-50,62,16,20,1.2);x.stroke();epath(cx+50,62,16,20,1.2);x.stroke();
+  x.lineWidth=3.5;x.strokeStyle=fill;epath(cx-50,62,16,20,0.5);x.stroke();epath(cx+50,62,16,20,0.5);x.stroke();
+  /* cup */
+  x.lineWidth=3;x.strokeStyle=INK;x.fillStyle=fill;x.beginPath();x.moveTo(cx-48,34);x.lineTo(cx+48,34);x.quadraticCurveTo(cx+46,104,cx+8,116);x.lineTo(cx-8,116);x.quadraticCurveTo(cx-46,104,cx-48,34);x.closePath();x.fill();
+  hatch(cx+14,40,30,70,7,dark,1.5);
+  x.beginPath();x.moveTo(cx-48,34);x.lineTo(cx+48,34);x.quadraticCurveTo(cx+46,104,cx+8,116);x.lineTo(cx-8,116);x.quadraticCurveTo(cx-46,104,cx-48,34);x.stroke();
+  epath(cx,34,48,8,1);x.fillStyle=dark;x.fill();x.stroke();
+  /* star on the cup */
+  x.fillStyle='#fff';starPath(cx,72,17);x.fill();x.stroke();
+  /* stem + base */
+  x.fillStyle=fill;x.beginPath();x.rect(cx-8,116,16,18);x.fill();srect(cx-8,116,16,18,1);
+  x.fillStyle=dark;x.beginPath();x.rect(cx-30,134,60,12);x.fill();srect(cx-30,134,60,12,1);
+  x.fillStyle='#fff';x.beginPath();x.rect(cx-42,146,84,24);x.fill();srect(cx-42,146,84,24,1.2);
+  x.restore();
+  /* sparkles */
+  for(let i=0;i<6;i++){const a=i*1.05+f/40,r=78+Math.sin(f/9+i)*10,sx=cx+Math.cos(a)*r,sy=90+Math.sin(a)*r*.75,k=(Math.sin(f/6+i*2)+1)/2;
+    x.fillStyle=i%2?fill:'#fff';x.strokeStyle=INK;x.lineWidth=1.5;starPath(sx,sy,4+k*5);x.fill();x.stroke();}
+  if(label){x.font='bold '+(label.length>14?12:15)+'px '+FONT;x.fillStyle=INK;x.textAlign='center';x.textBaseline='middle';x.fillText(label,cx,158+bob);}
+  ctx=prev;boil=pb;SB=psb;SC=psc;}
+function trophyHTML(){return '<canvas class="trophy" width="440" height="360"></canvas>';}
+function startTrophyAnim(color,label){cancelAnimationFrame(trophyAnim);const c=document.querySelector('#msgOv canvas.trophy');if(!c)return;let f=0;
+  const loop=()=>{if(!c.isConnected||!$('msgOv').classList.contains('on'))return;drawTrophy(c,color,label,f++);trophyAnim=requestAnimationFrame(loop);};loop();}
+function trophyMsg(title,trophy,html,buttons){showMsg(title,trophyHTML()+'<br>'+html,buttons);startTrophyAnim(trophy.color,trophy.label);}
+function shelfCanvas(color,label,got){const c=document.createElement('canvas');c.width=176;c.height=144;c.className='shelfT'+(got?'':' off');
+  c.title=got?label+' trophy':'Not won yet: '+label;drawTrophy(c,got?color:'silver',got?'':'?',0);return c;}
+const TROPHIES=[['story','gold','BUG BUSTER','Beat all 30 stages'],['zombie','silver','ZOMBIE KING','Beat zombie level 15'],['night','sun','SUNRISE HERO','Survive till sunrise'],['cpu','blue','CPU CHAMP','Beat the computer in VS']];
+function renderShelf(){const el=$('shelf');if(!el)return;el.innerHTML='';const got=save.trophies||{};
+  TROPHIES.forEach(([k,c,l,how])=>{const d=document.createElement('div');d.className='slot';d.appendChild(shelfCanvas(c,l,got[k]));d.appendChild(document.createTextNode(got[k]?l:how));el.appendChild(d);});}
+function award(k){save.trophies=save.trophies||{};const isNew=!save.trophies[k];save.trophies[k]=1;persist();renderShelf();return isNew?'<div class="newbox">NEW TROPHY! It is on your trophy shelf.</div>':'';}
+renderShelf();
 /* ---------- flow ---------- */
 let prevState=null,upReturn=null;
 function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv'].forEach(id=>$(id).classList.remove('on'));}
@@ -458,7 +504,7 @@ function finish(won){if(G.mode!=='story'){finishMode(won);return;}state='over';c
   const again=()=>{finish.paid=false;};
   if(stageIdx<STAGES.length-1){const nx=STAGES[stageIdx+1];if(nx.boss)html+='<br>Watch out — the next stage is a <b>BOSS FIGHT!</b>';
     showMsg('Stage '+st.n+' cleared! 🎉',html,[['Next: Stage '+nx.n+' ▶',()=>{again();go(stageIdx+1);}],['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
-  else showMsg('YOU WIN! 🏆','Your Star Army beat the '+ENEMIES[st.boss].name+' and sealed every crack in the computer! You are a true bug buster!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
+  else trophyMsg('YOU WIN! 🏆',{color:'gold',label:'BUG BUSTER'},award('story')+'Your Star Army beat the '+ENEMIES[st.boss].name+' and sealed every crack in the computer! You are a true bug buster!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
     [['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
 function playStory(){if(save.unlocked<=1){hideAll();go(0);}else showSelect(false);}
 let modeFromGame=false;
@@ -473,16 +519,17 @@ $('modeUp').onclick=()=>showUpgrades(()=>{$('modeOv').classList.add('on');});
 $('modeBack').onclick=()=>{hideAll();if(modeFromGame&&state==='paused')state='play';else if(state==='over'){$('msgOv').classList.add('on');}else{state='title';$('title').classList.add('on');}};
 function finishMode(won){state='over';const m=G.mode,key=G.modeKey,again=()=>{finishMode.paid=false;startMode(key);},modes=()=>{finishMode.paid=false;showModes(false);};
   const pay=g=>{if(!finishMode.paid){save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b>'+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
-  if(m==='vs'){if(G.vsCpu)showMsg(won?'YOU WIN! 🏆':'The Computer wins!',won?'Your Star Army smashed the Bug Army!'+pay(3):'The bugs knocked down your Star Tower. Try again!',[['Rematch',again],['Modes',modes]]);
-    else showMsg(won?'PLAYER 1 WINS! ⭐':'PLAYER 2 WINS! 🐛',won?'The Star Army sealed the Crack!':'The Bug Army knocked down the Star Tower!',[['Rematch',again],['Modes',modes]]);return;}
+  if(m==='vs'){if(G.vsCpu&&won){trophyMsg('YOU WIN! 🏆',{color:'blue',label:'CPU CHAMP'},award('cpu')+'Your Star Army smashed the Bug Army!'+pay(3),[['Rematch',again],['Modes',modes]]);return;}
+    if(G.vsCpu)showMsg('The Computer wins!','The bugs knocked down your Star Tower. Try again!',[['Rematch',again],['Modes',modes]]);
+    else trophyMsg(won?'PLAYER 1 WINS! ⭐':'PLAYER 2 WINS! 🐛',{color:won?'gold':'bronze',label:won?'PLAYER 1':'PLAYER 2'},won?'The Star Army sealed the Crack!':'The Bug Army knocked down the Star Tower!',[['Rematch',again],['Modes',modes]]);return;}
   if(!won){showMsg(m==='night'?'The zombies got in!':'Oh no!',m==='night'?'You survived '+fmtTime(G.time)+' of the night. Hire more miners, build cannons, and try again!':'The zombies knocked down your Star Tower. Try again or buy upgrades!',
     [['Try again',again],['◆ Upgrades',()=>showUpgrades(()=>finishMode(false))],['Modes',modes]]);return;}
-  if(m==='night'){showMsg('THE SUN IS UP! ☀','You survived the whole night! The zombies ran away from the sunlight.'+pay(5),[['Play again',again],['◆ Upgrades',()=>showUpgrades(()=>finishMode(true))],['Modes',modes]]);return;}
+  if(m==='night'){trophyMsg('THE SUN IS UP! ☀',{color:'sun',label:'SUNRISE HERO'},award('night')+'You survived the whole night! The zombies ran away from the sunlight.'+pay(5),[['Play again',again],['◆ Upgrades',()=>showUpgrades(()=>finishMode(true))],['Modes',modes]]);return;}
   const z=ZMODES[key],n=z.n;save.zCleared=save.zCleared||{};const first=!save.zCleared[n];
   if(!finishMode.paid){finishMode.g=first?z.gems:1;save.zCleared[n]=1;save.zUnlocked=Math.max(save.zUnlocked||1,Math.min(ZCOUNT,n+1));}
   const html=(z.bossLv?'You beat the '+ENEMIES[z.boss].name+' and smashed the graveyard!':'You smashed the zombie graveyard!')+pay(finishMode.g);
   const btns=n<ZCOUNT?[['Next: Level '+(n+1)+' ▶',()=>{finishMode.paid=false;startMode('z'+(n+1));}]]:[];
-  showMsg(n===ZCOUNT?'ZOMBIE KING DEFEATED! 👑':'Level '+n+' cleared! 🧟',html+(n===ZCOUNT?'<br>You beat every zombie level!':''),btns.concat([['◆ Upgrades',()=>showUpgrades(()=>finishMode(true))],['Levels',()=>{finishMode.paid=false;showZombieLevels();}]]));}
+  (n===ZCOUNT?(t,h,b)=>trophyMsg(t,{color:'silver',label:'ZOMBIE KING'},award('zombie')+h,b):showMsg)(n===ZCOUNT?'ZOMBIE KING DEFEATED! 👑':'Level '+n+' cleared! 🧟',html+(n===ZCOUNT?'<br>You beat every zombie level!':''),btns.concat([['◆ Upgrades',()=>showUpgrades(()=>finishMode(true))],['Levels',()=>{finishMode.paid=false;showZombieLevels();}]]));}
 $('playBtn').onclick=()=>{unlockAudio();showModes(false);};
 $('speed').onclick=()=>{speed=speed===1?2:1;$('speed').textContent='speed '+speed+'×';};
 
