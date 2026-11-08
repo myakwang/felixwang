@@ -214,7 +214,7 @@ function bossBanner(){if(lv.boss){msg='Boss level! Beat the '+lv.boss.name+'!';m
 function startLevel(i){
   initAudio();load(i);setSong(lv.boss?'boss':'main');
   if(i===WEAPON_FROM){state='intro';
-    showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>You have ❤️❤️❤️ hearts.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
+    showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>Each bug hit costs a ❤️.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
   else{state='play';bossBanner();}
 }
 
@@ -313,7 +313,7 @@ ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!
 function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
 function menu(){state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
-  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Lose all 3 and it's back to Level 1!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
@@ -323,7 +323,9 @@ function winLevel(){state='won';setSong(null);sfx.win();
   if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
   else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
-function loseLevel(){state='lost';setSong(null);sfx.fall();showOv("Oops! The bugs got you","<p>Try again. Tip: shoot them from far away ✏️</p>","Try again",()=>startLevel(LV));}
+function loseLevel(){state='lost';setSong(null);sfx.fall();
+  if(LV>0)showOv("Out of hearts! 💔","<p>You lost all 3 hearts on Level "+(LV+1)+".<br>Back to Level 1 you go!</p>","Go to Level 1",()=>startLevel(0));
+  else showOv("Out of hearts! 💔","<p>Back to the start of Level 1.<br>You can do it!</p>","Try again",()=>startLevel(0));}
 
 /* ---------- physics ---------- */
 const G=0.6,SPEED=5,JUMP=12.5,SPRING=19;
@@ -415,7 +417,7 @@ function step(dt){
   // stars
   stars.forEach(s=>{if(!s.got){const dx=s.x-(p.x+p.w/2),dy=s.y-(p.y+p.h/2);if(dx*dx+dy*dy<30*30){s.got=true;sfx.star();for(let i=0;i<10;i++){const a=Math.random()*6.28;parts.push({x:s.x,y:s.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}});
   // fall
-  if(p.y>720){sfx.fall();p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);}
+  if(p.y>720){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;if(hearts<=0){loseLevel();return;}sfx.fall();}
   // goal
   if(state==='play'&&overlap(p,goal)){
     if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the '+(lv.boss?lv.boss.name:'boss')+' first!';msgT=90;}}
@@ -601,7 +603,7 @@ function render(){
   ctx.fillStyle='#333';ctx.font='bold 20px "Comic Sans MS","Chalkboard SE",cursive';ctx.fillText(lv.name,14,30);
   ctx.strokeStyle='#2b2b2b';ctx.lineWidth=1.8;starShape(26,56,11,'#ffe36e');
   ctx.fillStyle='#333';ctx.fillText(countStars()+' / '+stars.length,44,63);
-  if(lv.weapon){for(let i=0;i<3;i++)heart(130+i*28,55,10,i<hearts);}
+  for(let i=0;i<3;i++)heart(130+i*28,55,10,i<hearts);
   if(msgT>0){ctx.font='bold 22px "Comic Sans MS","Chalkboard SE",cursive';const w=ctx.measureText(msg).width;ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(viewW/2-w/2-12,82,w+24,36);ctx.strokeRect(viewW/2-w/2-12,82,w+24,36);ctx.fillStyle='#333';ctx.fillText(msg,viewW/2-w/2,108);}
 }
 
