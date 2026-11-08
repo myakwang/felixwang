@@ -23,6 +23,7 @@ canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
 #restart{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));width:44px;height:44px;font-size:22px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.7);z-index:2;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #home{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(116px + env(safe-area-inset-right));width:44px;height:44px;font-size:20px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.7);z-index:2;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #ov .home{font-size:16px;padding:6px 16px;margin-left:8px;background:#fff}
+#music{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:44px;height:44px;font-size:20px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.8);z-index:6;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #menu{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(64px + env(safe-area-inset-right));width:44px;height:44px;font-size:20px;border:2px solid #333;border-radius:10px;background:rgba(255,255,255,.7);z-index:2;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #ov{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;z-index:5;background:rgba(251,250,245,.82);overflow:auto}
 #ov .card{background:#fff;border:3px solid #333;border-radius:18px 14px 20px 12px;padding:20px 26px;text-align:center;max-width:86vw;box-shadow:4px 5px 0 #333;margin:auto}
@@ -45,6 +46,7 @@ canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
 <div class="btn hide" id="bf">FIRE<br>✏️</div>
 <div class="btn" id="bj">JUMP</div>
 <div id="home" class="hide" title="All games">🏠</div>
+<div id="music" title="Music on/off">🎵</div>
 <div id="menu" title="Levels">☰</div>
 <div id="restart" title="Restart level">↺</div>
 <div id="ov"><div class="card"><h1 id="ovt"></h1><div id="ovp"></div><button id="ovb"></button><button id="ovh" class="home hide">🏠 All games</button></div></div>
@@ -210,7 +212,7 @@ function load(i){
 }
 function bossBanner(){if(lv.boss){msg='Boss level! Beat the '+lv.boss.name+'!';msgT=170;}}
 function startLevel(i){
-  initAudio();load(i);
+  initAudio();load(i);setSong(lv.boss?'boss':'main');
   if(i===WEAPON_FROM){state='intro';
     showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>You have ❤️❤️❤️ hearts.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
   else{state='play';bossBanner();}
@@ -238,8 +240,61 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 
 /* ---------- sound ---------- */
 let AC=null;
-function initAudio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});}
+function initAudio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==='suspended'&&!document.hidden)AC.resume().catch(()=>{});musicStart();}
 function tone(f,d,type,slide,vol){if(!AC)return;try{const o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,AC.currentTime);if(slide)o.frequency.exponentialRampToValueAtTime(slide,AC.currentTime+d);g.gain.setValueAtTime(vol||.08,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d);}catch(e){}}
+/* ---------- music: original tunes for Paper Adventure, played by WebAudio ----------
+ one token per 8th note: note name, '-' = hold the note longer, '.' = rest
+------------------------------------------------------------------------------------ */
+const SONGS={
+ main:{bpm:132,vol:1,
+  mel:'E5 - G5 - C6 - G5 E5 | D5 - G5 - B5 - A5 G5 | C5 E5 A5 - G5 - E5 - | F5 - A5 - C6 - A5 - | G5 - E5 G5 C6 - B5 C6 | D6 - B5 - G5 - A5 B5 | C6 - A5 F5 A5 - G5 F5 | G5 - D5 - G5 - . . |'+
+      'C5 - E5 - G5 - E5 C5 | B4 - D5 - G5 - D5 B4 | A4 - C5 E5 A5 - G5 - | F5 E5 D5 C5 A4 - C5 - | E5 - - G5 - - C6 - | B5 - G5 - D5 - G5 - | A5 - F5 - C6 - A5 - | G5 - - - . . . .',
+  chords:'C G Am F C G F G C G Am F C G F G'},
+ boss:{bpm:152,vol:1.1,
+  mel:'A4 - C5 - E5 - D5 C5 | B4 - C5 - A4 - - . | F5 - E5 - C5 - A4 - | G4 - B4 - D5 - E5 - | A5 - G5 - E5 - C5 D5 | E5 - - . E5 F5 E5 D5 | G#5 - E5 - B4 - E5 - | G#5 - B5 - E5 - . .',
+  chords:'Am Am F G Am Am E E'}
+};
+const NOTE_I={C:0,'C#':1,D:2,'D#':3,E:4,F:5,'F#':6,G:7,'G#':8,A:9,'A#':10,B:11};
+function nfreq(n){const m=n.match(/^([A-G]#?)(\d)$/);return 440*Math.pow(2,(NOTE_I[m[1]]+12*(+m[2]+1)-69)/12);}
+const CHORD={C:['C3','G3','C4'],G:['G2','D3','G3'],Am:['A2','E3','A3'],F:['F2','C3','F3'],E:['E2','B2','E3']};
+Object.values(SONGS).forEach(S=>{S.tok=S.mel.replace(/\|/g,' ').trim().split(/\s+/);S.len=S.tok.length;S.ch=S.chords.split(' ');});
+const mus={on:true,song:null,step:0,next:0,timer:null,gain:null,noise:null};
+try{mus.on=localStorage.getItem('paperAdventureMusic')!=='0';}catch(e){}
+function musicStart(){
+  if(!AC||mus.timer)return;
+  mus.gain=AC.createGain();mus.gain.gain.value=mus.on?0.55:0;mus.gain.connect(AC.destination);
+  const len=AC.sampleRate*0.3,buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;mus.noise=buf;
+  mus.next=AC.currentTime+0.1;mus.timer=setInterval(musicTick,25);
+  if(!mus.song)setSong(state==='play'&&lv&&lv.boss&&mobs.some(m=>m.type==='boss'&&m.hp>0)?'boss':'main');
+}
+function setSong(name){const S=name?SONGS[name]:null;if(S===mus.song)return;mus.song=S;mus.step=0;if(AC)mus.next=AC.currentTime+0.08;}
+function voice(type,f,t0,dur,vol,f2){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
+  g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);o.connect(g);g.connect(mus.gain);o.start(t0);o.stop(t0+dur+0.02);}
+function hiss(t0,dur,vol,hp){const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=mus.noise;f.type='highpass';f.frequency.value=hp;
+  g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);s.connect(f);f.connect(g);g.connect(mus.gain);s.start(t0);s.stop(t0+dur+0.02);}
+function musicTick(){
+  if(!AC||AC.state!=='running')return;
+  if(!mus.song){mus.next=AC.currentTime+0.05;return;}
+  const S=mus.song,e=60/S.bpm/2;
+  if(mus.next<AC.currentTime-0.2)mus.next=AC.currentTime+0.05;
+  while(mus.next<AC.currentTime+0.15){
+    const i=mus.step%S.len,t0=mus.next,v=S.vol,tk=S.tok[i];
+    if(tk!=='-'&&tk!=='.'){let n=1;while(S.tok[(i+n)%S.len]==='-')n++;voice('square',nfreq(tk),t0,n*e*0.92,0.045*v);voice('square',nfreq(tk)*1.005,t0,n*e*0.6,0.012*v);}
+    const bar=Math.floor(i/8),b8=i%8,ch=CHORD[S.ch[bar%S.ch.length]];
+    const bn=S===SONGS.boss?ch[b8%4===3?1:0]:ch[[0,0,2,0,0,1,2,1][b8]];
+    voice('triangle',nfreq(bn),t0,e*0.85,0.11*v);
+    if(b8===0||b8===4||(S===SONGS.boss&&b8===6))voice('sine',150,t0,0.12,0.16*v,45);
+    if(b8===2||b8===6)hiss(t0,0.09,0.06*v,1800);
+    hiss(t0,0.025,0.025*v,7000);
+    mus.next+=e;mus.step++;
+  }
+}
+function setMusic(on){mus.on=on;try{localStorage.setItem('paperAdventureMusic',on?'1':'0');}catch(e){}
+  if(mus.gain)mus.gain.gain.setTargetAtTime(on?0.55:0,AC.currentTime,0.05);document.getElementById('music').textContent=on?'🎵':'🔇';}
+document.getElementById('music').textContent=mus.on?'🎵':'🔇';
+document.getElementById('music').addEventListener('click',e=>{e.stopPropagation();initAudio();setMusic(!mus.on);});
+document.addEventListener('visibilitychange',()=>{if(!AC)return;if(document.hidden)AC.suspend().catch(()=>{});else AC.resume().catch(()=>{});});
+document.addEventListener('pointerdown',()=>initAudio(),{once:true});
 const sfx={jump:()=>tone(330,.15,'square',660),spring:()=>tone(200,.3,'triangle',900),star:()=>{tone(880,.1,'square');setTimeout(()=>tone(1320,.15,'square'),80);},fall:()=>tone(400,.4,'sawtooth',90),crumble:()=>tone(120,.2,'sawtooth',60),
  win:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.18,'square'),i*120));},shoot:()=>tone(900,.08,'square',500,.05),squash:()=>tone(300,.15,'square',80),hurt:()=>tone(180,.3,'sawtooth',70,.1),boss:()=>tone(90,.25,'sawtooth',50,.1)};
 
@@ -256,19 +311,19 @@ function showOv(title,html,btn,action){ovh.classList.add('hide');ovt.textContent
 ovb.addEventListener('click',()=>{initAudio();ov.classList.add('hide');const a=ovAction;ovAction=null;if(a)a();});
 ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l);});
 function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
-function menu(){state='title';if(!lv)load(0);
+function menu(){state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
   showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
-function winLevel(){state='won';sfx.win();
+function winLevel(){state='won';setSong(null);sfx.win();
   const got=countStars(),all=stars.length;
   const m="<p>You got ⭐ "+got+" / "+all+(got===all?"<br>ALL the stars! Amazing!":"")+"</p>";
   if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
   else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
-function loseLevel(){state='lost';sfx.fall();showOv("Oops! The bugs got you","<p>Try again. Tip: shoot them from far away ✏️</p>","Try again",()=>startLevel(LV));}
+function loseLevel(){state='lost';setSong(null);sfx.fall();showOv("Oops! The bugs got you","<p>Try again. Tip: shoot them from far away ✏️</p>","Try again",()=>startLevel(LV));}
 
 /* ---------- physics ---------- */
 const G=0.6,SPEED=5,JUMP=12.5,SPRING=19;
@@ -383,7 +438,7 @@ function bossAI(m,dt){
 }
 function hitMob(m){
   m.hp--;m.hit=12;
-  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,40,'#7a3');blobs=[];mobs.forEach(o=>{if(o.summoned)o.hp=0;});msg='The '+m.B.name+' is beaten! Free your friend!';msgT=170;}}
+  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,40,'#7a3');blobs=[];mobs.forEach(o=>{if(o.summoned)o.hp=0;});msg='The '+m.B.name+' is beaten! Free your friend!';msgT=170;setSong('main');}}
   else{sfx.squash();puff(m.x+m.w/2,m.y+m.h/2,14,'#7a3');}
 }
 
@@ -557,7 +612,7 @@ function loop(now){
   if(state==='play'){const n=dt>1?Math.ceil(dt):1;for(let i=0;i<n&&state==='play';i++)step(dt/n);}
   t+=dt;render();requestAnimationFrame(loop);
 }
-if(new URLSearchParams(location.search).has('test'))window.__game={get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
+if(new URLSearchParams(location.search).has('test'))window.__game={get mus(){return mus},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
 load(0);menu();requestAnimationFrame(loop);
 })();
 </script>
