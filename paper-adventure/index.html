@@ -188,7 +188,9 @@ for(let n=1;n<=30;n++){
 const WEAPON_FROM=4;
 
 /* ---------- state ---------- */
-let heartsAtStart=3,keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
+let heartsAtStart=3,hearts0=3;try{const h=parseInt(localStorage.getItem('paperAdventureHearts')||'3',10);hearts0=h>=1&&h<=3?h:3;}catch(e){}
+let cur=0,curUnset=true;try{curUnset=localStorage.getItem('paperAdventureCur')===null;cur=Math.max(0,Math.min(29,parseInt(localStorage.getItem('paperAdventureCur')||'0',10)||0));}catch(e){}
+let keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=hearts0,fireCd=0,msg='',msgT=0;
 let maxLevel=0;try{maxLevel=Math.min(LEVELS.length-1,parseInt(localStorage.getItem('paperAdventureMax')||'0',10)||0);}catch(e){}
 function saveMax(i){if(i>maxLevel){maxLevel=i;try{localStorage.setItem('paperAdventureMax',String(i));}catch(e){}}}
 function load(i){
@@ -213,11 +215,12 @@ function load(i){
   safe={x:p.x,y:p.y};parts=[];msg='';msgT=0;
   document.getElementById('bf').classList.toggle('hide',!lv.weapon);
 }
-function bossBanner(){if(!lv.boss&&LV===0&&hearts===3){msg='';}if(lv.boss){msg=(checkpointOf(LV)===LV?'🚩 Checkpoint! Hearts refilled. ':'')+'Beat the '+lv.boss.name+' for the key!';msgT=190;}}
-// hearts carry from level to level; they refill only at a checkpoint (or when you pick a level from the menu)
-function startLevel(i,fromMenu){
+function bossBanner(){if(!lv.boss&&LV===0&&hearts===3){msg='';}if(lv.boss){msg=(checkpointOf(LV)===LV?'🚩 Checkpoint! ':'')+'Beat the '+lv.boss.name+' for the key!';msgT=190;}}
+// hearts never refill by themselves: you keep them until you run out, then you restart at the last checkpoint with 3
+function saveHearts(){try{localStorage.setItem('paperAdventureHearts',String(Math.max(0,hearts)));}catch(e){}}
+function startLevel(i){
   initAudio();load(i);setSong(lv.boss?'boss':'main');
-  const refill=fromMenu||i===0||checkpointOf(i)===i||hearts<=0;if(refill)hearts=3;heartsAtStart=hearts;
+  if(hearts<=0)hearts=3;heartsAtStart=hearts;saveHearts();cur=i;try{localStorage.setItem('paperAdventureCur',String(i));}catch(e){}
   if(i===WEAPON_FROM){state='intro';
     showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>Each bug hit costs a ❤️.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
   else{state='play';bossBanner();}
@@ -314,17 +317,17 @@ homeB.addEventListener('click',()=>{if(state==='play'){state='paused';showOv('Go
 ovh.addEventListener('click',goHome);
 function showOv(title,html,btn,action){ovh.classList.add('hide');ovt.textContent=title;ovp.innerHTML=html;ovb.textContent=btn;ovAction=action;ov.classList.remove('hide');}
 ovb.addEventListener('click',()=>{initAudio();ov.classList.add('hide');const a=ovAction;ovAction=null;if(a)a();});
-ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l,true);});
-function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
-function menu(){state='title';if(!lv)load(0);setSong('main');
+ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l);});
+function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+((i>maxLevel||!(i===0||(i+1)%5===0||i===cur))?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
+function menu(){if(curUnset){cur=checkpointOf(maxLevel);curUnset=false;}state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
-  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>find the key 🔑 to open the door. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Hearts carry over and only refill at a 🚩 checkpoint (levels 5, 10, 15…). Lose all 3 and it's back to that checkpoint!</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>find the key 🔑 to open the door. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Hearts never refill. Lose them all and you go back to the last 🚩 checkpoint (level 1, 5, 10, 15…) with 3 new hearts!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
-   maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel,true));if(ON_SITE)ovh.classList.remove('hide');}
+   cur>0?"Continue: Level "+(cur+1):"Play",()=>startLevel(cur));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
 function winLevel(){state='won';setSong(null);sfx.win();
   const nx=LV+1,cpNext=nx<LEVELS.length&&(nx+1)%5===0;
-  const m="<p>"+(goal.kind==='cage'?"You unlocked the cage and saved your friend! 🔑":"You unlocked the door and escaped! 🔑")+"<br>Hearts: "+'❤️'.repeat(Math.max(0,hearts))+'🤍'.repeat(Math.max(0,3-hearts))+(hearts<3?(cpNext?"<br>Your hearts refill at the 🚩 checkpoint next level!":"<br>Your hearts carry on. They refill at the next 🚩 checkpoint."):"")+"</p>";
+  const m="<p>"+(goal.kind==='cage'?"You unlocked the cage and saved your friend! 🔑":"You unlocked the door and escaped! 🔑")+"<br>Hearts: "+'❤️'.repeat(Math.max(0,hearts))+'🤍'.repeat(Math.max(0,3-hearts))+(hearts<3?"<br>Hearts don't refill, so be careful!":"")+(cpNext?"<br>Next up: a 🚩 checkpoint!":"")+"</p>";
   if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
   else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
@@ -343,7 +346,7 @@ function activeBlocks(){return blocks.filter(b=>!(b.kind==='crumble'&&b.gone));}
 function puff(x,y,n,col){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=1+Math.random()*3;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:30+Math.random()*15,col});}}
 function hurtPlayer(fromX){
   if(p.inv>0)return;
-  hearts--;sfx.hurt();p.inv=80;p.kb=12;p.vx=(p.x+p.w/2<fromX?-7:7);p.vy=-6;p.grounded=false;
+  hearts--;saveHearts();sfx.hurt();p.inv=80;p.kb=12;p.vx=(p.x+p.w/2<fromX?-7:7);p.vy=-6;p.grounded=false;
   if(hearts<=0)loseLevel();
 }
 function step(dt){
@@ -422,7 +425,7 @@ function step(dt){
     shots.forEach(s=>{if(s.life>0&&Math.abs(s.x-b.x)<14&&Math.abs(s.y-b.y)<14){s.life=0;b.life=0;puff(b.x,b.y,5,'#8c4');}});});
   blobs=blobs.filter(b=>b.life>0);
   // heart pickups
-  pickups.forEach(h=>{if(!h.got&&Math.abs(h.x-(p.x+p.w/2))<26&&Math.abs(h.y-(p.y+p.h/2))<34){if(hearts<3){h.got=true;hearts=Math.min(3,hearts+1);tone(660,.1,'triangle');setTimeout(()=>tone(990,.15,'triangle'),90);}}});
+  pickups.forEach(h=>{if(!h.got&&Math.abs(h.x-(p.x+p.w/2))<26&&Math.abs(h.y-(p.y+p.h/2))<34){if(hearts<3){h.got=true;hearts=Math.min(3,hearts+1);saveHearts();tone(660,.1,'triangle');setTimeout(()=>tone(990,.15,'triangle'),90);}}});
   // the key
   if(keyItem&&!keyItem.got){
     if(keyItem.fall){keyItem.vy+=0.4*dt;keyItem.y+=keyItem.vy*dt;if(keyItem.y>=keyItem.floor){keyItem.y=keyItem.floor;keyItem.vy=0;keyItem.fall=false;}}
@@ -430,7 +433,7 @@ function step(dt){
     if(!keyItem.fall&&dx*dx+dy*dy<46*46){keyItem.got=true;hasKey=true;sfx.star();msg='You got the key! 🔑 Now find the '+(goal.kind==='cage'?'cage':'door')+'!';msgT=130;
       for(let i=0;i<12;i++){const a=Math.random()*6.28;parts.push({x:keyItem.x,y:keyItem.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}
   // fall
-  if(p.y>720){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;if(hearts<=0){loseLevel();return;}sfx.fall();}
+  if(p.y>720){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;saveHearts();if(hearts<=0){loseLevel();return;}sfx.fall();}
   // goal
   if(state==='play'&&overlap(p,goal)){
     if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the '+(lv.boss?lv.boss.name:'boss')+' first!';msgT=90;}}
