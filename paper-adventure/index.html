@@ -137,7 +137,8 @@ function genLevel(n){
   const diff=(n-1)/29,boss=n%5===0;
   const L={width:0,start:[40,420],solids:[[0,480,360,90]],crumbles:[],springs:[],movers:[],fans:[],mobs:[],stars:[],hearts:[],chunks:[]};
   const S=a=>L.solids.push(a),wspd=1.1+diff*1.1,fspd=1.5+diff*1.2;
-  const ground=(gx,len)=>{S([gx,480,len,90]);
+  L.grounds=[];
+  const ground=(gx,len)=>{S([gx,480,len,90]);L.grounds.push([gx,len]);
     if(len>=240&&R()<0.55+diff*0.45){const k=(len>=330&&R()<diff*1.3)?2:1,seg=len/k;for(let j=0;j<k;j++)L.mobs.push(['walk',gx+j*seg+20,gx+(j+1)*seg-20,480,wspd]);}
     if(R()<0.5)L.stars.push([gx+len/2,430]);
     return gx+len;};
@@ -163,6 +164,7 @@ function genLevel(n){
     if(n>5&&R()<0.15+diff*0.5)L.mobs.push(['fly',x0+40,x-40,ri(230,350),fspd]);
   }
   if(n>=6&&R()<0.6)L.hearts.push([x-90,420]);
+  if(!boss&&L.grounds.length){const g=L.grounds[Math.floor(L.grounds.length/2)];L.key=[g[0]+g[1]/2,425];}
   if(boss){const tier=n/5;
     L.hearts.push([x-60,420]);
     S([x+100,480,1150,90]);S([x+420,360,120,20]);S([x+820,360,120,20]);
@@ -179,13 +181,14 @@ for(let n=1;n<=30;n++){
   else if(n>=6&&n<=8)L=HAND[n-2];
   else if(n===10){L=HAND[7];L.mobs=L.mobs.map(m=>m[0]==='boss'?['boss',m[1],m[2],m[3],2]:m);}
   else L=genLevel(n);
+  const HK={1:[1180,230],2:[1450,380],3:[980,425],4:[1480,380],6:[1600,425],7:[1100,425],8:[980,325]};if(HK[n])L.key=HK[n];
   L.name='Level '+n+': '+NAMES[n-1];L.weapon=n>=5;L.boss=n%5===0?BOSSES[n/5]:null;
   LEVELS.push(L);
 }
 const WEAPON_FROM=4;
 
 /* ---------- state ---------- */
-let LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
+let keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
 let maxLevel=0;try{maxLevel=Math.min(LEVELS.length-1,parseInt(localStorage.getItem('paperAdventureMax')||'0',10)||0);}catch(e){}
 function saveMax(i){if(i>maxLevel){maxLevel=i;try{localStorage.setItem('paperAdventureMax',String(i));}catch(e){}}}
 function load(i){
@@ -196,7 +199,7 @@ function load(i){
   (lv.movers||[]).forEach(s=>blocks.push({x:s[0],y:s[1],w:s[2],h:s[3],kind:'mover',axis:s[4],min:s[5],max:s[6],spd:s[7],ph:0,dx:0,dy:0}));
   fans=(lv.fans||[]).map(f=>Object.assign({},f));
   fans.forEach(f=>{if(f.dir==='up')blocks.push({x:f.x,y:f.y,w:f.w,h:f.h,kind:'fan'});});
-  stars=lv.stars.map(s=>({x:s[0],y:s[1],got:false}));
+  stars=[];hasKey=false;keyItem=lv.key?{x:lv.key[0],y:lv.key[1],got:false}:null;
   goal=lv.goal;
   mobs=(lv.mobs||[]).map((m,k)=>{
     if(m[0]==='walk')return{type:'walk',min:m[1],max:m[2],w:34,h:22,x:m[1]+Math.max(0,m[2]-m[1]-34)*((k*37)%10)/10,y:m[3]-22,vx:(m[4]||1.2)*(k%2?-1:1),hp:1,hit:0};
@@ -210,7 +213,7 @@ function load(i){
   safe={x:p.x,y:p.y};parts=[];msg='';msgT=0;
   document.getElementById('bf').classList.toggle('hide',!lv.weapon);
 }
-function bossBanner(){if(lv.boss){msg='Boss level! Beat the '+lv.boss.name+'!';msgT=170;}}
+function bossBanner(){if(lv.boss){msg=(checkpointOf(LV)===LV?'🚩 Checkpoint! ':'')+'Beat the '+lv.boss.name+' to get the key!';msgT=190;}}
 function startLevel(i){
   initAudio();load(i);setSong(lv.boss?'boss':'main');
   if(i===WEAPON_FROM){state='intro';
@@ -313,19 +316,23 @@ ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!
 function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
 function menu(){state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
-  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>grab the stars ⭐. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Lose all 3 and it's back to Level 1!</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>find the key 🔑 to open the door. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Lose all 3 and it's back to the last 🚩 checkpoint (levels 5, 10, 15…)!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
 function winLevel(){state='won';setSong(null);sfx.win();
-  const got=countStars(),all=stars.length;
-  const m="<p>You got ⭐ "+got+" / "+all+(got===all?"<br>ALL the stars! Amazing!":"")+"</p>";
+  const nx=LV+1,cpNext=nx<LEVELS.length&&(nx+1)%5===0;
+  const m="<p>"+(goal.kind==='cage'?"You unlocked the cage and saved your friend! 🔑":"You unlocked the door and escaped! 🔑")+(cpNext?"<br>Next up: a 🚩 checkpoint level!":"")+"</p>";
   if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
   else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
 function loseLevel(){state='lost';setSong(null);sfx.fall();
-  if(LV>0)showOv("Out of hearts! 💔","<p>You lost all 3 hearts on Level "+(LV+1)+".<br>Back to Level 1 you go!</p>","Go to Level 1",()=>startLevel(0));
-  else showOv("Out of hearts! 💔","<p>Back to the start of Level 1.<br>You can do it!</p>","Try again",()=>startLevel(0));}
+  const cp=checkpointOf(LV);
+  if(cp===LV)showOv("Out of hearts! 💔","<p>Back to the start of Level "+(LV+1)+".<br>You can do it!</p>","Try again",()=>startLevel(LV));
+  else if(cp===0)showOv("Out of hearts! 💔","<p>You lost all 3 hearts on Level "+(LV+1)+".<br>Back to Level 1 you go!</p>","Go to Level 1",()=>startLevel(0));
+  else showOv("Out of hearts! 💔","<p>You lost all 3 hearts on Level "+(LV+1)+".<br>Back to the 🚩 checkpoint: Level "+(cp+1)+"!</p>","Go to Level "+(cp+1),()=>startLevel(cp));}
+// checkpoints at levels 5, 10, 15, 20, 25, 30 (index 4, 9, ...)
+function checkpointOf(i){const n=i+1;return n<5?0:Math.floor(n/5)*5-1;}
 
 /* ---------- physics ---------- */
 const G=0.6,SPEED=5,JUMP=12.5,SPRING=19;
@@ -414,13 +421,18 @@ function step(dt){
   blobs=blobs.filter(b=>b.life>0);
   // heart pickups
   pickups.forEach(h=>{if(!h.got&&Math.abs(h.x-(p.x+p.w/2))<26&&Math.abs(h.y-(p.y+p.h/2))<34){if(hearts<3){h.got=true;hearts=Math.min(3,hearts+1);tone(660,.1,'triangle');setTimeout(()=>tone(990,.15,'triangle'),90);}}});
-  // stars
-  stars.forEach(s=>{if(!s.got){const dx=s.x-(p.x+p.w/2),dy=s.y-(p.y+p.h/2);if(dx*dx+dy*dy<30*30){s.got=true;sfx.star();for(let i=0;i<10;i++){const a=Math.random()*6.28;parts.push({x:s.x,y:s.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}});
+  // the key
+  if(keyItem&&!keyItem.got){
+    if(keyItem.fall){keyItem.vy+=0.4*dt;keyItem.y+=keyItem.vy*dt;if(keyItem.y>=keyItem.floor){keyItem.y=keyItem.floor;keyItem.vy=0;keyItem.fall=false;}}
+    const dx=keyItem.x-(p.x+p.w/2),dy=keyItem.y-(p.y+p.h/2);
+    if(!keyItem.fall&&dx*dx+dy*dy<46*46){keyItem.got=true;hasKey=true;sfx.star();msg='You got the key! 🔑 Now find the '+(goal.kind==='cage'?'cage':'door')+'!';msgT=130;
+      for(let i=0;i<12;i++){const a=Math.random()*6.28;parts.push({x:keyItem.x,y:keyItem.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}
   // fall
   if(p.y>720){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;if(hearts<=0){loseLevel();return;}sfx.fall();}
   // goal
   if(state==='play'&&overlap(p,goal)){
     if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the '+(lv.boss?lv.boss.name:'boss')+' first!';msgT=90;}}
+    else if(!hasKey){if(msgT<=0){msg='Locked! You need the key 🔑';msgT=90;}}
     else winLevel();
   }
   if(msgT>0)msgT-=dt;
@@ -440,7 +452,7 @@ function bossAI(m,dt){
 }
 function hitMob(m){
   m.hp--;m.hit=12;
-  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,40,'#7a3');blobs=[];mobs.forEach(o=>{if(o.summoned)o.hp=0;});msg='The '+m.B.name+' is beaten! Free your friend!';msgT=170;setSong('main');}}
+  if(m.type==='boss'){sfx.boss();puff(m.x+m.w/2,m.y+m.h/2,8,'#7a3');if(m.hp<=0){puff(m.x+m.w/2,m.y+m.h/2,40,'#7a3');blobs=[];mobs.forEach(o=>{if(o.summoned)o.hp=0;});msg='The '+m.B.name+' dropped the key! 🔑';msgT=170;keyItem={x:m.x+m.w/2,y:m.y+m.h/2,vy:-7,fall:true,floor:m.floor+m.h-26,got:false};setSong('main');}}
   else{sfx.squash();puff(m.x+m.w/2,m.y+m.h/2,14,'#7a3');}
 }
 
@@ -453,6 +465,10 @@ function sline(x1,y1,x2,y2,s){
 function srect(x,y,w,h,s,fill){if(fill){ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);}sline(x,y,x+w,y,s);sline(x+w,y,x+w,y+h,s+3);sline(x+w,y+h,x,y+h,s+5);sline(x,y+h,x,y,s+7);}
 function arrowUp(x,y,h){ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x,y);ctx.moveTo(x-4,y+5);ctx.lineTo(x,y);ctx.lineTo(x+4,y+5);ctx.stroke();}
 function starShape(x,y,r,fill){ctx.beginPath();for(let i=0;i<5;i++){const a=-Math.PI/2+i*4*Math.PI/5;const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.stroke();}
+function drawKey(x,y,s,gold){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.lineWidth=2;ctx.strokeStyle=gold?'#2b2b2b':'#aaa';ctx.fillStyle=gold?'#ffd23f':'rgba(255,255,255,.7)';
+  ctx.beginPath();ctx.arc(-9,0,7,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(-9,0,2.5,0,7);ctx.fillStyle='#fbfaf5';ctx.fill();ctx.stroke();
+  ctx.fillStyle=gold?'#ffd23f':'rgba(255,255,255,.7)';ctx.beginPath();ctx.rect(-2,-2.5,16,5);ctx.rect(9,2.5,3,5);ctx.rect(4,2.5,3,4);ctx.fill();ctx.stroke();ctx.restore();}
+function drawLock(x,y){ctx.save();ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(x,y-4,7,Math.PI,0);ctx.stroke();ctx.fillStyle='#9aa0a6';ctx.fillRect(x-10,y-4,20,15);ctx.strokeRect(x-10,y-4,20,15);ctx.fillStyle='#2b2b2b';ctx.fillRect(x-1.5,y+1,3,6);ctx.restore();}
 function heart(x,y,r,full){ctx.beginPath();ctx.moveTo(x,y+r*0.9);ctx.bezierCurveTo(x-r*1.6,y-r*0.2,x-r*0.6,y-r*1.3,x,y-r*0.4);ctx.bezierCurveTo(x+r*0.6,y-r*1.3,x+r*1.6,y-r*0.2,x,y+r*0.9);ctx.fillStyle=full?'#ff6b6b':'#fff';ctx.fill();ctx.stroke();}
 function flower(x,y,r,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ctx.beginPath();ctx.ellipse(0,-r*.5,r*.28,r*.5,0,0,Math.PI*2);ctx.stroke();}ctx.restore();}
 function stick(x,y,face,walk,airborne,wave,armed){
@@ -579,12 +595,12 @@ function render(){
   });
   // goal
   ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2.2;
-  if(goal.kind==='flag'){const fx=goal.x+35,top=goal.y,bot=goal.y+goal.h;sline(fx,bot,fx,top,5);ctx.fillStyle='#ffd646';ctx.beginPath();ctx.moveTo(fx,top+2);ctx.lineTo(fx+30+Math.sin(t*.15)*3,top+12);ctx.lineTo(fx,top+24);ctx.closePath();ctx.fill();ctx.stroke();}
-  else{const g=goal;srect(g.x,g.y,g.w,g.h,77,'rgba(255,255,255,.6)');stick(g.x+30,g.y+48,-1,0,false,true);
+  if(goal.kind==='flag'){const dx=goal.x+10,dw=50,top=goal.y,dh=goal.h;srect(dx,top,dw,dh,61,hasKey?'#ffe9a8':'#e9d3b0');ctx.lineWidth=1.6;sline(dx+6,top+6,dx+dw-6,top+6,62);ctx.beginPath();ctx.arc(dx+dw-11,top+dh/2+4,3,0,7);ctx.fillStyle='#2b2b2b';ctx.fill();if(!hasKey)drawLock(dx+dw/2,top+dh/2-6);}
+  else{const g=goal;srect(g.x,g.y,g.w,g.h,77,'rgba(255,255,255,.6)');stick(g.x+30,g.y+48,-1,0,false,true);if(!hasKey)drawLock(g.x+g.w/2,g.y+g.h/2+6);
     ctx.lineWidth=2;ctx.strokeStyle='#2b2b2b';for(let k=1;k<5;k++)sline(g.x+k*g.w/5,g.y,g.x+k*g.w/5,g.y+g.h,80+k);
     ctx.font='16px "Comic Sans MS",cursive';ctx.fillStyle='#333';ctx.fillText('Help!',g.x+16,g.y-10-Math.abs(Math.sin(t*.08))*6);}
-  // stars
-  stars.forEach((s,i)=>{if(s.got)return;ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;starShape(s.x,s.y+Math.sin(t*0.08+i)*3,14,'#ffe36e');});
+  // key
+  if(keyItem&&!keyItem.got){const bob=keyItem.fall?0:Math.sin(t*0.08)*4;ctx.save();ctx.globalAlpha=.35+.2*Math.sin(t*0.1);ctx.fillStyle='#ffe36e';ctx.beginPath();ctx.arc(keyItem.x,keyItem.y+bob,24,0,7);ctx.fill();ctx.restore();drawKey(keyItem.x,keyItem.y+bob,1.2,true);}
   // mobs
   mobs.forEach(m=>{if(m.hp>0)(m.type==='boss'&&m.B.style!=='beetle'?drawBoss(m):drawBug(m));});
   blobs.forEach(b=>{ctx.fillStyle='#9ad04a';ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x,b.y,7,0,7);ctx.fill();ctx.stroke();});
@@ -601,8 +617,7 @@ function render(){
   // HUD
   ctx.lineCap='round';ctx.lineJoin='round';
   ctx.fillStyle='#333';ctx.font='bold 20px "Comic Sans MS","Chalkboard SE",cursive';ctx.fillText(lv.name,14,30);
-  ctx.strokeStyle='#2b2b2b';ctx.lineWidth=1.8;starShape(26,56,11,'#ffe36e');
-  ctx.fillStyle='#333';ctx.fillText(countStars()+' / '+stars.length,44,63);
+  drawKey(28,57,0.9,hasKey);if(!hasKey){ctx.fillStyle='#333';ctx.font='bold 14px "Comic Sans MS","Chalkboard SE",cursive';ctx.fillText('?',50,63);}
   for(let i=0;i<3;i++)heart(130+i*28,55,10,i<hearts);
   if(msgT>0){ctx.font='bold 22px "Comic Sans MS","Chalkboard SE",cursive';const w=ctx.measureText(msg).width;ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(viewW/2-w/2-12,82,w+24,36);ctx.strokeRect(viewW/2-w/2-12,82,w+24,36);ctx.fillStyle='#333';ctx.fillText(msg,viewW/2-w/2,108);}
 }
@@ -614,7 +629,7 @@ function loop(now){
   if(state==='play'){const n=dt>1?Math.ceil(dt):1;for(let i=0;i<n&&state==='play';i++)step(dt/n);}
   t+=dt;render();requestAnimationFrame(loop);
 }
-if(new URLSearchParams(location.search).has('test'))window.__game={get mus(){return mus},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
+if(new URLSearchParams(location.search).has('test'))window.__game={get mus(){return mus},get hasKey(){return hasKey},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
 load(0);menu();requestAnimationFrame(loop);
 })();
 </script>
