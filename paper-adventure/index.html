@@ -188,7 +188,7 @@ for(let n=1;n<=30;n++){
 const WEAPON_FROM=4;
 
 /* ---------- state ---------- */
-let keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
+let heartsAtStart=3,keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=3,fireCd=0,msg='',msgT=0;
 let maxLevel=0;try{maxLevel=Math.min(LEVELS.length-1,parseInt(localStorage.getItem('paperAdventureMax')||'0',10)||0);}catch(e){}
 function saveMax(i){if(i>maxLevel){maxLevel=i;try{localStorage.setItem('paperAdventureMax',String(i));}catch(e){}}}
 function load(i){
@@ -207,15 +207,17 @@ function load(i){
     const B=BOSSES[m[4]||1];
     return{type:'boss',B,min:m[1],max:m[2],w:B.w,h:B.h,x:(m[1]+m[2])/2,y:m[3]-B.h,vx:B.spd,hp:B.hp,maxhp:B.hp,hit:0,hop:60,vy:0,floor:m[3]-B.h,ph:0,spitT:B.spit||0,sumT:B.summon||0};
   });
-  shots=[];blobs=[];hearts=3;fireCd=0;
+  shots=[];blobs=[];fireCd=0;
   pickups=(lv.hearts||[]).map(h=>({x:h[0],y:h[1],got:false}));
   p={x:lv.start[0],y:lv.start[1],w:24,h:48,vx:0,vy:0,grounded:false,coyote:0,face:1,walk:0,ground:null,inv:0,kb:0,sprung:false};
   safe={x:p.x,y:p.y};parts=[];msg='';msgT=0;
   document.getElementById('bf').classList.toggle('hide',!lv.weapon);
 }
-function bossBanner(){if(lv.boss){msg=(checkpointOf(LV)===LV?'🚩 Checkpoint! ':'')+'Beat the '+lv.boss.name+' to get the key!';msgT=190;}}
-function startLevel(i){
+function bossBanner(){if(!lv.boss&&LV===0&&hearts===3){msg='';}if(lv.boss){msg=(checkpointOf(LV)===LV?'🚩 Checkpoint! Hearts refilled. ':'')+'Beat the '+lv.boss.name+' for the key!';msgT=190;}}
+// hearts carry from level to level; they refill only at a checkpoint (or when you pick a level from the menu)
+function startLevel(i,fromMenu){
   initAudio();load(i);setSong(lv.boss?'boss':'main');
+  const refill=fromMenu||i===0||checkpointOf(i)===i||hearts<=0;if(refill)hearts=3;heartsAtStart=hearts;
   if(i===WEAPON_FROM){state='intro';
     showOv("You found the Pencil Blaster! ✏️","<p>Bugs live from here on, and they hurt!<br>Each bug hit costs a ❤️.<br>Press <b>FIRE</b> (or <b>X</b>) to shoot pencils,<br>or jump on a bug's head to squash it.<br>👑 A boss waits at the end of every 5th level!</p>","Let's go!",()=>{state='play';bossBanner();});}
   else{state='play';bossBanner();}
@@ -237,7 +239,7 @@ addEventListener('keyup',e=>{const k=KM[e.code];if(k)setKey(k,false);});
   el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);
   el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off);
 });
-document.getElementById('restart').addEventListener('click',()=>{if(state==='play')load(LV);});
+document.getElementById('restart').addEventListener('click',()=>{if(state==='play'){load(LV);hearts=heartsAtStart;}});
 document.getElementById('menu').addEventListener('click',()=>{if(state==='play')menu();});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
@@ -312,17 +314,17 @@ homeB.addEventListener('click',()=>{if(state==='play'){state='paused';showOv('Go
 ovh.addEventListener('click',goHome);
 function showOv(title,html,btn,action){ovh.classList.add('hide');ovt.textContent=title;ovp.innerHTML=html;ovb.textContent=btn;ovAction=action;ov.classList.remove('hide');}
 ovb.addEventListener('click',()=>{initAudio();ov.classList.add('hide');const a=ovAction;ovAction=null;if(a)a();});
-ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l);});
+ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l,true);});
 function levelButtons(){let h='<div class="lv">';LEVELS.forEach((l,i)=>{h+='<button data-l="'+i+'" class="'+(l.boss?'boss':l.weapon?'bug':'')+'"'+(i>maxLevel?' disabled':'')+'>'+(i+1)+(l.boss?'<br>👑':'')+'</button>';});return h+'</div>';}
 function menu(){state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
-  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>find the key 🔑 to open the door. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Lose all 3 and it's back to the last 🚩 checkpoint (levels 5, 10, 15…)!</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure","<p>Levels drawn by Felix! Ride the springs ⬆, float on fans 🌀,<br>find the key 🔑 to open the door. From level "+(WEAPON_FROM+1)+": bugs 🐞, a pencil blaster ✏️,<br>and a boss 👑 every 5 levels. "+LEVELS.length+" levels!<br>❤️❤️❤️ Falling or touching a bug costs a heart. Hearts carry over and only refill at a 🚩 checkpoint (levels 5, 10, 15…). Lose all 3 and it's back to that checkpoint!</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
-   maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel));if(ON_SITE)ovh.classList.remove('hide');}
+   maxLevel>0?"Continue: Level "+(maxLevel+1):"Play",()=>startLevel(maxLevel,true));if(ON_SITE)ovh.classList.remove('hide');}
 function countStars(){return stars.filter(s=>s.got).length;}
 function winLevel(){state='won';setSong(null);sfx.win();
   const nx=LV+1,cpNext=nx<LEVELS.length&&(nx+1)%5===0;
-  const m="<p>"+(goal.kind==='cage'?"You unlocked the cage and saved your friend! 🔑":"You unlocked the door and escaped! 🔑")+(cpNext?"<br>Next up: a 🚩 checkpoint level!":"")+"</p>";
+  const m="<p>"+(goal.kind==='cage'?"You unlocked the cage and saved your friend! 🔑":"You unlocked the door and escaped! 🔑")+"<br>Hearts: "+'❤️'.repeat(Math.max(0,hearts))+'🤍'.repeat(Math.max(0,3-hearts))+(hearts<3?(cpNext?"<br>Your hearts refill at the 🚩 checkpoint next level!":"<br>Your hearts carry on. They refill at the next 🚩 checkpoint."):"")+"</p>";
   if(LV<LEVELS.length-1){saveMax(LV+1);showOv(lv.boss?"You beat the "+lv.boss.name+"! 👑":"Level "+(LV+1)+" complete!",m,"Next level ▶",()=>startLevel(LV+1));}
   else showOv("You beat the Bug King! 🎉",m+"<p>You finished all "+LEVELS.length+" levels and beat every boss!</p>","Back to levels",()=>menu());
 }
@@ -629,7 +631,7 @@ function loop(now){
   if(state==='play'){const n=dt>1?Math.ceil(dt):1;for(let i=0;i<n&&state==='play';i++)step(dt/n);}
   t+=dt;render();requestAnimationFrame(loop);
 }
-if(new URLSearchParams(location.search).has('test'))window.__game={get mus(){return mus},get hasKey(){return hasKey},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
+if(new URLSearchParams(location.search).has('test'))window.__game={get mus(){return mus},get hasKey(){return hasKey},get hearts(){return hearts},forceKey(){hasKey=true;},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
 load(0);menu();requestAnimationFrame(loop);
 })();
 </script>
