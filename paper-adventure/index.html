@@ -134,6 +134,9 @@ const NAMES=['The Fan Factory','Star Sky','Moving Day','Windy Tower',"Beetle Que
 /* ---------- level builder: joins tested pieces ("chunks") ---------- */
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 /* ---------- brain levels: 1-4, 11-14, 21-24 (bosses stay on every 5th level) ---------- */
+const BRAIN_PLAN={1:['hold'],2:['button'],3:['boxDown'],4:['race'],
+  11:['sequence','timed'],12:['twoBoxes','climb'],13:['boxDown','combo'],14:['sequence','twoBoxes'],
+  21:['combo','boxDown','race'],22:['twoBoxes','sequence','combo'],23:['race','boxDown','sequence'],24:['twoBoxes','combo','sequence','race']};
 function isBrain(n){return n%5!==0&&((n-1)%10)<4;}
 // puzzle rooms. Each starts where the last ground ended and returns where its floor ends.
 function puzzleRoom(L,type,x,hard){
@@ -145,10 +148,25 @@ function puzzleRoom(L,type,x,hard){
   if(type==='button'){S([x,480,820,90]);L.boxes.push([x+60,440]);L.planks.push([x+260,330,150,14]);L.plates.push([x+300,330,60,'once',id]);S([x+410,470,10,10]);
     L.gates.push([x+600,150,30,330,id]);L.signs.push([x+30,300,'The button is up high!']);return x+820;}
   if(type==='climb'){S([x,480,420,90]);L.boxes.push([x+80,440]);S([x+420,320,460,250]);S([x+880,480,200,90]);L.signs.push([x+30,300,'Too high to jump...']);return x+1080;}
-  if(type==='timed'){S([x,480,940,90]);L.plates.push([x+70,480,60,'timed',id,hard?250:330]);S([x+260,440,40,40]);S([x+460,440,40,40]);
+  if(type==='timed'){S([x,480,940,90]);L.plates.push([x+70,480,60,'timed',id,hard?200:300]);S([x+260,440,40,40]);S([x+460,440,40,40]);
     L.gates.push([x+720,150,30,330,id]);L.signs.push([x+30,330,'Press it, then RUN!']);return x+940;}
-  if(type==='combo'){S([x,480,980,90]);L.boxes.push([x+60,440]);L.planks.push([x+260,330,150,14]);L.plates.push([x+300,330,60,'timed',id,300]);S([x+410,470,10,10]);S([x+600,440,40,40]);
+  if(type==='combo'){S([x,480,980,90]);L.boxes.push([x+60,440]);L.planks.push([x+260,330,150,14]);L.plates.push([x+300,330,60,'timed',id,hard?220:280]);S([x+410,470,10,10]);S([x+600,440,40,40]);
     L.gates.push([x+860,150,30,330,id]);L.signs.push([x+30,300,'Up high, then RUN!']);return x+980;}
+  if(type==='sequence'){ // use the same box twice
+    const id2=id+1;S([x,480,1100,90]);L.boxes.push([x+60,440]);L.planks.push([x+260,330,150,14]);L.plates.push([x+300,330,60,'once',id]);
+    L.gates.push([x+410,470,10,10,id]);L.gates.push([x+520,150,30,330,id]);
+    L.plates.push([x+700,480,80,'hold',id2]);S([x+780,470,10,10]);L.gates.push([x+900,150,30,330,id2]);
+    L.signs.push([x+30,300,'One box, two jobs...']);return x+1100;}
+  if(type==='twoBoxes'){ // both buttons must be pressed; one box has to go backwards
+    S([x,480,1000,90]);L.boxes.push([x+60,440]);L.plates.push([x+200,480,80,'hold',id]);S([x+280,470,10,10]);
+    S([x+410,470,10,10]);L.plates.push([x+420,480,80,'hold',id]);L.boxes.push([x+620,440]);
+    L.gates.push([x+820,150,30,330,id,'all']);L.signs.push([x+30,330,'Two buttons. Both at once!']);return x+1000;}
+  if(type==='boxDown'){ // push the box off the shelf, then climb with it
+    S([x,480,300,90]);S([x+300,400,300,170]);L.boxes.push([x+380,360]);S([x+600,480,300,90]);S([x+900,320,400,250]);S([x+1300,480,200,90]);
+    L.signs.push([x+30,330,'Push it down, then climb!']);return x+1500;}
+  if(type==='race'){ // far timed gate with pits and hurdles
+    S([x,480,330,90]);L.plates.push([x+70,480,60,'timed',id,hard?235:290]);S([x+420,480,250,90]);S([x+520,440,40,40]);S([x+760,480,500,90]);
+    L.gates.push([x+960,150,30,330,id]);L.signs.push([x+30,330,'Long race. Go go go!']);return x+1260;}
 }
 // adds a puzzle room before the goal of one of Felix's hand-drawn levels
 function appendPuzzle(L,type){
@@ -180,8 +198,8 @@ function genLevel(n){
   const types=Object.keys(CH);
   let x=360,last='';
   const nChunks=boss?2+Math.floor(diff*2):brain?3+Math.floor(diff*2):5+Math.floor(diff*4);
-  const hard=n>20,pz=brain?(hard?['combo',...['hold','button','climb','timed'].sort(()=>R()-0.5).slice(0,2)]:['hold','button','climb','timed'].sort(()=>R()-0.5).slice(0,2)):[];
-  const pzAfter=hard?[0,1,2]:[0,2];
+  const hard=n>20,pz=brain?BRAIN_PLAN[n].slice():[];
+  const pzAfter=pz.map((_,k)=>Math.floor((k+1)*nChunks/(pz.length+1))-1);
   for(let c=0;c<nChunks;c++){
     let tp;do tp=pick(types);while(tp===last);last=tp;
     const x0=x;L.chunks.push({type:tp,x0});
@@ -209,7 +227,7 @@ for(let n=1;n<=30;n++){
   else if(n===10){L=HAND[7];L.mobs=L.mobs.map(m=>m[0]==='boss'?['boss',m[1],m[2],m[3],2]:m);}
   else L=genLevel(n);
   const HK={1:[1180,230],2:[1450,380],3:[980,425],4:[1480,380],6:[1600,425],7:[1100,425],8:[980,325]};if(HK[n])L.key=HK[n];
-  if(n<=4)appendPuzzle(L,['hold','button','climb','timed'][n-1]);
+  if(n<=4)appendPuzzle(L,BRAIN_PLAN[n][0]);
   if(n>=6){const ws=L.mobs.filter(m=>m[0]==='walk');if(ws.length)ws[Math.floor(ws.length/2)][5]='heart';}
   L.name='Level '+n+': '+NAMES[n-1];L.weapon=n>=5&&!isBrain(n);L.brain=isBrain(n);L.boss=n%5===0?BOSSES[n/5]:null;
   LEVELS.push(L);
@@ -230,7 +248,7 @@ function load(i){
   (lv.movers||[]).forEach(s=>blocks.push({x:s[0],y:s[1],w:s[2],h:s[3],kind:'mover',axis:s[4],min:s[5],max:s[6],spd:s[7],ph:0,dx:0,dy:0}));
   fans=(lv.fans||[]).map(f=>Object.assign({},f));
   fans.forEach(f=>{if(f.dir==='up')blocks.push({x:f.x,y:f.y,w:f.w,h:f.h,kind:'fan'});});
-  (lv.gates||[]).forEach(g=>blocks.push({x:g[0],y:g[1],w:g[2],h:g[3],kind:'gate',id:g[4],open:false,latched:false,timer:0,max:1}));
+  (lv.gates||[]).forEach(g=>blocks.push({x:g[0],y:g[1],w:g[2],h:g[3],kind:'gate',id:g[4],all:g[5]==='all',open:false,latched:false,timer:0,max:1}));
   (lv.planks||[]).forEach(b=>blocks.push({x:b[0],y:b[1],w:b[2],h:b[3],kind:'plank'}));
   (lv.boxes||[]).forEach(b=>blocks.push({x:b[0],y:b[1],w:40,h:40,kind:'box',vy:0,hx:b[0],hy:b[1]}));
   plates=(lv.plates||[]).map(q=>({x:q[0],y:q[1],w:q[2],mode:q[3],gate:q[4],time:q[5]||0,pressed:false}));
@@ -403,7 +421,7 @@ function step(dt){
     qs.forEach(q=>{if(q.pressed){if(q.mode==='once')g.latched=true;if(q.mode==='timed'){g.timer=q.time;g.max=q.time;}}});
     const before=Math.ceil(g.timer/60);if(g.timer>0)g.timer-=dt;const after=Math.ceil(g.timer/60);
     if(g.timer>0&&after<before)tone(1200,.04,'square',null,.04);
-    let open=g.latched||g.timer>0||qs.some(q=>q.mode==='hold'&&q.pressed);
+    const holds=qs.filter(q=>q.mode==='hold');let open=g.latched||g.timer>0||(g.all?holds.length>0&&holds.every(q=>q.pressed):holds.some(q=>q.pressed));
     if(!open&&(overlap(p,g)||blocks.some(b=>b.kind==='box'&&overlap(b,g))))open=true;
     if(open!==g.open){g.open=open;open?tone(520,.18,'triangle',780,.08):tone(300,.18,'triangle',180,.08);}});
   // crumbles & springs
