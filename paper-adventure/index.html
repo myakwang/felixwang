@@ -30,6 +30,7 @@ canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
 #ov h1{margin:0 0 6px;font-size:28px}
 #ov canvas.trophy{position:static;inset:auto;width:min(210px,45vw,38vh);height:auto;display:block;margin:0 auto -4px}
 #ov canvas.trophy.small{width:56px;display:inline-block;vertical-align:middle;margin:0 6px 0 0}
+#ov .live{font-size:15px;font-weight:bold;color:#1e8449;margin:2px 0 4px}
 #ov .champ{font-weight:bold;font-size:17px;margin:2px 0 4px}
 #ov p{margin:6px 0 12px;font-size:17px;line-height:1.35}
 #ov button{font:inherit;font-size:22px;padding:10px 30px;border:3px solid #333;border-radius:14px 10px 16px 9px;background:#ffd646;cursor:pointer;box-shadow:3px 3px 0 #333}
@@ -438,7 +439,7 @@ function trophyCount(){try{return parseInt(localStorage.getItem('paperAdventureT
 function menu(){if(curUnset){cur=checkpointOf(maxLevel);curUnset=false;}state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
   const tc=trophyCount();
-  showOv("Felix's Paper Adventure",(tc?'<div class="champ"><canvas class="trophy small" width="220" height="180"></canvas>Paper Champion!'+(tc>1?' ×'+tc:'')+'</div>':'')+"<p>Levels drawn by Felix! Find the key 🔑 to open the door.<br>🧠 Blue = brain puzzles (stuck? press ↺) · 🐞 Pink = bugs + pencil blaster ✏️ · 👑 Boss every 5 levels<br>❤️❤️❤️ Falling or a bug hit costs a heart. Hearts never refill. Lose them all: back to the last 🚩 checkpoint.</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure",(ON_SITE?'<div id="liveMenu" class="live">'+(liveN?liveText():'')+'</div>':'')+(tc?'<div class="champ"><canvas class="trophy small" width="220" height="180"></canvas>Paper Champion!'+(tc>1?' ×'+tc:'')+'</div>':'')+"<p>Levels drawn by Felix! Find the key 🔑 to open the door.<br>🧠 Blue = brain puzzles (stuck? press ↺) · 🐞 Pink = bugs + pencil blaster ✏️ · 👑 Boss every 5 levels<br>❤️❤️❤️ Falling or a bug hit costs a heart. Hearts never refill. Lose them all: back to the last 🚩 checkpoint.</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    cur>0?"Continue: Level "+(cur+1):"Play",()=>startLevel(cur));if(ON_SITE)ovh.classList.remove('hide');if(tc)animTrophy();}
 function countStars(){return stars.filter(s=>s.got).length;}
@@ -921,9 +922,27 @@ function render(){
   ctx.fillStyle='#333';ctx.font='bold 20px "Comic Sans MS","Chalkboard SE",cursive';ctx.fillText(lv.name,14,30);
   drawKey(28,57,0.9,hasKey);if(!hasKey){ctx.fillStyle='#333';ctx.font='bold 14px "Comic Sans MS","Chalkboard SE",cursive';ctx.fillText('?',50,63);}
   for(let i=0;i<3;i++)heart(130+i*28,55,10,i<hearts);
-  if(msgT>0){ctx.font='bold 22px "Comic Sans MS","Chalkboard SE",cursive';const w=ctx.measureText(msg).width;ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(viewW/2-w/2-12,82,w+24,36);ctx.strokeRect(viewW/2-w/2-12,82,w+24,36);ctx.fillStyle='#333';ctx.fillText(msg,viewW/2-w/2,108);}
+  if(liveN&&ON_SITE){ctx.font='bold 13px "Comic Sans MS","Chalkboard SE",cursive';const tx='🟢 '+liveN+' playing now',w=ctx.measureText(tx).width;ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(viewW/2-w/2-8,84,w+16,20);ctx.fillStyle='#1e8449';ctx.fillText(tx,viewW/2-w/2,99);}
+  if(msgT>0){ctx.font='bold 22px "Comic Sans MS","Chalkboard SE",cursive';const w=ctx.measureText(msg).width;ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(viewW/2-w/2-12,110,w+24,36);ctx.strokeRect(viewW/2-w/2-12,110,w+24,36);ctx.fillStyle='#333';ctx.fillText(msg,viewW/2-w/2,136);}
 }
 
+/* ---------- live player count ----------
+ Anonymous "still playing" signal for the live count: a random id made fresh every time the game
+ opens (never saved), sent every 60 s while the game is on screen, with "g":"pa". Nothing else is sent.
+------------------------------------------------------------------------ */
+let liveN=0;
+const PLAY_ID=(()=>{try{const a=new Uint8Array(8);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');}catch(e){return null;}})();
+function playBeat(bye){if(!PLAY_ID||!ON_SITE)return;const body=JSON.stringify({id:PLAY_ID,bye:bye?1:0,g:'pa'});
+  try{if(bye&&navigator.sendBeacon){navigator.sendBeacon(location.origin+'/api/playing',new Blob([body],{type:'application/json'}));return;}
+    fetch(location.origin+'/api/playing',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{});}catch(e){}}
+async function readLive(){if(!ON_SITE)return;try{const r=await fetch(location.origin+'/api/online',{cache:'no-store'});const j=await r.json();liveN=Math.max(1,j.paper|0);showLiveMenu();}catch(e){}}
+function liveText(){return liveN<=1?'🟢 You are the only one playing right now!':'🟢 '+liveN+' players in Paper Adventure right now (with you)';}
+function showLiveMenu(){const el=document.getElementById('liveMenu');if(el&&liveN)el.textContent=liveText();}
+playBeat();setTimeout(readLive,900);
+setInterval(()=>{if(document.visibilityState==='visible')playBeat();},60000);
+setInterval(()=>{if(!document.hidden)readLive();},20000);
+document.addEventListener('visibilitychange',()=>{playBeat(document.visibilityState!=='visible');if(document.visibilityState==='visible')setTimeout(readLive,800);});
+addEventListener('pagehide',()=>playBeat(true));
 /* ---------- loop ---------- */
 let last=performance.now();
 function loop(now){

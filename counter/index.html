@@ -31,6 +31,7 @@
   <div class="big"><div class="num" id="num">–</div><div class="label" id="lbl">players online</div></div>
   <div class="rooms" id="rooms">&nbsp;</div>
   <div class="big" style="margin-top:14px"><div class="num" id="solo" style="font-size:56px">–</div><div class="label" id="soloLbl">playing single-player Star Army</div></div>
+  <div class="big" style="margin-top:14px"><div class="num" id="paper" style="font-size:56px">–</div><div class="label" id="paperLbl">playing Paper Adventure</div></div>
   <svg id="spark" viewBox="0 0 300 70" preserveAspectRatio="none" aria-label="Players online over the time this page has been open"></svg>
   <div class="row"><span id="updated">Connecting…</span><span class="peak" id="peak"></span></div>
   <div class="err" id="err"></div>
@@ -52,7 +53,8 @@ async function check() {
   try {
     const r = await fetch(URL_ + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json(); const p = j.players | 0, rooms = j.rooms | 0, solo = j.solo | 0;
+    const j = await r.json(); const p = j.players | 0, rooms = j.rooms | 0, solo = j.solo | 0, paper = j.paper | 0;
+    $('paper').textContent = paper; $('paperLbl').textContent = (paper === 1 ? 'player' : 'players') + ' in Paper Adventure';
     $('solo').textContent = solo; $('soloLbl').textContent = (solo === 1 ? 'player' : 'players') + ' in single-player Star Army';
     fails = 0; $('err').style.display = 'none'; $('dot').className = 'dot';
     $('num').textContent = p; $('lbl').textContent = p === 1 ? 'player online' : 'players online';

@@ -8,15 +8,15 @@ const MAX_MSG = 64 * 1024;
 // only how many players it has (a number); no names or other details are kept,
 // and a room's entry is removed when it empties.
 const STALE_MS = 6 * 3600 * 1000;
-// Single-player Star Army sends an anonymous "still playing" signal (a random id that changes
+// Single-player Star Army and Paper Adventure each send an anonymous "still playing" signal (a random id that changes
 // every time the game is opened) every 60 s while it is on screen. Each id is kept only until
 // it goes quiet (150 s), then deleted; it is never linked to anything else.
 const SOLO_MS = 150 * 1000;
 export class Stats {
   constructor(ctx, env) { this.ctx = ctx; }
-  async soloCount() {
+  async soloCount(prefix = 's:') {
     const now = Date.now(); let n = 0; const stale = [];
-    for (const [k, ts] of await this.ctx.storage.list({ prefix: 's:' })) { if (now - ts > SOLO_MS) stale.push(k); else n++; }
+    for (const [k, ts] of await this.ctx.storage.list({ prefix })) { if (now - ts > SOLO_MS) stale.push(k); else n++; }
     for (let i = 0; i < stale.length; i += 128) await this.ctx.storage.delete(stale.slice(i, i + 128));
     return n;
   }
@@ -33,7 +33,8 @@ export class Stats {
     if (url.pathname === '/beat' && request.method === 'POST') {
       let b = {}; try { b = await request.json(); } catch (e) {}
       if (typeof b.id !== 'string' || !/^[0-9a-f]{16}$/.test(b.id)) return new Response('bad', { status: 400 });
-      if (b.bye) await this.ctx.storage.delete('s:' + b.id); else await this.ctx.storage.put('s:' + b.id, Date.now());
+      const pre = b.g === 'pa' ? 'p:' : 's:';
+      if (b.bye) await this.ctx.storage.delete(pre + b.id); else await this.ctx.storage.put(pre + b.id, Date.now());
       return new Response('ok');
     }
     if (url.pathname === '/count') {
@@ -43,7 +44,7 @@ export class Stats {
         players += v.n; rooms++;
       }
       if (stale.length) await this.ctx.storage.delete(stale);
-      return Response.json({ players, rooms, solo: await this.soloCount() });
+      return Response.json({ players, rooms, solo: await this.soloCount('s:'), paper: await this.soloCount('p:') });
     }
     return new Response('not found', { status: 404 });
   }
