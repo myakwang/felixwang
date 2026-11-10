@@ -35,10 +35,15 @@
   #bottom .btn{display:none;font-size:20px;padding:6px 12px}
   #camo{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);font-size:21px;background:#fffdf6;border:2.5px solid #2b2b2b;border-radius:12px;padding:2px 12px;display:none;white-space:nowrap}
   #jumpBtn{position:absolute;right:22px;bottom:26px;width:78px;height:78px;border-radius:50%;font-size:20px;padding:0;pointer-events:auto;display:none}
-  #pal{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:#fffdf6;border:3px solid #2b2b2b;border-radius:18px;box-shadow:4px 4px 0 #2b2b2b;padding:10px 12px;pointer-events:auto;display:none;max-width:94vw;text-align:center}
-  #pal .sw{width:38px;height:38px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:4px;cursor:pointer;vertical-align:middle}
-  #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px}
-  #pal p{margin:2px 0 6px;font-size:19px}
+  #pal{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:#fffdf6f2;border:3px solid #2b2b2b;border-radius:18px;box-shadow:4px 4px 0 #2b2b2b;padding:6px 8px;pointer-events:auto;display:none;width:min(96vw,780px);text-align:center}
+  #pal .bwrap{display:flex;align-items:center;gap:6px}
+  #pal .bcols{display:flex;flex-wrap:nowrap;overflow-x:auto;flex:1 1 auto;min-width:0;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+  #pal .sw{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:3px;cursor:pointer;font-size:19px;line-height:28px;text-align:center;background:#fff}
+  #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px;transform:scale(1.12)}
+  #pal .brot{font-size:24px;padding:2px 10px}
+  #pal .bdone{font-size:19px;padding:4px 10px;white-space:nowrap}
+  #pal .btip{margin:3px 0 0;font-size:17px}
+  body.brushing #camo{top:58px;bottom:auto}body.brushing #bottom{visibility:hidden}
   #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border:3px dashed #2b2b2b88;border-radius:50%;display:none;pointer-events:none}
   #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border:3px solid #2b2b2b;border-radius:50%;background:#fffdf6cc}
   .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:14px;text-align:center;overflow:auto}
@@ -56,7 +61,7 @@
   .mapc:disabled{cursor:default;opacity:1}
   .chip{font-family:inherit;font-size:19px;border:2.5px solid #2b2b2b;border-radius:20px;background:#fff;padding:2px 12px;cursor:pointer}.chip.sel{background:#c9f2c7}
   #bigCode{font-size:72px;letter-spacing:10px;line-height:1}
-  #cover{background:#1e1c22;color:#fffdf6}#cover .num{font-size:110px;line-height:1}
+  #hud{z-index:3}.overlay{z-index:4}#cover{z-index:2!important;background:#1e1c22;color:#fffdf6}#cover .num{font-size:110px;line-height:1}
   .score{font-size:22px}
 </style>
 </head>
@@ -73,7 +78,7 @@
   <div id="camo"></div>
   <div id="pal"></div>
   <div id="bottom">
-    <button class="btn pink" id="paintBtn">🎨 Paint</button>
+    <button class="btn pink" id="paintBtn">🖌 Paintbrush</button>
     <button class="btn" id="poseBtn">🧎 Crouch</button>
     <button class="btn" id="viewBtn">👁 My eyes</button>
     <button class="btn yellow" id="spotBtn">★ Hide here</button>
@@ -86,7 +91,7 @@
 <div class="overlay show" id="menu">
   <div class="sheet">
     <h1>Hide &amp; Seek Online</h1>
-    <p class="sub">Two players, two devices! One hides, one seeks, then you swap.</p>
+    <p class="sub">Two players, two devices! One hides anywhere, one seeks, then you swap.</p>
     <p><b>1. Pick your nickname</b></p>
     <div class="row"><select id="nameA"></select><select id="nameB"></select><button class="btn" id="dice" style="font-size:20px;padding:3px 10px">🎲</button></div>
     <p><b>2. Make or join a room</b></p>
@@ -167,10 +172,12 @@ function onMsg(m){switch(m.t){
   case 'ready':NET.state='ready';send({t:'name',a:myNick[0],b:myNick[1]});G.score={p1:0,p2:0};G.round=0;
     if(isHost()){G.map=G.map||'house';G.ht=G.ht||45;}toLobby();break;
   case 'name':{const a=m.a|0,b=m.b|0;if(NICK_A[a]&&NICK_B[b]){NET.friend=[a,b];if(state==='lobby')renderLobby();}}break;
-  case 'cfg':if(!isHost()&&HS.maps[m.map]){G.map=m.map;G.ht=m.ht|0;if(state==='lobby')renderLobby();}break;
+  case 'cfg':if(!isHost()&&(HS.maps[m.map]||m.map==='random')){G.map=m.map;G.ht=m.ht|0;if(state==='lobby')renderLobby();}break;
   case 'start':if(!isHost()&&HS.maps[m.map])startRound(m.map,m.ht|0,m.hider==='p1'?'p1':'p2',m.round|0,m.score);break;
   case 'ph':if(!isHost()&&G.phase!=='over'){G.left=+m.left||0;if(m.ph==='seek'&&G.phase==='hide')beginSeek();}break;
   case 'p':R.last=m;R.t=performance.now();break;
+  case 'sp':if(state==='play'&&okVec(m.p)&&okVec(m.n)&&typeof m.c==='string')HS.splat(m.p,m.n,m.c,+m.r||0.28);break;
+  case 'spx':if(state==='play'&&okVec(m.p))HS.eraseSplats(m.p,0.5);break;
   case 'tag':if(G.phase==='seek'&&iAmHider())roundOver('seeker');break;
   case 'over':if(!isHost()){if(m.score)G.score={p1:m.score.p1|0,p2:m.score.p2|0};if(G.phase!=='over')roundOver(m.w,true);else $('overScore').textContent=scoreText();}break;
   case 'lobby':if(!isHost())toLobby();break;
@@ -191,16 +198,15 @@ const meFig=HS.makeFigure({cap:'#3498db',shirt:'#3498db'});HS.scene.add(meFig);m
 const dog=HS.makeDogAgent();
 const tag=HS.sprite('',{w:1.8,h:0.5,font:40});HS.scene.add(tag);tag.visible=false;
 let markers=[];
-function loadMap(id){if(W&&W.def.id===id)return;W=HS.loadMap(id);markers.forEach(m=>HS.scene.remove(m));
-  markers=W.spots.map(s=>{const m=HS.sprite('★',{bg:'#ffe98a',w:0.8,h:0.36});m.position.set(s.pos[0],s.top+0.3,s.pos[2]);m.visible=false;HS.scene.add(m);return m;});
-  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);buildPalette();}
+function loadMap(id){if(id==='random'||(W&&W.def.id===id))return;W=HS.loadMap(id);markers.forEach(m=>HS.scene.remove(m));
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);try{buildPalette();}catch(e){setTimeout(buildPalette,0);}}
 loadMap('house');
 function resetWorld(){if(R.fig){HS.scene.remove(R.fig);R.fig=null;}meFig.visible=false;tag.visible=false;markers.forEach(m=>m.visible=false);$('hud').style.display='none';}
 
 /* ---------- screens ---------- */
 function showOnly(id){['menu','wait','lobby','cover','over'].forEach(x=>$(x).classList.toggle('show',x===id));}
 function toMenu(){state='menu';showOnly('menu');$('hud').style.display='none';}
-HS.mapList.forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{if(!isHost())return;G.map=m.id;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('maps').appendChild(b);});
+HS.mapList.concat([{id:'random',emoji:'🎲',name:'Surprise!'}]).forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{if(!isHost())return;G.map=m.id;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('maps').appendChild(b);});
 [30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.dataset.s=s;b.onclick=()=>{if(!isHost())return;G.ht=s;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('timeRow').appendChild(b);});
 function nextHider(){return G.round%2===0?'p2':'p1';}
 function scoreText(){const me=G.score[NET.role]|0,fr=G.score[NET.role==='p1'?'p2':'p1']|0;return '⭐ '+myName()+' '+me+' — '+fr+' '+friendName();}
@@ -217,28 +223,29 @@ function toLobby(){state='lobby';resetWorld();showOnly('lobby');renderLobby();if
 $('startBtn').onclick=()=>{HS.ac();hostStart();};
 $('lobbyLeave').onclick=()=>{closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
 $('leaveBtn').onclick=e=>{e.stopPropagation();closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
-function hostStart(){const hider=nextHider();G.round++;send({t:'start',map:G.map,ht:G.ht,hider,round:G.round,score:G.score});startRound(G.map,G.ht,hider,G.round,G.score);}
+function hostStart(){const hider=nextHider();G.round++;let map=G.map;if(map==='random'){const ids=HS.mapList.map(m=>m.id).filter(x=>!W||x!==W.def.id);map=ids[(Math.random()*ids.length)|0];}
+  send({t:'start',map,ht:G.ht,hider,round:G.round,score:G.score});startRound(map,G.ht,hider,G.round,G.score);if(G.map==='random')toast('🎲 Surprise! The '+HS.maps[map].name+' '+HS.maps[map].emoji,2.6);}
 
 /* ---------- a round ---------- */
 function startRound(map,ht,hider,round,score){
-  G.map=map;G.ht=ht||45;G.hider=hider;G.round=round;if(score)G.score={p1:score.p1|0,p2:score.p2|0};G.meAgain=G.otherAgain=false;
-  loadMap(map);resetWorld();G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
+  if(G.map!=='random'||!isHost())G.map=G.map==='random'?'random':map;G.ht=ht||45;G.hider=hider;G.round=round;if(score)G.score={p1:score.p1|0,p2:score.p2|0};G.meAgain=G.otherAgain=false;
+  loadMap(map);resetWorld();HS.clearSplats();setBrush(false);splatsSent=0;G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
   R.fig=HS.makeFigure(hider===NET.role?{seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12}:{cap:'#3498db',shirt:'#3498db'});HS.scene.add(R.fig);R.paint=undefined;R.last=null;
   const hs=W.def.spawn.hide,ss=W.def.spawn.seeker;
-  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.paint(meFig,G.paint);}
+  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.paint(meFig,null);}
   else{HS.resetPlayer(ss[0],ss[1],ss[2],ss[3]);R.x=hs[0];R.z=hs[1];R.pose='stand';third=false;}
   R.y=HS.floorAt(R.x,R.z);
   HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);dogTimer=8;
   state='play';$('hud').style.display='block';
-  if(iAmHider()){showOnly(null);markers.forEach(m=>m.visible=true);toast('Hide! You have '+G.ht+' seconds 🙈',2.5);}
+  if(iAmHider()){showOnly(null);toast('Hide anywhere! You have '+G.ht+' seconds 🙈',2.5);}
   else{showOnly('cover');$('coverTxt').textContent='🙈 Eyes closed! '+friendName()+' is hiding…';}
   setButtons();updateStatus();
 }
-function beginSeek(){G.phase='seek';G.left=SEEK_TIME;markers.forEach(m=>m.visible=false);showOnly(null);HS.sfx.go();
+function beginSeek(){setBrush(false);G.phase='seek';G.left=SEEK_TIME;markers.forEach(m=>m.visible=false);showOnly(null);HS.sfx.go();
   if(!iAmHider()){HS.say('Ready or not, here I come!');toast('Find '+friendName()+'! Tap them when you see them.',2.6);}else{toast('Here comes '+friendName()+'! Shh… 🤫',2.4);}
   setButtons();updateStatus();}
 function roundOver(winner,fromHost){
-  if(G.phase==='over')return;G.phase='over';
+  if(G.phase==='over')return;G.phase='over';setBrush(false);
   if(isHost()&&!fromHost){const wRole=winner==='seeker'?(G.hider==='p1'?'p2':'p1'):G.hider;G.score[wRole]=(G.score[wRole]|0)+1;send({t:'over',w:winner,score:G.score});}
   const iWon=(winner==='seeker')!==iAmHider();
   $('overTitle').textContent=winner==='seeker'?(iAmHider()?'Found you! 😄':'You found '+friendName()+'! 🎉'):(iAmHider()?'You win! Never found! 🎉':friendName()+' was too sneaky! 🙈');
@@ -254,17 +261,22 @@ $('againBtn').onclick=()=>{G.meAgain=true;$('againBtn').disabled=true;send({t:'a
 /* ---------- hider tools ---------- */
 function setButtons(){const hid=iAmHider()&&state==='play'&&G.phase!=='over';
   const b=(id,on)=>{$(id).style.display=on?'inline-block':'none';};
-  b('paintBtn',hid);b('poseBtn',hid&&!G.spot);b('viewBtn',hid);b('spotBtn',false);b('shooBtn',false);
+  b('paintBtn',hid&&G.phase==='hide');b('poseBtn',hid&&!G.spot);b('viewBtn',hid);b('spotBtn',false);b('shooBtn',false);
   $('cross').style.display=(!iAmHider()&&G.phase==='seek')?'':'none';
   $('jumpBtn').style.display=HS.isTouch&&state==='play'&&G.phase!=='over'?'block':'none';$('camo').style.display='none';}
 const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 Lie down',lie:'🧍 Stand'};
 $('poseBtn').onclick=e=>{e.stopPropagation();G.pose=POSES[(POSES.indexOf(G.pose)+1)%3];$('poseBtn').textContent=POSE_LBL[G.pose];};
 $('viewBtn').onclick=e=>{e.stopPropagation();third=!third;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';};
-function buildPalette(){const p=$('pal');const cols=W.def.palette.concat(HS.funColors.filter(c=>!W.def.palette.includes(c)));
-  p.innerHTML='<p>Paint yourself to blend in 😎</p>'+cols.map(c=>'<span class="sw" data-c="'+c+'" style="background:'+c+'"></span>').join('')+'<span class="sw" data-c="" style="background:repeating-linear-gradient(45deg,#fff 0 6px,#ddd 6px 12px);font-size:20px;line-height:32px">✖</span>';
-  p.querySelectorAll('.sw').forEach(s=>s.onclick=e=>{e.stopPropagation();G.paint=s.dataset.c||null;HS.paint(meFig,G.paint);HS.sfx.paint();p.style.display='none';markPal();});markPal();}
-function markPal(){$('pal').querySelectorAll('.sw').forEach(s=>s.classList.toggle('sel',(s.dataset.c||null)===G.paint));$('paintBtn').style.background=G.paint||'';}
-$('paintBtn').onclick=e=>{e.stopPropagation();const p=$('pal');p.style.display=p.style.display==='block'?'none':'block';};
+let camoT=0;const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let brushing=false,prevThird=true,orbit=0,splatsSent=0,lastSplatSend=0;
+const brushUI=HS.makeBrushUI($('pal'),{onRotate:r=>{orbit+=r;},onDone:()=>setBrush(false)});
+function buildPalette(){const sp=HS.surfacePalette(14);brushUI.build(sp.concat(HS.funColors.filter(c=>!sp.some(x=>HS.colorNear(x,c)))));}
+function setBrush(on){if(on===brushing)return;brushing=on;document.body.classList.toggle('brushing',on);$('pal').style.display=on?'block':'none';
+  if(on){prevThird=third;third=true;orbit=G.spot?meFig.rotation.y:P.yaw+Math.PI;HS.releaseJoy();}else{third=prevThird;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';}}
+$('paintBtn').onclick=e=>{e.stopPropagation();HS.ac();if(iAmHider()&&G.phase==='hide')setBrush(true);};
+const r2=v=>Math.round(v*100)/100;
+const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)})};
+const okVec=v=>Array.isArray(v)&&v.length===3&&v.every(x=>typeof x==='number'&&isFinite(x)&&Math.abs(x)<60);
 let nearSpot=null;
 $('spotBtn').onclick=e=>{e.stopPropagation();if(!nearSpot)return;if(G.spot===nearSpot){G.spot=null;}else{G.spot=nearSpot;HS.releaseJoy();}setButtons();toast(G.spot?'Shh… you’re '+G.spot.label:'Out of the hiding spot',1.6);};
 function shooDog(){const p=HS.randomSpot();HS.dogGoTo(dog,p[0],p[1],null,4.5);dog.hold=0;dogTimer=10;}
@@ -274,9 +286,9 @@ let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.
 function updateStatus(){$('status').textContent=(iAmHider()?'🙈 You hide':'🔍 You seek')+' • R'+G.round;}
 
 /* ---------- input ---------- */
-const canMove=()=>state==='play'&&G.phase!=='over'&&(iAmHider()?!G.spot:G.phase==='seek');
+const canMove=()=>!brushing&&state==='play'&&G.phase!=='over'&&(iAmHider()?!G.spot:G.phase==='seek');
 function tapAt(x,y){if(state!=='play'||G.phase!=='seek'||iAmHider()||!R.fig)return;const r=HS.pick(x,y,[R.fig.userData.hit]);if(r.obj){send({t:'tag'});roundOver('seeker');}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
-HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();}});
+HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>HS.brushAt(x,y,st,meFig,brushUI.color,brushCb)});
 $('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
 $('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
 const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);
@@ -284,7 +296,7 @@ if(ON_SITE)document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';
 
 /* ---------- loop ---------- */
 let last=performance.now(),myPose='stand';const head=new THREE.Vector3(),tv=new THREE.Vector3();
-function myState(){const s={t:'p',x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:G.paint||''};if(G.spot)s.s=G.spot.i;
+function myState(){const s={t:'p',x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:HS.getPaint(meFig)};if(G.spot)s.s=G.spot.i;
   if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.bark>0?2:dog.hold>0?3:0];return s;}
 function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
@@ -298,12 +310,14 @@ function frame(now){
   if(iAmHider()){
     if(G.spot){HS.placeFigure(meFig,G.spot);HS.pose(meFig.userData.inner,G.spot.pose,T);}
     else{HS.setLie(meFig,myPose==='lie');meFig.position.set(P.x,P.feet,P.z);meFig.rotation.set(0,P.yaw+Math.PI,0);HS.pose(meFig.userData.inner,myPose,T);}
-    if(third){meFig.visible=true;meFig.userData.inner.userData.head.getWorldPosition(head);HS.thirdPerson(head,G.spot?2.6:3.4);}else{meFig.visible=false;HS.firstPerson(G.spot?G.spot.eye:null);}
+    HS.tickPaint(meFig,dt);
+    if(third){meFig.visible=true;meFig.userData.inner.userData.head.getWorldPosition(head);if(brushing){const cc=HS.figPoints(meFig)[1];cc.y+=0.25;HS.orbitCamera(cc,orbit,myPose==='lie'?-0.6:-0.15,2.7);}else HS.thirdPerson(head,G.spot?2.6:3.4);}else{meFig.visible=false;HS.firstPerson(G.spot?G.spot.eye:null);}
     // hiding spots
-    nearSpot=null;if(G.phase!=='over'&&!G.spot){let bd=1.6;W.spots.forEach(s=>{const d=Math.hypot(P.x-s.look[0],P.z-s.look[1]);if(d<bd&&Math.abs(P.feet-s.lookY)<1.2){bd=d;nearSpot=s;}});}
-    if(G.spot)nearSpot=G.spot;
-    $('spotBtn').style.display=nearSpot&&G.phase!=='over'?'inline-block':'none';$('spotBtn').textContent=G.spot?'🏃 Get out':'★ Hide here ('+nearSpot?.label+')';
-    const c=$('camo');if(G.spot&&G.phase!=='over'){c.style.display='block';c.textContent=G.paint&&G.paint.toLowerCase()===G.spot.bg.toLowerCase()?'😎 Camouflage: you match!':'Tip: paint yourself to match this spot';}else c.style.display='none';
+    nearSpot=null;
+
+    $('spotBtn').style.display='none';
+    const c=$('camo');if(G.phase!=='over'&&R.fig&&(camoT-=dt)<=0){camoT=0.4;const k=HS.camoFrom(new THREE.Vector3(R.x,R.y+1.9,R.z),meFig);c.style.display='block';
+      c.innerHTML='👀 From '+esc(friendName())+': '+(k.matched===k.total?'😎 you blend in!':'camouflage '+k.matched+'/'+k.total+' — behind you is <span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+(k.bg||'#fff')+'"></span>');}else if(G.phase==='over')c.style.display='none';
     $('shooBtn').style.display=G.phase==='seek'&&Math.hypot(dog.x-P.x,dog.z-P.z)<6&&(dog.path.length||dog.hold>0)?'inline-block':'none';
   }else{meFig.visible=false;HS.firstPerson();}
   // send my state ~12 times a second
@@ -315,7 +329,7 @@ function frame(now){
     if(spot){HS.placeFigure(R.fig,spot);HS.pose(R.fig.userData.inner,spot.pose,T);R.pose=spot.pose;R.x=spot.pos[0];R.y=spot.pos[1];R.z=spot.pos[2];}
     else{const k=Math.min(1,dt*12);R.x+=(+m.x-R.x)*k;R.y+=(+m.y-R.y)*k;R.z+=(+m.z-R.z)*k;let dy=(+m.r+Math.PI)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k;R.pose=['walk','stand','crouch','lie','cover'].includes(m.o)?m.o:'stand';
       HS.setLie(R.fig,R.pose==='lie');R.fig.position.set(R.x,R.y,R.z);R.fig.rotation.set(0,R.yaw,0);HS.pose(R.fig.userData.inner,R.pose,T);}
-    const pc=typeof m.c==='string'&&/^#[0-9a-f]{6}$/i.test(m.c)?m.c:null;if(pc!==R.paint){R.paint=pc;HS.paint(R.fig,pc);}
+    HS.setPaintArr(R.fig,m.c);HS.tickPaint(R.fig,dt);
     HS.setHit(R.fig,R.pose);
     if(!isHost()&&Array.isArray(m.d)){const d=m.d;const k=Math.min(1,dt*10);dog.x+=(+d[0]-dog.x)*k;dog.z+=(+d[1]-dog.z)*k;dog.yaw=+d[2]||0;dog.y=HS.floorAt(dog.x,dog.z,0.2);dog.fig.position.set(dog.x,dog.y,dog.z);dog.fig.rotation.y=dog.yaw;
       const md=['idle','walk','bark','sit'][d[3]|0]||'idle';HS.animDog(dog.fig,md,T);dog.bub.visible=md==='bark';dog.bub.position.set(dog.x,dog.y+1.45,dog.z);if(md==='bark'&&!R.barked){HS.sfx.bark();R.barked=true;}if(md!=='bark')R.barked=false;}

@@ -56,9 +56,9 @@ HS.defineMap({
     for(let x=7.2;x<10;x+=0.82)B.box(0.06,1,0.06,x,4.1,1.96,'#ffffff',{col:false,solid:false});
     B.col(6.45,6.65,-6.2,2.1,4.6);B.col(6.5,10,1.9,2.1,4.6);
     // bed
-    [[7.5,-6.7],[9.5,-6.7],[7.5,-3.7],[9.5,-3.7]].forEach(p=>B.box(0.12,0.5,0.12,p[0],3.85,p[1],'#9a6a3f',{edges:false}));
-    B.box(2.2,0.2,3.2,8.5,4.2,-5.2,'#9a6a3f');B.box(2.2,0.25,3.1,8.5,4.42,-5.2,'#ffffff');B.box(2.26,0.07,2.0,8.5,4.58,-4.6,'#5b8fd6');
-    B.box(1.2,0.22,0.6,8.5,4.64,-6.35,'#ffffff');B.box(2.2,1.3,0.1,8.5,4.25,-6.85,'#9a6a3f');
+    [[7.9,-6.7],[9.85,-6.7],[7.9,-3.7],[9.85,-3.7]].forEach(p=>B.box(0.12,0.5,0.12,p[0],3.85,p[1],'#9a6a3f',{edges:false}));
+    B.box(2.2,0.2,3.2,8.9,4.2,-5.2,'#9a6a3f');B.box(2.2,0.25,3.1,8.9,4.42,-5.2,'#ffffff');B.box(2.26,0.07,2.0,8.9,4.58,-4.6,'#5b8fd6');
+    B.box(1.2,0.22,0.6,8.9,4.64,-6.35,'#ffffff');B.box(2.2,1.3,0.1,8.9,4.25,-6.85,'#9a6a3f');
     // toy box
     B.box(1.2,0.7,1.2,8.0,3.95,-1.0,'#d9473b');B.box(1.26,0.12,1.26,8.0,4.36,-1.0,'#f1c40f');B.ball(0.18,8.0,4.6,-1.0,'#3498db',{col:false});
     // the big pole (drawing 2)
@@ -95,7 +95,7 @@ HS.defineMap({
     {label:'next to the TV',pos:[-5.45,0,7.55],pose:'crouch',look:[-6.2,5.8],bg:'#9a6a3f'},
     {label:'behind the couch',pos:[-1.4,0,2.9],pose:'lie',yaw:PI/2,look:[-2.2,1.5],bg:'#3fa7a0'},
     {label:'in the dark corner',pos:[9.1,0,7.8],pose:'crouch',yaw:PI,look:[7.5,6.6],bg:'#3a3340'},
-    {label:'under the bed',pos:[8.5,3.6,-3.3],pose:'lie',yaw:0,look:[8.4,-2.7],bg:'#9a6a3f'},
+    {label:'under the bed',pos:[8.9,3.6,-3.3],pose:'lie',yaw:0,look:[8.6,-2.7],bg:'#9a6a3f'},
     {label:'behind the toy box',pos:[9.35,3.6,-1.0],pose:'crouch',look:[9.3,0.9],bg:'#d9473b'},
     {label:'behind the plant',pos:[2.15,0,7.55],pose:'crouch',yaw:PI,look:[2.4,5.8],bg:'#4caf50'},
     {label:'flat on the blue wall',pos:[-9.72,0,-4.5],pose:'flat',yaw:PI/2,look:[-7.6,-4.5],bg:'#cfe6f2',camo:true,camoSay:'Hmm… just a wall.'},
@@ -262,7 +262,221 @@ HS.defineMap({
   ]
 });
 
+
+/* =============== extra textures for the new places =============== */
+function cvs(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return [c,c.getContext('2d')];}
+function tx(c,rx,ry,base){const t=new THREE.CanvasTexture(c);t.userData=t.userData||{};if(base)t.userData.base=base;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx||1,ry||1);t.anisotropy=4;return t;}
+function snowTex(rx,ry){const [c,g]=cvs(128,128);g.fillStyle='#ffffff';g.fillRect(0,0,128,128);for(let i=0;i<500;i++){g.fillStyle=['#e6f1ff','#dbe9f7','#f4f9ff'][i%3];g.beginPath();g.arc(Math.random()*128,Math.random()*128,Math.random()*2.5+0.5,0,7);g.fill();}return tx(c,rx,ry,'#ffffff');}
+function iceBlockTex(){const [c,g]=cvs(128,128);g.fillStyle='#f6faff';g.fillRect(0,0,128,128);g.strokeStyle='#c9dcef';g.lineWidth=3;for(let r=0;r<4;r++){g.beginPath();g.moveTo(0,r*32);g.lineTo(128,r*32);g.stroke();for(let k=0;k<3;k++){const x=k*48+(r%2?24:0);g.beginPath();g.moveTo(x,r*32);g.lineTo(x,r*32+32);g.stroke();}}return tx(c,4,2,'#f6faff');}
+function waterTex(){const [c,g]=cvs(128,128);g.fillStyle='#2f86c9';g.fillRect(0,0,128,128);g.strokeStyle='rgba(255,255,255,0.35)';g.lineWidth=2;for(let i=0;i<14;i++){const x=Math.random()*128,y=Math.random()*128;g.beginPath();g.arc(x,y,8,Math.PI*1.1,Math.PI*1.9);g.stroke();}return tx(c,60,60,'#2f86c9');}
+function skullFlag(){const [c,g]=cvs(128,96);g.fillStyle='#1d1d1d';g.fillRect(0,0,128,96);g.fillStyle='#fff';g.beginPath();g.arc(64,40,18,0,7);g.fill();g.fillRect(55,52,18,10);g.fillStyle='#1d1d1d';g.beginPath();g.arc(57,38,5,0,7);g.arc(71,38,5,0,7);g.fill();
+  g.strokeStyle='#fff';g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(34,66);g.lineTo(94,86);g.moveTo(94,66);g.lineTo(34,86);g.stroke();return tx(c);}
+function tileTex(rx,ry){const [c,g]=cvs(128,128);for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?'#f4efe2':'#dfe9f5';g.fillRect(i*32,j*32,32,32);}g.strokeStyle='rgba(0,0,0,0.08)';for(let i=0;i<=4;i++){g.beginPath();g.moveTo(i*32,0);g.lineTo(i*32,128);g.moveTo(0,i*32);g.lineTo(128,i*32);g.stroke();}return tx(c,rx,ry,'#f4efe2');}
+function chalkTex(){const [c,g]=cvs(512,190);g.fillStyle='#2f5d50';g.fillRect(0,0,512,190);g.strokeStyle='rgba(255,255,255,0.85)';g.fillStyle='rgba(255,255,255,0.9)';g.lineWidth=4;g.lineCap='round';
+  g.font='44px "Patrick Hand",cursive';g.fillText('Hide & Seek!',24,58);g.font='30px "Patrick Hand",cursive';g.fillText('1 + 1 = 2',30,120);g.fillText('A B C',30,165);
+  const st=(x)=>{g.beginPath();g.arc(x,70,14,0,7);g.moveTo(x,84);g.lineTo(x,130);g.moveTo(x,98);g.lineTo(x-22,82);g.moveTo(x,98);g.lineTo(x+22,112);g.moveTo(x,130);g.lineTo(x-16,168);g.moveTo(x,130);g.lineTo(x+16,168);g.stroke();};
+  st(330);st(400);g.beginPath();g.arc(460,60,22,0,7);g.stroke();return tx(c,1,1,'#2f5d50');}
+function rugTex(){const [c,g]=cvs(256,256);const cols=['#e74c3c','#f1c40f','#2ecc71','#3498db'];for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=cols[(i+j)%4];g.fillRect(i*64,j*64,64,64);g.fillStyle='#fff';g.font='bold 36px sans-serif';g.textAlign='center';g.fillText(String.fromCharCode(65+i+j*4),i*64+32,j*64+46);}return tx(c,1,1,'#3498db');}
+
+/* =============== 4. SNOW VILLAGE =============== */
+HS.defineMap({
+  id:'snow',name:'Snow Village',emoji:'❄️',desc:'Igloo, snowmen, a frozen pond and a log cabin',
+  bounds:{x0:-15,x1:15,z0:-12,z1:12},
+  env:{bg:'#dbefff',sky:true,sun:0.8,sunPos:[8,18,10],hemi:0.6,amb:0.28,shadowExt:22,fog:['#e6f3ff',35,110]},
+  spawn:{seek:[0,-1.5,0,6],hide:[2,0,2,6],seeker:[0,-1.5,-1,-6],home:[-10,-4.5,0.8,0],dog:[3,2]},
+  build(B){
+    const W_='#ffffff';
+    B.plane(30,24,0,0,0,HS.mat('#ffffff',{map:snowTex(10,8)}),{rx:-Math.PI/2,solid:true});
+    B.plane(240,240,0,-0.03,0,'#f3f8ff',{rx:-Math.PI/2});
+    [[-24,-20,9],[22,-18,10],[-28,14,11],[26,16,9],[0,-30,12],[4,30,12]].forEach(h=>B.ball(h[2],h[0],-h[2]*0.5,h[1],'#ffffff',{col:false,solid:false,outline:false}));
+    // log cabin
+    const logM=HS.mat('#ffffff',{map:HS.tex.wood('#8b5a2b',2,3)});
+    B.box(7,3.4,5,-9.5,1.7,-9,logM);
+    B.box(7.6,0.3,3.2,-9.5,4.15,-10.25,W_,{rx:0.55,col:false});B.box(7.6,0.3,3.2,-9.5,4.15,-7.75,W_,{rx:-0.55,col:false});
+    B.box(0.7,1.6,0.7,-7.6,4.7,-10.6,'#7f6a5a',{col:false});
+    B.box(1.2,2.2,0.08,-9.5,1.1,-6.46,'#5a3b22',{col:false});B.ball(0.06,-9.05,1.1,-6.4,'#f1c40f',{col:false});
+    [-11.6,-7.4].forEach(x=>{B.box(1.1,0.9,0.06,x,2.0,-6.46,HS.mat('#ffd27a',{emissive:'#d9861a'}),{col:false});B.box(1.25,0.1,0.12,x,1.52,-6.42,W_,{col:false});});
+    // woodpile
+    for(let r=0;r<3;r++)for(let k=0;k<4-r;k++)B.cyl(0.2,0.2,1.6,-4.8,0.2+r*0.36,-9.95+k*0.42+r*0.21,'#9a6a3f',{rz:Math.PI/2,col:false});
+    B.col(-5.6,-4.0,-10.3,-8.4,1.2);
+    // igloo
+    const ig=new THREE.Mesh(new THREE.SphereGeometry(2.2,28,14,0,Math.PI*2,0,Math.PI/2),HS.mat('#ffffff',{map:iceBlockTex()}));ig.position.set(6,0,-7);ig.castShadow=ig.receiveShadow=true;B.W.group.add(ig);B.W.solids.push(ig);
+    B.col(3.9,8.1,-9.1,-4.9,2.2);B.box(1.3,1.3,1.4,6,0.65,-4.4,'#f4f8ff');B.plane(0.9,0.9,6,0.5,-3.69,'#2a3550');
+    // snowmen
+    [-4,-1.5,3.5].forEach(x=>{const z=6;B.ball(0.62,x,0.6,z,W_,{col:2.5});B.ball(0.45,x,1.45,z,W_);B.ball(0.3,x,2.05,z,W_);
+      B.cyl(0.0,0.06,0.35,x,2.05,z-0.42,'#ff8c1a',{rx:-Math.PI/2,col:false,edges:false});B.ball(0.04,x-0.1,2.12,z-0.27,'#222',{col:false,outline:false});B.ball(0.04,x+0.1,2.12,z-0.27,'#222',{col:false,outline:false});
+      B.cyl(0.24,0.24,0.04,x,2.32,z,'#222',{col:false});B.cyl(0.17,0.17,0.32,x,2.5,z,'#222',{col:false});
+      B.box(0.9,0.05,0.05,x-0.6,1.55,z,'#6b4226',{rz:0.4,col:false,edges:false});B.box(0.9,0.05,0.05,x+0.6,1.55,z,'#6b4226',{rz:-0.4,col:false,edges:false});
+      B.cyl(0.32,0.32,0.12,x,1.75,z,['#e74c3c','#3498db','#2ecc71'][Math.abs(x|0)%3],{col:false});});
+    // pine trees
+    const pine=(x,z,s)=>{B.cyl(0.25,0.3,1.2,x,0.6,z,'#6b4226',{col:false});B.col(x-0.9,x+0.9,z-0.9,z+0.9,6);
+      [[1.8,2.4,2.2,'#2e7d4f'],[1.4,2.0,3.6,'#358f5a'],[1.0,1.6,4.8,'#3fa267']].forEach(c=>B.cyl(0.05,c[0]*s,c[1]*s,x,c[2]*s,z,c[3],{col:false}));B.cyl(0.02,0.45*s,0.6*s,x,5.6*s,z,W_,{col:false});};
+    pine(11.5,4,1);pine(12.5,9,0.9);pine(-12.5,1,1);pine(-12,8,0.9);pine(9,10.6,0.8);pine(-7.5,10.6,0.85);pine(0.5,10.9,0.8);
+    // frozen pond
+    B.cyl(3,3,0.06,-6,0.03,3,HS.mat('#bfe6ff'),{col:false,seg:36});B.cyl(3.15,3.15,0.04,-6,0.02,3,'#e6f4ff',{col:false,seg:36,edges:false});
+    // snow pile + sled
+    B.ball(1.6,11.5,0,-9,W_,{sy:0.8,col:1.3});
+    B.box(0.7,0.12,1.4,9.4,0.3,-6.4,'#e74c3c',{col:0.6});B.box(0.05,0.18,1.5,9.12,0.12,-6.4,'#555',{col:false,edges:false});B.box(0.05,0.18,1.5,9.68,0.12,-6.4,'#555',{col:false,edges:false});
+    // snow fort
+    B.box(4,1.2,0.5,-1,0.6,-6.0,'#f4f8ff');B.box(0.5,1.2,2,-2.75,0.6,-4.75,'#f4f8ff');B.box(0.5,1.2,2,0.75,0.6,-4.75,'#f4f8ff');
+    [[-2,-5.5],[-1.8,-5.3],[-2.2,-5.25]].forEach(p=>B.ball(0.14,p[0],0.14,p[1],W_,{col:false}));
+    // hot cocoa stand
+    B.box(0.8,1.1,2.4,11,0.55,-2,'#c0392b');B.box(0.85,0.08,2.5,11,1.14,-2,'#ffffff',{col:false});
+    [[11.9,-3.1],[11.9,-0.9]].forEach(p=>B.box(0.12,2.6,0.12,p[0],1.3,p[1],'#ffffff',{col:false}));
+    for(let k=0;k<5;k++)B.box(1.4,0.08,0.5,11.4,2.65,-3+k*0.5,k%2?'#ffffff':'#e74c3c',{col:false,rz:-0.25});
+    B.cyl(0.08,0.07,0.16,10.9,1.26,-2.4,'#ffffff',{col:false});B.cyl(0.08,0.07,0.16,10.9,1.26,-1.7,'#3498db',{col:false});
+    // lamp posts
+    [[-2.5,0.5],[7.5,2]].forEach(p=>{B.cyl(0.07,0.09,3,p[0],1.5,p[1],'#333',{col:true});B.ball(0.22,p[0],3.1,p[1],HS.mat('#fff2c4',{emissive:'#ffcf66'}),{col:false,cast:false});});
+    B.light(0xffd9a0,0.35,9,-2.5,3,0.5);
+  },
+  spots:[
+    {label:'on the cabin roof',pos:[-11,3.42,-6.6],pose:'sit',yaw:0,look:[-11,-5.0],bg:'#ffffff'},
+    {label:'behind the woodpile',pos:[-4.8,0,-11.15],pose:'crouch',yaw:0,look:[-3.0,-10.6],bg:'#9a6a3f'},
+    {label:'in the igloo door',pos:[6,0,-3.35],pose:'crouch',yaw:0,look:[6,-1.6],bg:'#ffffff'},
+    {label:'behind the igloo',pos:[6,0,-9.6],pose:'stand',look:[8.7,-10.6],bg:'#ffffff'},
+    {label:'pretending to be a snowman',pos:[1,0,6],pose:'flat',yaw:Math.PI,look:[1,4.2],bg:'#ffffff',camo:true,camoSay:'Just a snowman…'},
+    {label:'behind the big pine tree',pos:[12.65,0,4.5],pose:'stand',look:[13.6,6.4],bg:'#2e7d4f'},
+    {label:'behind the other pine tree',pos:[-13.75,0,1.2],pose:'stand',look:[-13.6,3.2],bg:'#2e7d4f'},
+    {label:'lying on the frozen pond',pos:[-5,0.06,2.6],pose:'lie',yaw:Math.PI/2,look:[-3.2,1.0],bg:'#bfe6ff',camo:true,camoSay:'Just ice…'},
+    {label:'behind the snow pile',pos:[14.6,0,-10.4],pose:'lie',yaw:Math.PI/2,look:[14.2,-6.8],bg:'#ffffff'},
+    {label:'inside the snow fort',pos:[-1,0,-5.2],pose:'crouch',yaw:0,look:[-1,-2.4],bg:'#f4f8ff'},
+    {label:'behind the cocoa stand',pos:[11.85,0,-2],pose:'crouch',yaw:-Math.PI/2,look:[13.4,-0.3],bg:'#c0392b'},
+    {label:'flat on the cabin wall',pos:[-12.3,0,-6.28],pose:'flat',yaw:0,look:[-12.3,-4.2],bg:'#8b5a2b',camo:true,camoSay:'Just logs…'}
+  ]
+});
+
+/* =============== 5. PIRATE SHIP =============== */
+HS.defineMap({
+  id:'ship',name:'Pirate Ship',emoji:'🏴‍☠️',desc:'Crow\'s nest, cannons, barrels and treasure',
+  bounds:{x0:-5.5,x1:5.5,z0:-15,z1:15},
+  env:{bg:'#bfe3ff',sky:true,sun:0.85,sunPos:[10,20,6],hemi:0.55,amb:0.25,shadowExt:20,fog:['#d6eeff',60,160]},
+  spawn:{seek:[0,-13.5,0,0],hide:[0,-2,0,6],seeker:[0,-13,0,-15],home:[-3,-14.3,0.85,0],dog:[1.5,-3]},
+  build(B){
+    const deckM=HS.mat('#ffffff',{map:HS.tex.wood('#b07a45',3,8)});
+    B.plane(11,30,0,0,0,deckM,{rx:-Math.PI/2,solid:true});
+    B.plane(400,400,0,-1.6,0,HS.mat('#ffffff',{map:waterTex()}),{rx:-Math.PI/2});
+    [[-60,-40,14],[70,30,18],[-50,70,12]].forEach(h=>{B.ball(h[2],h[0],-h[2]*0.6,h[1],'#e8d39a',{col:false,solid:false,outline:false});B.ball(h[2]*0.7,h[0],h[2]*0.1,h[1],'#4caf50',{col:false,solid:false,outline:false});});
+    const hull='#7a4a24',dark='#5a3b22';
+    B.box(0.5,3.2,30,-6.0,-0.4,0,hull,{col:false});B.box(0.5,3.2,30,6.0,-0.4,0,hull,{col:false});
+    B.box(12.5,3.2,0.5,0,-0.4,15.25,hull,{col:false});
+    B.box(0.25,0.25,30,-5.85,1.1,0,dark,{col:false});B.box(0.25,0.25,30,5.85,1.1,0,dark,{col:false});
+    B.box(7.2,3.2,0.5,-2.9,-0.4,-17,hull,{ry:-0.55,col:false});B.box(7.2,3.2,0.5,2.9,-0.4,-17,hull,{ry:0.55,col:false});
+    B.plane(11,4.5,0,0.0,-15.6,deckM,{rx:-Math.PI/2});
+    B.cyl(0.15,0.25,6,0,1.6,-20.5,dark,{rx:Math.PI/2-0.3,col:false});
+    const bal=[];for(let z=-14.5;z<15;z+=0.8){bal.push([-5.85,0.6,z]);bal.push([5.85,0.6,z]);}const im=new THREE.InstancedMesh(new THREE.BoxGeometry(0.1,0.9,0.1),HS.mat(dark),bal.length);const o=new THREE.Object3D();bal.forEach((p,i)=>{o.position.set(...p);o.updateMatrix();im.setMatrixAt(i,o.matrix);});B.W.group.add(im);
+    // quarterdeck + stairs + cabin door
+    B.box(11,2.0,6,0,1.0,12,[hull,hull,deckM,hull,hull,hull]);
+    B.box(1.2,1.8,0.06,1.8,0.9,8.97,'#4a2f18',{col:false});B.ball(0.06,1.35,0.9,8.92,'#f1c40f',{col:false});
+    [-1.5,4].forEach(x=>{const w=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.06,6,16),HS.mat('#d4a017'));w.position.set(x,1.2,8.97);B.W.group.add(w);B.plane(0.55,0.55,x,1.2,8.98,HS.mat('#9fd3ff',{emissive:'#3a6a8a'}),{ry:Math.PI});});
+    for(let i=0;i<7;i++){const top=(i+1)*(2/7),z=5.5+i*0.5+0.25;B.box(1.4,top,0.5,-4.3,top/2,z,[dark,dark,'#c08a55',dark,dark,dark]);}
+    B.box(9.1,0.12,0.12,0.95,3.0,9.0,dark,{col:false});for(let x=-3.4;x<=5.5;x+=0.8)B.box(0.08,1.0,0.08,x,2.5,9.0,dark,{col:false,solid:false});B.col(-3.6,5.5,8.95,9.1,3.0);
+    // wheel
+    B.box(0.25,1.1,0.25,0,2.55,12.5,dark);
+    const wh=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.06,8,24),HS.mat('#a0642c'));wh.position.set(0,3.2,12.35);wh.castShadow=true;B.W.group.add(wh);B.W.solids.push(wh);
+    for(let k=0;k<4;k++)B.box(1.5,0.06,0.06,0,3.2,12.35,'#a0642c',{rz:k*Math.PI/4,col:false});
+    B.col(-0.4,0.4,12.2,12.8,3.6);
+    // treasure chest on the quarterdeck
+    B.box(1.4,0.8,0.9,3.8,2.4,13.8,'#8b5a2b');B.box(1.45,0.3,0.95,3.8,2.95,13.8,'#7a4a24');[3.3,4.3].forEach(x=>B.box(0.1,1.12,0.97,x,2.55,13.8,'#d4a017',{col:false}));
+    for(let k=0;k<5;k++)B.ball(0.08,3.4+k*0.18,3.15,13.6,'#f1c40f',{col:false,outline:false});
+    // masts, sails, crow's nest, flag
+    const mast='#8b5a2b',sail='#f5efe0';
+    B.cyl(0.32,0.38,13,0,6.5,1,mast,{col:true});B.box(8,0.2,0.2,0,5,1,dark,{col:false});B.box(6.5,0.2,0.2,0,9,1,dark,{col:false});
+    B.box(7.4,3.6,0.06,0,7,1.3,sail,{col:false,cast:true});B.box(6,2.4,0.06,0,10.3,1.3,sail,{col:false});
+    B.cyl(1.0,1.0,0.12,0,12,1,dark,{col:false});B.cyl(1.0,1.0,0.7,0,12.4,1,mast,{col:false,open:true});
+    B.cyl(0.05,0.05,2.2,0,14,1,'#333',{col:false,edges:false});B.basic(1.3,0.95,0.7,14.6,1,skullFlag(),{});
+    B.cyl(0.26,0.32,10,0,5,-8,mast,{col:true});B.box(6.5,0.2,0.2,0,4.6,-8,dark,{col:false});B.box(6,3.2,0.06,0,6.4,-7.7,sail,{col:false});
+    for(let y=0.6;y<11.5;y+=0.6)B.box(0.5,0.05,0.05,0,y,1.42,'#c8a165',{col:false,edges:false});
+    // cannons
+    [[4.7,-11],[4.7,-4.5],[-4.7,-4.5],[4.7,3.5],[-4.7,3.5]].forEach(p=>{const s=p[0]>0?1:-1;B.box(1.0,0.5,1.4,p[0],0.25,p[1],'#6b4226',{col:1.0});B.cyl(0.18,0.24,1.6,p[0]+0.3*s,0.75,p[1],'#2b2b2b',{rz:Math.PI/2,col:false});
+      [-0.45,0.45].forEach(dz=>B.cyl(0.22,0.22,0.1,p[0],0.22,p[1]+dz,'#4a2f18',{rz:Math.PI/2,col:false}));});
+    // barrels + the open barrel
+    [[-4.0,-2.4],[-4.2,-1.4],[-3.3,-1.9]].forEach(p=>{B.cyl(0.45,0.42,1.1,p[0],0.55,p[1],'#8b5a2b',{col:true});B.cyl(0.47,0.47,0.07,p[0],0.85,p[1],'#555',{col:false,edges:false});});
+    B.cyl(0.55,0.5,1.0,3.2,0.5,-1,'#8b5a2b',{col:true,open:true});B.cyl(0.57,0.57,0.07,3.2,0.95,-1,'#555',{col:false,edges:false});B.cyl(0.5,0.5,0.04,3.2,0.1,-1,'#4a2f18',{col:false});
+    // crates
+    [[3.6,0.5,6.0],[3.6,0.5,7.1],[3.6,1.5,6.5]].forEach(p=>B.box(1,1,1,p[0],p[1],p[2],'#c89b5a',{col:p[1]<1?2.0:false}));
+    // lifeboat
+    B.box(1.4,0.6,3,-4.2,0.3,-11.5,'#3a7bd5',{col:0.9});B.box(1.1,0.1,2.6,-4.2,0.55,-11.5,'#f5efe0',{col:false});B.box(1.0,0.06,0.25,-4.2,0.62,-11.0,'#a0642c',{col:false});
+    // rope coil + plank + lanterns
+    for(let k=0;k<4;k++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.35-k*0.02,0.06,6,18),HS.mat('#c8a165'));r.rotation.x=Math.PI/2;r.position.set(2.4,0.06+k*0.1,-9.5);B.W.group.add(r);}
+    B.box(3,0.1,0.6,7.2,0.9,0,'#a0642c',{col:false});
+    [[-5,14.5],[5,14.5]].forEach(p=>{B.cyl(0.05,0.05,1.2,p[0],2.6,p[1],'#333',{col:false,edges:false});B.ball(0.18,p[0],3.3,p[1],HS.mat('#ffd27a',{emissive:'#ff9f1a'}),{col:false,cast:false});});
+  },
+  spots:[
+    {label:'up in the crow\'s nest',pos:[0.35,12.06,1.3],pose:'crouch',yaw:Math.PI,look:[0,-0.6],bg:'#8b5a2b'},
+    {label:'flat on the mast',pos:[0,0,1.55],pose:'flat',yaw:0,look:[0,3.4],bg:'#8b5a2b',camo:true,camoSay:'Just the mast…'},
+    {label:'lying on the deck',pos:[-2.0,0.02,-9.5],pose:'lie',yaw:Math.PI/2,look:[-2,-7.6],bg:'#b07a45',camo:true,camoSay:'Just the deck…'},
+    {label:'behind a cannon',pos:[4.7,0,-5.75],pose:'crouch',yaw:0,look:[3.0,-6.6],bg:'#2b2b2b'},
+    {label:'behind the barrels',pos:[-5.0,0,-0.9],pose:'crouch',yaw:Math.PI/2,look:[-3.6,0.5],bg:'#8b5a2b'},
+    {label:'inside a barrel',pos:[3.2,0,-1],pose:'crouch',yaw:Math.PI,look:[3.2,0.8],bg:'#8b5a2b'},
+    {label:'behind the crates',pos:[4.9,0,6.55],pose:'crouch',yaw:-Math.PI/2,look:[2.6,7.9],bg:'#c89b5a'},
+    {label:'in the lifeboat',pos:[-4.2,0.25,-10.2],pose:'lie',yaw:0,look:[-2.4,-11.5],bg:'#3a7bd5'},
+    {label:'behind the ship\'s wheel',pos:[0,2,13.3],pose:'crouch',yaw:Math.PI,look:[-1.6,11.4],bg:'#7a4a24'},
+    {label:'behind the treasure chest',pos:[3.8,2,14.68],pose:'crouch',yaw:Math.PI,look:[2.0,13.6],bg:'#8b5a2b'},
+    {label:'behind the front mast',pos:[0,0,-7.25],pose:'stand',look:[1.6,-6.2],bg:'#8b5a2b'}
+  ]
+});
+
+/* =============== 6. SCHOOL =============== */
+HS.defineMap({
+  id:'school',name:'School',emoji:'🏫',desc:'Desks, lockers, a chalkboard and the reading corner',
+  bounds:{x0:-12,x1:12,z0:-9,z1:9},
+  env:{bg:'#f3e9d8',sky:false,sun:0.36,sunPos:[-10,14,8],hemi:0.44,amb:0.18,shadowExt:15,ceil:4},
+  spawn:{seek:[6,-6,0,0],hide:[6,0,-6,0],seeker:[6.5,-6.5,12,-6.5],home:[2.6,8.3,0.7,0],dog:[4,-2]},
+  build(B){
+    B.plane(24,18,0,0,0,HS.mat('#ffffff',{map:tileTex(12,9)}),{rx:-Math.PI/2,solid:true});
+    const wp=HS.tex.wallpaper(6,1);const MINT='#d7ecd9',CREAM='#fdf1c7';
+    B.plane(24,4,0,2,-9,HS.mat(CREAM,{map:wp}),{solid:true});B.plane(24,4,0,2,9,HS.mat(MINT,{map:wp}),{ry:Math.PI,solid:true});
+    B.plane(18,4,-12,2,0,HS.mat(MINT,{map:wp}),{ry:Math.PI/2,solid:true});B.plane(18,4,12,2,0,HS.mat(CREAM,{map:wp}),{ry:-Math.PI/2,solid:true});
+    B.plane(24,18,0,4,0,'#fbf8f1',{rx:Math.PI/2,solid:true});
+    for(let x=-8;x<=8;x+=8)for(let z=-5;z<=5;z+=5)B.box(2.2,0.06,0.8,x,3.97,z,HS.mat('#ffffff',{emissive:'#fff4d6'}),{col:false,cast:false});
+    B.light(0xfff2d6,0.35,16,-5,3.6,0);B.light(0xfff2d6,0.35,16,6,3.6,0);
+    const bb={col:false,cast:false};B.box(24,0.2,0.06,0,0.1,-8.97,'#9a6a3f',bb);B.box(24,0.2,0.06,0,0.1,8.97,'#9a6a3f',bb);B.box(0.06,0.2,18,-11.97,0.1,0,'#9a6a3f',bb);B.box(0.06,0.2,18,11.97,0.1,0,'#9a6a3f',bb);
+    [-5,0,5].forEach(z=>windowX(B,-11.97,2.1,z,2.4,1.6));
+    // chalkboard
+    B.box(6.3,2.4,0.1,-4,2.1,-8.95,'#9a6a3f',{col:false});B.basic(6,2.2,-4,2.1,-8.89,chalkTex());B.box(6,0.08,0.18,-4,0.95,-8.85,'#9a6a3f',{col:false});
+    // teacher's desk
+    B.box(2.6,0.8,1.2,-4,0.4,-6.5,'#9a6a3f');B.ball(0.12,-3.3,0.92,-6.4,'#e74c3c',{col:false});B.ball(0.25,-4.7,1.15,-6.6,HS.mat('#ffffff',{map:HS.tex.globe()}),{col:false});
+    B.box(0.6,0.5,0.6,-2.6,0.25,-7.6,'#555');B.box(0.6,0.7,0.08,-2.6,0.85,-7.9,'#555',{col:false});
+    // student desks
+    const chairs=['#e74c3c','#3498db','#2ecc71','#f1c40f'];
+    [-3,0,3].forEach((z,r)=>[-8,-5.5,-3,-0.5].forEach((x,c)=>{B.box(1.1,0.06,0.75,x,0.75,z,'#e8c27a',{col:0.78});
+      [[-0.48,-0.3],[0.48,-0.3],[-0.48,0.3],[0.48,0.3]].forEach(l=>B.box(0.05,0.72,0.05,x+l[0],0.36,z+l[1],'#7f8c8d',{col:false,edges:false}));
+      const ch=chairs[(r+c)%4];B.box(0.5,0.06,0.5,x,0.45,z+0.6,ch,{col:0.9});B.box(0.5,0.5,0.06,x,0.7,z+0.85,ch,{col:false});}));
+    // lockers
+    for(let k=0;k<7;k++){const z=-8+k;B.box(0.6,2.2,0.98,11.7,1.1,z,'#4a90d9');for(let v=0;v<3;v++)B.box(0.02,0.04,0.5,11.39,1.9-v*0.1,z,'#2c5f99',{col:false,edges:false});B.box(0.03,0.2,0.05,11.39,1.1,z+0.3,'#cfd8dc',{col:false,edges:false});}
+    // bookshelves
+    const bk=[];[4.5,6.5].forEach(z=>{B.box(4,2.0,0.5,7,1.0,z,'#9a6a3f');for(let sh=0;sh<3;sh++)for(let i=0;i<14;i++){const h=0.3+Math.random()*0.12;[-1,1].forEach(s=>bk.push([5.2+i*0.26,0.2+sh*0.62+h/2,z+s*0.27,h]));}});
+    ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6'].forEach((col,k)=>{const L=bk.filter((_,i)=>i%5===k);const im=new THREE.InstancedMesh(new THREE.BoxGeometry(0.2,1,0.06),HS.mat(col),L.length);const o=new THREE.Object3D();L.forEach((p,i)=>{o.position.set(p[0],p[1],p[2]);o.scale.set(1,p[3],1);o.updateMatrix();im.setMatrixAt(i,o.matrix);});B.W.group.add(im);});
+    // reading corner
+    B.ball(0.7,8.6,0.42,8.1,'#e74c3c',{sy:0.6,col:0.9});B.ball(0.7,10.6,0.42,8.1,'#f1c40f',{sy:0.6,col:0.9});
+    B.plane(4,3,6,0.012,-3,HS.mat('#ffffff',{map:rugTex()}),{rx:-Math.PI/2});
+    // piano
+    B.box(2,1.4,0.7,-9,0.7,8.65,'#222222');B.box(1.9,0.06,0.3,-9,0.85,8.15,'#ffffff',{col:false});B.box(1.2,0.5,0.4,-9,0.25,7.5,'#222222');
+    // cubbies + coats
+    for(let i=0;i<6;i++)for(let j=0;j<2;j++)B.box(0.95,0.55,0.55,-3.5+i,0.3+j*0.6,8.7,'#efe6cf',{col:j?false:1.2});
+    for(let i=0;i<6;i++)B.box(0.5,0.8,0.15,-3.5+i,2.2,8.85,chairs[i%4],{col:false});
+    // hamster cage
+    B.box(1.2,0.75,0.8,3,0.375,-7.5,'#e8c27a');const cage=B.box(0.9,0.5,0.55,3,1.0,-7.5,HS.mat('#ffffff',{opacity:0.25}),{col:false,solid:false});
+    B.ball(0.12,3.1,0.85,-7.45,'#f0b27a',{sx:1.3,col:false});
+    // plant + trash can
+    B.cyl(0.3,0.25,0.6,-11.2,0.3,-8.2,'#c8643b',{col:1.6});B.ball(0.5,-11.2,1.1,-8.2,'#4caf50',{col:false});
+    B.cyl(0.25,0.22,0.6,-0.6,0.3,-8.5,'#7f8c8d',{col:true});
+  },
+  spots:[
+    {label:'behind the teacher\'s desk',pos:[-4.4,0,-7.45],pose:'crouch',yaw:0,look:[-6.2,-7.6],bg:'#9a6a3f'},
+    {label:'under a desk',pos:[-4.7,0,0],pose:'lie',yaw:Math.PI/2,look:[-6.75,1.4],bg:'#e8c27a'},
+    {label:'under another desk',pos:[0.3,0,3],pose:'lie',yaw:Math.PI/2,look:[1.4,4.6],bg:'#e8c27a'},
+    {label:'flat on the lockers',pos:[11.15,0,-4.5],pose:'flat',yaw:-Math.PI/2,look:[9.2,-4.5],bg:'#4a90d9',camo:true,camoSay:'Just lockers…'},
+    {label:'on top of the lockers',pos:[11.7,2.2,-2.5],pose:'lie',yaw:0,look:[10.0,-3.3],bg:'#4a90d9'},
+    {label:'between the bookshelves',pos:[8.5,0,5.5],pose:'crouch',yaw:-Math.PI/2,look:[4.0,5.5],bg:'#9a6a3f'},
+    {label:'between the beanbags',pos:[9.6,0,8.35],pose:'crouch',yaw:Math.PI,look:[9.6,6.9],bg:'#e74c3c'},
+    {label:'next to the piano',pos:[-10.6,0,8.45],pose:'crouch',yaw:Math.PI/2,look:[-10.8,6.6],bg:'#222222'},
+    {label:'flat on the chalkboard',pos:[-4,0,-8.72],pose:'flat',yaw:0,look:[-4,-5.0],bg:'#2f5d50',camo:true,camoSay:'Just the chalkboard…'},
+    {label:'behind the hamster table',pos:[3,0,-8.5],pose:'crouch',yaw:0,look:[4.8,-7.4],bg:'#e8c27a'}
+  ]
+});
+
 // paint palette for each map = the colors you can blend into + fun colors
-HS.mapList.forEach(m=>{const s=new Set(m.spots.map(x=>x.bg));m.palette=[...s];});
+HS.mapList.forEach(m=>{const s=new Set(m.spots.map(x=>x.bg));m.palette=[...s];});// (games use HS.surfacePalette() after loading a place)
 HS.funColors=['#e74c3c','#3498db','#f1c40f','#e84393','#9b59b6','#2ecc71','#ffffff','#222222'];
 })();

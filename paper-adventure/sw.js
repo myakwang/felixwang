@@ -6,8 +6,9 @@ const FILES = ['./', './index.html', './manifest.webmanifest',
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
+// Only remove this game's own older caches; other games on this site keep theirs.
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION && k.slice(0, k.lastIndexOf('-')) === VERSION.slice(0, VERSION.lastIndexOf('-'))).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 // Network first for the page (so updates show up), cache first for everything else.
