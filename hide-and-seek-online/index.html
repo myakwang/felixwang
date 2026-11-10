@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Hide &amp; Seek Online</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#cfe6ff">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hide & Seek Online">
+<style>#top{top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right))}#jumpBtn{right:max(22px,env(safe-area-inset-right))}</style>
+<style>
+  @font-face{font-family:'Patrick Hand';src:url('patrick-hand.woff2') format('woff2');font-display:swap}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:#f3e9d8;font-family:'Patrick Hand','Chalkboard SE','Comic Sans MS',cursive;color:#2b2b2b;touch-action:none}
+  #c{display:block;width:100vw;height:100vh;touch-action:none}
+  .btn{font-family:inherit;font-size:22px;padding:8px 18px;border:3px solid #2b2b2b;border-radius:16px 12px 18px 11px;background:#fffdf6;color:#2b2b2b;cursor:pointer;box-shadow:3px 3px 0 #2b2b2b;transition:transform .08s}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #2b2b2b}
+  .btn:disabled{opacity:.45}
+  .btn.big{font-size:26px;padding:11px 22px}
+  .yellow{background:#ffe98a!important}.blue{background:#cfe6ff!important}.green{background:#c9f2c7!important}.pink{background:#ffd6e6!important}
+  #hud{position:fixed;inset:0;pointer-events:none;display:none}
+  #top{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .pill{pointer-events:auto;background:#fffdf6ee;border:2.5px solid #2b2b2b;border-radius:12px;padding:3px 12px;font-size:21px;box-shadow:2px 2px 0 #2b2b2b}
+  #timer{font-size:26px;min-width:72px;text-align:center}
+  #rb{display:flex;gap:7px;pointer-events:auto}#rb .btn{font-size:20px;padding:3px 11px}
+  #toast{position:absolute;top:66px;left:50%;transform:translateX(-50%);font-size:27px;background:#fffdf6;border:3px solid #2b2b2b;border-radius:16px;padding:5px 18px;box-shadow:3px 3px 0 #2b2b2b;opacity:0;transition:opacity .25s;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+  #toast.show{opacity:1}
+  #cross{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border:2px solid #2b2b2baa;border-radius:50%}
+  #bottom{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;pointer-events:auto;flex-wrap:wrap;justify-content:center;width:max-content;max-width:96vw}
+  #bottom .btn{display:none;font-size:20px;padding:6px 12px}
+  #camo{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);font-size:21px;background:#fffdf6;border:2.5px solid #2b2b2b;border-radius:12px;padding:2px 12px;display:none;white-space:nowrap}
+  #jumpBtn{position:absolute;right:22px;bottom:26px;width:78px;height:78px;border-radius:50%;font-size:20px;padding:0;pointer-events:auto;display:none}
+  #pal{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:#fffdf6;border:3px solid #2b2b2b;border-radius:18px;box-shadow:4px 4px 0 #2b2b2b;padding:10px 12px;pointer-events:auto;display:none;max-width:94vw;text-align:center}
+  #pal .sw{width:38px;height:38px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:4px;cursor:pointer;vertical-align:middle}
+  #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px}
+  #pal p{margin:2px 0 6px;font-size:19px}
+  #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border:3px dashed #2b2b2b88;border-radius:50%;display:none;pointer-events:none}
+  #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border:3px solid #2b2b2b;border-radius:50%;background:#fffdf6cc}
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:14px;text-align:center;overflow:auto}
+  .overlay.show{display:flex}
+  #menu,#lobby{background:linear-gradient(#f3e9d800,#f3e9d8cc)}
+  .sheet{background:#fffdf6f2;border:3px solid #2b2b2b;border-radius:24px 18px 26px 16px;box-shadow:6px 6px 0 #2b2b2b;padding:14px 20px;max-width:640px;width:100%;display:flex;flex-direction:column;align-items:center;gap:9px}
+  h1{font-size:40px;margin:0;line-height:1}h2{font-size:32px;margin:0}
+  p{margin:0;font-size:20px}.sub{color:#555;font-size:18px}
+  select,input{font-family:inherit;font-size:21px;border:2.5px solid #2b2b2b;border-radius:10px;padding:3px 8px;background:#fff}
+  input{width:120px;text-transform:uppercase;text-align:center;letter-spacing:4px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+  .maps{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .mapc{font-family:inherit;border:3px solid #2b2b2b;border-radius:14px;background:#fff;padding:5px 12px;font-size:20px;cursor:pointer;box-shadow:2px 2px 0 #2b2b2b;min-width:110px}
+  .mapc .e{font-size:30px;display:block;line-height:1.1}.mapc.sel{background:#ffe98a}
+  .mapc:disabled{cursor:default;opacity:1}
+  .chip{font-family:inherit;font-size:19px;border:2.5px solid #2b2b2b;border-radius:20px;background:#fff;padding:2px 12px;cursor:pointer}.chip.sel{background:#c9f2c7}
+  #bigCode{font-size:72px;letter-spacing:10px;line-height:1}
+  #cover{background:#1e1c22;color:#fffdf6}#cover .num{font-size:110px;line-height:1}
+  .score{font-size:22px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="top">
+    <div class="pill" id="status"></div>
+    <div class="pill" id="timer">—</div>
+    <div id="rb"><button class="btn" id="sndBtn">🔊</button><button class="btn" id="leaveBtn">✖</button></div>
+  </div>
+  <div id="cross"></div>
+  <div id="toast"></div>
+  <div id="camo"></div>
+  <div id="pal"></div>
+  <div id="bottom">
+    <button class="btn pink" id="paintBtn">🎨 Paint</button>
+    <button class="btn" id="poseBtn">🧎 Crouch</button>
+    <button class="btn" id="viewBtn">👁 My eyes</button>
+    <button class="btn yellow" id="spotBtn">★ Hide here</button>
+    <button class="btn" id="shooBtn">🐶 Shoo!</button>
+  </div>
+  <button class="btn" id="jumpBtn">Jump</button>
+</div>
+<div id="joy"><div id="knob"></div></div>
+
+<div class="overlay show" id="menu">
+  <div class="sheet">
+    <h1>Hide &amp; Seek Online</h1>
+    <p class="sub">Two players, two devices! One hides, one seeks, then you swap.</p>
+    <p><b>1. Pick your nickname</b></p>
+    <div class="row"><select id="nameA"></select><select id="nameB"></select><button class="btn" id="dice" style="font-size:20px;padding:3px 10px">🎲</button></div>
+    <p><b>2. Make or join a room</b></p>
+    <div class="row"><button class="btn big yellow" id="makeBtn">⭐ Make a room</button></div>
+    <div class="row"><input id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn blue" id="joinBtn">Join</button></div>
+    <p id="netMsg" class="sub" style="color:#c0392b">&nbsp;</p>
+    <p class="sub" style="font-size:15px">Both devices need the internet. Only game moves and your picked nickname are sent between your two devices: no real names, no chat, nothing saved.</p>
+    <div class="row"><button class="btn homeBtn" style="display:none">🏠 All games</button></div>
+  </div>
+</div>
+<div class="overlay" id="wait">
+  <div class="sheet"><p>Tell your friend this code:</p><div id="bigCode">ABCD</div><p class="sub" id="waitMsg">Waiting for your friend to join…</p><button class="btn" id="cancelWait">Cancel</button></div>
+</div>
+<div class="overlay" id="lobby">
+  <div class="sheet">
+    <h2 id="lobbyTitle">Ready!</h2>
+    <p class="score" id="scoreLine"></p>
+    <p id="roleLine"></p>
+    <div class="maps" id="maps"></div>
+    <div class="row" id="timeRow">Hiding time: </div>
+    <div class="row"><button class="btn big green" id="startBtn">▶ Start round</button></div>
+    <p class="sub" id="lobbyMsg"></p>
+    <button class="btn" id="lobbyLeave" style="font-size:18px;padding:3px 12px">Leave room</button>
+  </div>
+</div>
+<div class="overlay" id="cover"><p style="font-size:28px" id="coverTxt">🙈 Eyes closed!</p><div class="num" id="coverNum">45</div><p id="coverSub" style="font-size:22px"></p></div>
+<div class="overlay" id="over">
+  <div class="sheet"><h2 id="overTitle"></h2><p id="overBody"></p><p class="score" id="overScore"></p>
+    <div class="row"><button class="btn big green" id="againBtn">Next round (swap!) ▶</button><button class="btn" id="placeBtn">🗺 Change place</button></div><p class="sub" id="overMsg"></p></div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="engine.js"></script>
+<script src="maps.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+if(!window.THREE||!HS.init($('c'))){document.body.innerHTML='<p style="padding:30px;font-size:24px">Sorry, this device can\'t show 3D games.</p>';return;}
+const P=HS.P;
+const SEEK_TIME=150;
+/* ---------- nicknames (sent as list positions only) ---------- */
+const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
+const NICK_B=['Comet','Star','Pencil','Giant','Dragon','Tiger','Shark','Wizard','Robot','Panda','Falcon','Knight','Puppy','Taco','Volcano','Penguin'];
+let myNick=[(Math.random()*16)|0,(Math.random()*16)|0];
+try{const v=JSON.parse(localStorage.getItem('hideSeekOnlineName')||'null');if(Array.isArray(v)&&NICK_A[v[0]]&&NICK_B[v[1]])myNick=v;}catch(e){}
+const nickText=n=>n&&NICK_A[n[0]]&&NICK_B[n[1]]?NICK_A[n[0]]+' '+NICK_B[n[1]]:'Your friend';
+NICK_A.forEach((w,i)=>$('nameA').add(new Option(w,i)));NICK_B.forEach((w,i)=>$('nameB').add(new Option(w,i)));
+function fillNick(){$('nameA').value=myNick[0];$('nameB').value=myNick[1];}
+function setNick(n){myNick=n;try{localStorage.setItem('hideSeekOnlineName',JSON.stringify(n));}catch(e){}fillNick();}
+$('nameA').onchange=()=>setNick([+$('nameA').value,myNick[1]]);$('nameB').onchange=()=>setNick([myNick[0],+$('nameB').value]);
+$('dice').onclick=()=>setNick([(Math.random()*16)|0,(Math.random()*16)|0]);fillNick();
+
+/* ---------- network (this site's own room relay) ---------- */
+const NET={ws:null,role:null,code:null,want:null,state:'idle',friend:null,timer:0,lastSend:0};
+const CODE_ABC='ABCDEFGHJKMNPQRSTUVWXYZ';
+const randCode=()=>{let c='';for(let i=0;i<4;i++)c+=CODE_ABC[(Math.random()*CODE_ABC.length)|0];return c;};
+function base(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
+function send(o){if(NET.ws&&NET.ws.readyState===1){try{NET.ws.send(JSON.stringify(o));}catch(e){}}}
+function closeNet(){clearTimeout(NET.timer);const w=NET.ws;NET.ws=null;NET.state='idle';NET.friend=null;if(w){try{w.close();}catch(e){}}}
+function fail(msg){closeNet();toMenu();$('netMsg').textContent=msg;}
+function open(code,want){closeNet();NET.code=code;NET.want=want;NET.state='connecting';$('netMsg').textContent='Connecting…';let ws;
+  try{ws=new WebSocket(base().replace(/^http/,'ws')+'/api/room/'+code);}catch(e){fail('Could not connect. Check the internet and try again.');return;}
+  NET.ws=ws;ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data);}catch(_){return;}onMsg(m);};
+  ws.onclose=()=>{if(NET.ws!==ws)return;NET.ws=null;lost();};ws.onerror=()=>{};
+  NET.timer=setTimeout(()=>{if(NET.state==='connecting')fail('Could not reach the game server. Check the internet and try again.');},9000);}
+$('makeBtn').onclick=()=>{HS.ac();open(randCode(),'p1');};
+$('joinBtn').onclick=()=>{HS.ac();const c=$('codeIn').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('netMsg').textContent='Type the 4-letter code from your friend.';return;}open(c,'p2');};
+$('codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('joinBtn').click();});
+$('cancelWait').onclick=()=>{closeNet();toMenu();$('netMsg').innerHTML='&nbsp;';};
+const isHost=()=>NET.role==='p1';
+function onMsg(m){switch(m.t){
+  case 'hello':clearTimeout(NET.timer);NET.role=m.role;
+    if(NET.want==='p1'&&m.role!=='p1'){open(randCode(),'p1');return;}
+    if(NET.want==='p2'&&m.role!=='p2'){fail('There is no room with the code '+NET.code+'. Check the code and try again.');return;}
+    NET.state='waiting';if(m.role==='p1'){showOnly('wait');$('bigCode').textContent=NET.code;$('waitMsg').textContent='Hi '+nickText(myNick)+'! Waiting for your friend to join…';}else $('netMsg').textContent='Joined! Getting ready…';break;
+  case 'full':fail('That room already has two players.');break;
+  case 'ready':NET.state='ready';send({t:'name',a:myNick[0],b:myNick[1]});G.score={p1:0,p2:0};G.round=0;
+    if(isHost()){G.map=G.map||'house';G.ht=G.ht||45;}toLobby();break;
+  case 'name':{const a=m.a|0,b=m.b|0;if(NICK_A[a]&&NICK_B[b]){NET.friend=[a,b];if(state==='lobby')renderLobby();}}break;
+  case 'cfg':if(!isHost()&&HS.maps[m.map]){G.map=m.map;G.ht=m.ht|0;if(state==='lobby')renderLobby();}break;
+  case 'start':if(!isHost()&&HS.maps[m.map])startRound(m.map,m.ht|0,m.hider==='p1'?'p1':'p2',m.round|0,m.score);break;
+  case 'ph':if(!isHost()&&G.phase!=='over'){G.left=+m.left||0;if(m.ph==='seek'&&G.phase==='hide')beginSeek();}break;
+  case 'p':R.last=m;R.t=performance.now();break;
+  case 'tag':if(G.phase==='seek'&&iAmHider())roundOver('seeker');break;
+  case 'over':if(!isHost()){if(m.score)G.score={p1:m.score.p1|0,p2:m.score.p2|0};if(G.phase!=='over')roundOver(m.w,true);else $('overScore').textContent=scoreText();}break;
+  case 'lobby':if(!isHost())toLobby();break;
+  case 'shoo':if(isHost())shooDog();break;
+  case 'again':G.otherAgain=true;if(isHost()&&G.meAgain)hostStart();else $('overMsg').textContent=nickText(NET.friend)+' is ready!';break;
+  case 'left':lost();break;}}
+function lost(){const fn=nickText(NET.friend);const was=NET.state;closeNet();if(was==='connecting'){fail('Could not connect. Check the internet and try again.');return;}
+  state='menu';resetWorld();toMenu();$('netMsg').textContent=(was==='ready'?fn+' left the game.':'The connection was closed.')+' Make a new room to play again.';}
+
+/* ---------- game state ---------- */
+const G={map:'house',ht:45,round:0,hider:'p2',phase:'none',left:0,score:{p1:0,p2:0},meAgain:false,otherAgain:false,pose:'stand',spot:null,paint:null};
+let state='menu',T=0,third=true,W=null,lastSec=0,dogTimer=0;
+const iAmHider=()=>G.hider===NET.role;
+const myName=()=>nickText(myNick),friendName=()=>nickText(NET.friend);
+// remote player
+const R={fig:null,last:null,t:0,x:0,y:0,z:0,yaw:0,pose:'stand',paint:undefined};
+const meFig=HS.makeFigure({cap:'#3498db',shirt:'#3498db'});HS.scene.add(meFig);meFig.visible=false;
+const dog=HS.makeDogAgent();
+const tag=HS.sprite('',{w:1.8,h:0.5,font:40});HS.scene.add(tag);tag.visible=false;
+let markers=[];
+function loadMap(id){if(W&&W.def.id===id)return;W=HS.loadMap(id);markers.forEach(m=>HS.scene.remove(m));
+  markers=W.spots.map(s=>{const m=HS.sprite('★',{bg:'#ffe98a',w:0.8,h:0.36});m.position.set(s.pos[0],s.top+0.3,s.pos[2]);m.visible=false;HS.scene.add(m);return m;});
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);buildPalette();}
+loadMap('house');
+function resetWorld(){if(R.fig){HS.scene.remove(R.fig);R.fig=null;}meFig.visible=false;tag.visible=false;markers.forEach(m=>m.visible=false);$('hud').style.display='none';}
+
+/* ---------- screens ---------- */
+function showOnly(id){['menu','wait','lobby','cover','over'].forEach(x=>$(x).classList.toggle('show',x===id));}
+function toMenu(){state='menu';showOnly('menu');$('hud').style.display='none';}
+HS.mapList.forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{if(!isHost())return;G.map=m.id;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('maps').appendChild(b);});
+[30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.dataset.s=s;b.onclick=()=>{if(!isHost())return;G.ht=s;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('timeRow').appendChild(b);});
+function nextHider(){return G.round%2===0?'p2':'p1';}
+function scoreText(){const me=G.score[NET.role]|0,fr=G.score[NET.role==='p1'?'p2':'p1']|0;return '⭐ '+myName()+' '+me+' — '+fr+' '+friendName();}
+function renderLobby(){
+  loadMap(G.map);
+  $('lobbyTitle').textContent=NET.friend?'Playing with '+friendName()+'!':'Friend joined!';
+  $('scoreLine').textContent=scoreText();
+  const h=nextHider();$('roleLine').innerHTML='Round '+(G.round+1)+': <b>'+(h===NET.role?'You hide 🙈':'You seek 🔍')+'</b>';
+  document.querySelectorAll('#maps .mapc').forEach(b=>{b.classList.toggle('sel',b.dataset.id===G.map);b.disabled=!isHost();});
+  document.querySelectorAll('#timeRow .chip').forEach(b=>{b.classList.toggle('sel',+b.dataset.s===G.ht);b.disabled=!isHost();});
+  $('startBtn').style.display=isHost()?'':'none';$('lobbyMsg').textContent=isHost()?'You pick the place and the hiding time.':'Waiting for '+friendName()+' to start…';
+}
+function toLobby(){state='lobby';resetWorld();showOnly('lobby');renderLobby();if(isHost())send({t:'cfg',map:G.map,ht:G.ht});}
+$('startBtn').onclick=()=>{HS.ac();hostStart();};
+$('lobbyLeave').onclick=()=>{closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
+$('leaveBtn').onclick=e=>{e.stopPropagation();closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
+function hostStart(){const hider=nextHider();G.round++;send({t:'start',map:G.map,ht:G.ht,hider,round:G.round,score:G.score});startRound(G.map,G.ht,hider,G.round,G.score);}
+
+/* ---------- a round ---------- */
+function startRound(map,ht,hider,round,score){
+  G.map=map;G.ht=ht||45;G.hider=hider;G.round=round;if(score)G.score={p1:score.p1|0,p2:score.p2|0};G.meAgain=G.otherAgain=false;
+  loadMap(map);resetWorld();G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
+  R.fig=HS.makeFigure(hider===NET.role?{seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12}:{cap:'#3498db',shirt:'#3498db'});HS.scene.add(R.fig);R.paint=undefined;R.last=null;
+  const hs=W.def.spawn.hide,ss=W.def.spawn.seeker;
+  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.paint(meFig,G.paint);}
+  else{HS.resetPlayer(ss[0],ss[1],ss[2],ss[3]);R.x=hs[0];R.z=hs[1];R.pose='stand';third=false;}
+  R.y=HS.floorAt(R.x,R.z);
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);dogTimer=8;
+  state='play';$('hud').style.display='block';
+  if(iAmHider()){showOnly(null);markers.forEach(m=>m.visible=true);toast('Hide! You have '+G.ht+' seconds 🙈',2.5);}
+  else{showOnly('cover');$('coverTxt').textContent='🙈 Eyes closed! '+friendName()+' is hiding…';}
+  setButtons();updateStatus();
+}
+function beginSeek(){G.phase='seek';G.left=SEEK_TIME;markers.forEach(m=>m.visible=false);showOnly(null);HS.sfx.go();
+  if(!iAmHider()){HS.say('Ready or not, here I come!');toast('Find '+friendName()+'! Tap them when you see them.',2.6);}else{toast('Here comes '+friendName()+'! Shh… 🤫',2.4);}
+  setButtons();updateStatus();}
+function roundOver(winner,fromHost){
+  if(G.phase==='over')return;G.phase='over';
+  if(isHost()&&!fromHost){const wRole=winner==='seeker'?(G.hider==='p1'?'p2':'p1'):G.hider;G.score[wRole]=(G.score[wRole]|0)+1;send({t:'over',w:winner,score:G.score});}
+  const iWon=(winner==='seeker')!==iAmHider();
+  $('overTitle').textContent=winner==='seeker'?(iAmHider()?'Found you! 😄':'You found '+friendName()+'! 🎉'):(iAmHider()?'You win! Never found! 🎉':friendName()+' was too sneaky! 🙈');
+  $('overBody').textContent=iWon?'⭐ +1 point for you!':'⭐ +1 point for '+friendName()+'.';
+  (iWon?HS.sfx.win:HS.sfx.lose)();HS.say(winner==='seeker'?'Found you!':'Time is up!');
+  $('overMsg').textContent='';$('againBtn').disabled=false;$('placeBtn').style.display=isHost()?'':'none';
+  setTimeout(()=>{$('overScore').textContent=scoreText();if(state==='play'){showOnly('over');}},1500);
+  setButtons();
+}
+$('placeBtn').onclick=()=>{if(!isHost())return;send({t:'lobby'});toLobby();};
+$('againBtn').onclick=()=>{G.meAgain=true;$('againBtn').disabled=true;send({t:'again'});if(isHost()&&G.otherAgain)hostStart();else $('overMsg').textContent='Waiting for '+friendName()+'…';};
+
+/* ---------- hider tools ---------- */
+function setButtons(){const hid=iAmHider()&&state==='play'&&G.phase!=='over';
+  const b=(id,on)=>{$(id).style.display=on?'inline-block':'none';};
+  b('paintBtn',hid);b('poseBtn',hid&&!G.spot);b('viewBtn',hid);b('spotBtn',false);b('shooBtn',false);
+  $('cross').style.display=(!iAmHider()&&G.phase==='seek')?'':'none';
+  $('jumpBtn').style.display=HS.isTouch&&state==='play'&&G.phase!=='over'?'block':'none';$('camo').style.display='none';}
+const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 Lie down',lie:'🧍 Stand'};
+$('poseBtn').onclick=e=>{e.stopPropagation();G.pose=POSES[(POSES.indexOf(G.pose)+1)%3];$('poseBtn').textContent=POSE_LBL[G.pose];};
+$('viewBtn').onclick=e=>{e.stopPropagation();third=!third;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';};
+function buildPalette(){const p=$('pal');const cols=W.def.palette.concat(HS.funColors.filter(c=>!W.def.palette.includes(c)));
+  p.innerHTML='<p>Paint yourself to blend in 😎</p>'+cols.map(c=>'<span class="sw" data-c="'+c+'" style="background:'+c+'"></span>').join('')+'<span class="sw" data-c="" style="background:repeating-linear-gradient(45deg,#fff 0 6px,#ddd 6px 12px);font-size:20px;line-height:32px">✖</span>';
+  p.querySelectorAll('.sw').forEach(s=>s.onclick=e=>{e.stopPropagation();G.paint=s.dataset.c||null;HS.paint(meFig,G.paint);HS.sfx.paint();p.style.display='none';markPal();});markPal();}
+function markPal(){$('pal').querySelectorAll('.sw').forEach(s=>s.classList.toggle('sel',(s.dataset.c||null)===G.paint));$('paintBtn').style.background=G.paint||'';}
+$('paintBtn').onclick=e=>{e.stopPropagation();const p=$('pal');p.style.display=p.style.display==='block'?'none':'block';};
+let nearSpot=null;
+$('spotBtn').onclick=e=>{e.stopPropagation();if(!nearSpot)return;if(G.spot===nearSpot){G.spot=null;}else{G.spot=nearSpot;HS.releaseJoy();}setButtons();toast(G.spot?'Shh… you’re '+G.spot.label:'Out of the hiding spot',1.6);};
+function shooDog(){const p=HS.randomSpot();HS.dogGoTo(dog,p[0],p[1],null,4.5);dog.hold=0;dogTimer=10;}
+$('shooBtn').onclick=e=>{e.stopPropagation();if(isHost())shooDog();else send({t:'shoo'});toast('🐶 Go play over there!',1.4);};
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';};
+let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
+function updateStatus(){$('status').textContent=(iAmHider()?'🙈 You hide':'🔍 You seek')+' • R'+G.round;}
+
+/* ---------- input ---------- */
+const canMove=()=>state==='play'&&G.phase!=='over'&&(iAmHider()?!G.spot:G.phase==='seek');
+function tapAt(x,y){if(state!=='play'||G.phase!=='seek'||iAmHider()||!R.fig)return;const r=HS.pick(x,y,[R.fig.userData.hit]);if(r.obj){send({t:'tag'});roundOver('seeker');}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
+HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();}});
+$('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
+$('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
+const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);
+if(ON_SITE)document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';b.onclick=()=>{closeNet();location.href=new URL('../',location.href).href;};});
+
+/* ---------- loop ---------- */
+let last=performance.now(),myPose='stand';const head=new THREE.Vector3(),tv=new THREE.Vector3();
+function myState(){const s={t:'p',x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:G.paint||''};if(G.spot)s.s=G.spot.i;
+  if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.bark>0?2:dog.hold>0?3:0];return s;}
+function frame(now){
+  requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
+  if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
+  if(state!=='play'){const b=W.def.bounds,a=T*0.08;HS.camera.position.set(Math.cos(a)*(b.x1-b.x0)*0.32,W.def.env.sky?6:4.6,Math.sin(a)*(b.z1-b.z0)*0.3);HS.camera.lookAt(0,1.4,0);HS.dogUpdate(dog,dt);HS.render(dt);return;}
+  // me
+  let moving=false;
+  if(canMove()){const m=HS.moveVec(dt,iAmHider()&&G.pose!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else if(!G.spot)HS.movePlayer(0,0,dt);
+  myPose=G.spot?G.spot.pose:(moving||!P.ground)?'walk':(iAmHider()?G.pose:'stand');
+  if(!iAmHider()&&G.phase==='hide')myPose='cover';
+  if(iAmHider()){
+    if(G.spot){HS.placeFigure(meFig,G.spot);HS.pose(meFig.userData.inner,G.spot.pose,T);}
+    else{HS.setLie(meFig,myPose==='lie');meFig.position.set(P.x,P.feet,P.z);meFig.rotation.set(0,P.yaw+Math.PI,0);HS.pose(meFig.userData.inner,myPose,T);}
+    if(third){meFig.visible=true;meFig.userData.inner.userData.head.getWorldPosition(head);HS.thirdPerson(head,G.spot?2.6:3.4);}else{meFig.visible=false;HS.firstPerson(G.spot?G.spot.eye:null);}
+    // hiding spots
+    nearSpot=null;if(G.phase!=='over'&&!G.spot){let bd=1.6;W.spots.forEach(s=>{const d=Math.hypot(P.x-s.look[0],P.z-s.look[1]);if(d<bd&&Math.abs(P.feet-s.lookY)<1.2){bd=d;nearSpot=s;}});}
+    if(G.spot)nearSpot=G.spot;
+    $('spotBtn').style.display=nearSpot&&G.phase!=='over'?'inline-block':'none';$('spotBtn').textContent=G.spot?'🏃 Get out':'★ Hide here ('+nearSpot?.label+')';
+    const c=$('camo');if(G.spot&&G.phase!=='over'){c.style.display='block';c.textContent=G.paint&&G.paint.toLowerCase()===G.spot.bg.toLowerCase()?'😎 Camouflage: you match!':'Tip: paint yourself to match this spot';}else c.style.display='none';
+    $('shooBtn').style.display=G.phase==='seek'&&Math.hypot(dog.x-P.x,dog.z-P.z)<6&&(dog.path.length||dog.hold>0)?'inline-block':'none';
+  }else{meFig.visible=false;HS.firstPerson();}
+  // send my state ~12 times a second
+  if(now-NET.lastSend>80){NET.lastSend=now;send(myState());}
+  // friend
+  const m=R.last;
+  if(m&&R.fig){
+    const spot=m.s!=null&&W.spots[m.s];
+    if(spot){HS.placeFigure(R.fig,spot);HS.pose(R.fig.userData.inner,spot.pose,T);R.pose=spot.pose;R.x=spot.pos[0];R.y=spot.pos[1];R.z=spot.pos[2];}
+    else{const k=Math.min(1,dt*12);R.x+=(+m.x-R.x)*k;R.y+=(+m.y-R.y)*k;R.z+=(+m.z-R.z)*k;let dy=(+m.r+Math.PI)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k;R.pose=['walk','stand','crouch','lie','cover'].includes(m.o)?m.o:'stand';
+      HS.setLie(R.fig,R.pose==='lie');R.fig.position.set(R.x,R.y,R.z);R.fig.rotation.set(0,R.yaw,0);HS.pose(R.fig.userData.inner,R.pose,T);}
+    const pc=typeof m.c==='string'&&/^#[0-9a-f]{6}$/i.test(m.c)?m.c:null;if(pc!==R.paint){R.paint=pc;HS.paint(R.fig,pc);}
+    HS.setHit(R.fig,R.pose);
+    if(!isHost()&&Array.isArray(m.d)){const d=m.d;const k=Math.min(1,dt*10);dog.x+=(+d[0]-dog.x)*k;dog.z+=(+d[1]-dog.z)*k;dog.yaw=+d[2]||0;dog.y=HS.floorAt(dog.x,dog.z,0.2);dog.fig.position.set(dog.x,dog.y,dog.z);dog.fig.rotation.y=dog.yaw;
+      const md=['idle','walk','bark','sit'][d[3]|0]||'idle';HS.animDog(dog.fig,md,T);dog.bub.visible=md==='bark';dog.bub.position.set(dog.x,dog.y+1.45,dog.z);if(md==='bark'&&!R.barked){HS.sfx.bark();R.barked=true;}if(md!=='bark')R.barked=false;}
+  }
+  if(R.fig){R.fig.visible=true;
+    // name tag over the seeker only (a tag over the hider would give them away!)
+    if(iAmHider()){tag.visible=true;HS.spriteText(tag,friendName());tag.position.set(R.x,R.y+2.4,R.z);}else tag.visible=false;}
+  // seeker finds the hider by walking right up to them
+  if(!iAmHider()&&G.phase==='seek'&&R.fig){R.fig.userData.hit.getWorldPosition(tv);const cp=HS.camera.position;if(Math.hypot(tv.x-cp.x,tv.z-cp.z)<1.6&&Math.abs(tv.y-cp.y)<1.9){send({t:'tag'});roundOver('seeker');}}
+  // host runs the clock and the dog
+  if(isHost()){
+    if(G.phase==='hide'||G.phase==='seek'){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;send({t:'ph',ph:G.phase,left:Math.max(0,s)});}
+      if(G.left<=0){if(G.phase==='hide'){send({t:'ph',ph:'seek',left:SEEK_TIME});beginSeek();lastSec=SEEK_TIME;}else roundOver('hider');}}
+    if(G.phase==='seek'){dogTimer-=dt;if(dogTimer<=0&&!dog.path.length){dogTimer=11;const hp=iAmHider()?{x:P.x,z:P.z}:R.last?{x:+R.last.x,z:+R.last.z}:null;
+      if(hp&&Math.random()<0.5)HS.dogGoTo(dog,hp.x+0.8,hp.z+0.8,()=>{if(G.phase==='seek'){dog.hold=3;HS.dogBark(dog,2.5);}},2.6);}}
+    else if(G.phase==='hide'&&iAmHider()){dogTimer-=dt;if(dogTimer<=0){dogTimer=1.5;if(Math.hypot(dog.x-P.x,dog.z-P.z)>2.5&&!dog.hold)HS.dogGoTo(dog,P.x+HS.rnd(-1,1),P.z+HS.rnd(-1,1),null,4);}}
+    HS.dogUpdate(dog,dt,iAmHider()?P.x:R.x,iAmHider()?P.z:R.z);
+  }else if(G.phase==='hide'||G.phase==='seek'){G.left=Math.max(0,G.left-rdt);}
+  // HUD
+  const s=Math.ceil(G.left);
+  if(G.phase==='hide'){$('timer').textContent=HS.fmt(G.left);if(!iAmHider()){$('coverNum').textContent=s;$('coverSub').textContent='Get ready to seek!';}}
+  else if(G.phase==='seek'){$('timer').textContent=HS.fmt(G.left);$('timer').style.color=G.left<20?'#c0392b':'';}
+  HS.render(dt);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

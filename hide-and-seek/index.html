@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Felix's Hide &amp; Seek</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffe98a">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hide & Seek">
+<style>#top{top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right))}#jumpBtn{right:max(22px,env(safe-area-inset-right))}</style>
+<style>
+  @font-face{font-family:'Patrick Hand';src:url('patrick-hand.woff2') format('woff2');font-display:swap}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:#f3e9d8;font-family:'Patrick Hand','Chalkboard SE','Comic Sans MS',cursive;color:#2b2b2b;touch-action:none}
+  #c{display:block;width:100vw;height:100vh;touch-action:none}
+  .btn{font-family:inherit;font-size:22px;padding:8px 18px;border:3px solid #2b2b2b;border-radius:16px 12px 18px 11px;background:#fffdf6;color:#2b2b2b;cursor:pointer;box-shadow:3px 3px 0 #2b2b2b;transition:transform .08s}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #2b2b2b}
+  .btn.big{font-size:27px;padding:12px 22px}
+  .yellow{background:#ffe98a!important}.blue{background:#cfe6ff!important}.green{background:#c9f2c7!important}.pink{background:#ffd6e6!important}
+  #hud{position:fixed;inset:0;pointer-events:none;display:none}
+  #top{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .pill{pointer-events:auto;background:#fffdf6ee;border:2.5px solid #2b2b2b;border-radius:12px;padding:3px 12px;font-size:22px;box-shadow:2px 2px 0 #2b2b2b}
+  #status{display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:42vw}
+  .cap{width:20px;height:20px;border-radius:50%;border:2px solid #2b2b2b;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+  .cap.no{opacity:.35}
+  #timer{font-size:26px;min-width:72px;text-align:center}
+  #rb{display:flex;gap:7px;pointer-events:auto}
+  #rb .btn{font-size:20px;padding:3px 11px}
+  #toast{position:absolute;top:66px;left:50%;transform:translateX(-50%);font-size:28px;background:#fffdf6;border:3px solid #2b2b2b;border-radius:16px;padding:5px 18px;box-shadow:3px 3px 0 #2b2b2b;opacity:0;transition:opacity .25s;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+  #toast.show{opacity:1}
+  #big{position:absolute;top:60px;left:50%;transform:translateX(-50%);font-size:64px;line-height:1;text-shadow:3px 3px 0 #fffdf6,-2px -2px 0 #fffdf6;display:none;text-align:center}
+  #big small{display:block;font-size:22px}
+  #arrow{position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px 0 0 -50px;display:none}
+  #arrowTxt{position:absolute;left:50%;top:calc(50% + 62px);transform:translateX(-50%);font-size:24px;background:#fffdf6;border:2px solid #2b2b2b;border-radius:12px;padding:2px 12px;display:none;white-space:nowrap}
+  #cross{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border:2px solid #2b2b2baa;border-radius:50%}
+  #bottom{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;pointer-events:auto;flex-wrap:wrap;justify-content:center;width:max-content;max-width:96vw}
+  #bottom .btn{display:none}
+  #camo{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);font-size:22px;background:#fffdf6;border:2.5px solid #2b2b2b;border-radius:12px;padding:2px 12px;display:none;white-space:nowrap}
+  #jumpBtn{position:absolute;right:22px;bottom:26px;width:78px;height:78px;border-radius:50%;font-size:20px;padding:0;pointer-events:auto;display:none}
+  #pal{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:#fffdf6;border:3px solid #2b2b2b;border-radius:18px;box-shadow:4px 4px 0 #2b2b2b;padding:10px 12px;pointer-events:auto;display:none;max-width:94vw;text-align:center}
+  #pal .sw{width:38px;height:38px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:4px;cursor:pointer;vertical-align:middle}
+  #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px}
+  #pal p{margin:2px 0 6px;font-size:19px}
+  #help{position:absolute;top:118px;left:50%;transform:translateX(-50%);font-size:19px;background:#fffdf6d8;border-radius:10px;padding:3px 12px;white-space:nowrap;transition:opacity 1s;opacity:0}
+  #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border:3px dashed #2b2b2b88;border-radius:50%;display:none;pointer-events:none}
+  #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border:3px solid #2b2b2b;border-radius:50%;background:#fffdf6cc}
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:14px;text-align:center}
+  .overlay.show{display:flex}
+  #menu{background:linear-gradient(#f3e9d800,#f3e9d8cc);overflow:auto}
+  .sheet{background:#fffdf6f2;border:3px solid #2b2b2b;border-radius:24px 18px 26px 16px;box-shadow:6px 6px 0 #2b2b2b;padding:16px 22px;max-width:640px;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+  h1{font-size:42px;margin:0;line-height:1}
+  h2{font-size:34px;margin:0}
+  p{margin:0;font-size:20px}
+  .sub{color:#555;font-size:19px}
+  .maps{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .mapc{font-family:inherit;border:3px solid #2b2b2b;border-radius:14px;background:#fff;padding:6px 12px;font-size:21px;cursor:pointer;box-shadow:2px 2px 0 #2b2b2b;min-width:120px}
+  .mapc .e{font-size:34px;display:block;line-height:1.1}
+  .mapc.sel{background:#ffe98a;transform:scale(1.06)}
+  .chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:20px}
+  .chip{font-family:inherit;font-size:19px;border:2.5px solid #2b2b2b;border-radius:20px;background:#fff;padding:2px 12px;cursor:pointer}
+  .chip.sel{background:#c9f2c7}
+  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  #cover{background:#1e1c22;color:#fffdf6}
+  #cover .num{font-size:120px;line-height:1}
+  .list{font-size:20px;text-align:left;margin:0;padding-left:20px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="top">
+    <div class="pill" id="status"></div>
+    <div class="pill" id="timer">2:00</div>
+    <div id="rb">
+      <button class="btn" id="sndBtn">🔊</button>
+      <button class="btn" id="dogBtn">🐶 3</button>
+      <button class="btn" id="menuBtn">☰</button>
+    </div>
+  </div>
+  <div id="cross"></div>
+  <div id="big"></div>
+  <svg id="arrow" viewBox="0 0 100 100"><path d="M50 6 L80 46 L62 46 L62 92 L38 92 L38 46 L20 46 Z" fill="#ffe98a" stroke="#2b2b2b" stroke-width="5" stroke-linejoin="round"/></svg>
+  <div id="arrowTxt"></div>
+  <div id="toast"></div>
+  <div id="help"></div>
+  <div id="camo"></div>
+  <div id="pal"></div>
+  <div id="bottom">
+    <button class="btn pink" id="paintBtn">🎨 Paint</button>
+    <button class="btn" id="viewBtn">📷 See me</button>
+    <button class="btn yellow" id="action">Hide here!</button>
+    <button class="btn" id="shooBtn">🐶 Shoo!</button>
+  </div>
+  <button class="btn" id="jumpBtn">Jump</button>
+</div>
+<div id="joy"><div id="knob"></div></div>
+
+<div class="overlay show" id="menu">
+  <div class="sheet">
+    <h1>Felix's Hide &amp; Seek</h1>
+    <p class="sub">Pick a place to play:</p>
+    <div class="maps" id="maps"></div>
+    <div class="chips" id="hideTimeRow">Hiding time: </div>
+    <div class="row">
+      <button class="btn big yellow" id="seekBtn">🔍 I'm the Seeker</button>
+      <button class="btn big blue" id="hideBtn">🙈 I'll Hide</button>
+    </div>
+    <p class="sub" id="best"></p>
+    <p class="sub" style="font-size:16px">Phone: left thumb walks, right thumb looks, tap to find. Computer: WASD/arrows walk, drag to look, click to find, space jumps.</p>
+    <div class="row"><button class="btn homeBtn" style="display:none">🏠 All games</button></div>
+  </div>
+</div>
+<div class="overlay" id="cover">
+  <p style="font-size:30px">🙈 Eyes closed! Counting…</p>
+  <div class="num" id="coverNum">10</div>
+  <button class="btn" id="skipCount">Skip ▶</button>
+</div>
+<div class="overlay" id="end">
+  <div class="sheet">
+    <h2 id="endTitle"></h2>
+    <p id="endStars" style="font-size:44px"></p>
+    <div id="endBody"></div>
+    <div class="row">
+      <button class="btn green" id="endNext">Next level ▶</button>
+      <button class="btn" id="endAgain">Play again</button>
+      <button class="btn" id="endMenu">Menu</button>
+    </div>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="engine.js"></script>
+<script src="maps.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+if(!window.THREE||!HS.init($('c'))){document.body.innerHTML='<p style="padding:30px;font-size:24px">Sorry, this device can\'t show 3D games.</p>';return;}
+const P=HS.P;
+const SAVE='hideSeekSave';
+let save={best:{},hideTime:45,map:'house'};try{Object.assign(save,JSON.parse(localStorage.getItem(SAVE)||'{}'));}catch(e){}
+const persist=()=>{try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){}};
+const NAMES=['Max','Lily','Sam','Zoe','Leo','Mia','Ben','Ava'];
+const COLORS=['#e74c3c','#3498db','#27ae60','#f39c12','#9b59b6','#e67e22','#16a085','#e84393'];
+let W,state='menu',T=0,level=1,hiders=[],timeLeft=0,count=0,lastTick=0,homeIdx=0,dogUses=3,dogTarget=null,arrowT=0,arrowTo=null,third=false,dogTimer=0,searchTime=0,nearSpot=null,lastMode='seek';
+let markers=[];
+const dog=HS.makeDogAgent();
+const seekerFig=HS.makeFigure({seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12});HS.scene.add(seekerFig);seekerFig.visible=false;
+const sk={x:0,z:0,y:0,yaw:0,path:[],spot:null,lookT:0,checked:new Set(),walkT:0,priority:null};
+const bubble=HS.sprite('?',{w:0.9,h:0.42});HS.scene.add(bubble);bubble.visible=false;
+const me=HS.makeFigure({cap:'#3498db',shirt:'#3498db'});HS.scene.add(me);me.visible=false;
+let myPaint=null;
+
+/* ---------- map selection ---------- */
+function selectMap(id){
+  W=HS.loadMap(id);save.map=id;persist();
+  markers.forEach(m=>HS.scene.remove(m));
+  markers=W.spots.map(s=>{const m=HS.sprite('★',{bg:'#ffe98a',w:0.8,h:0.36});m.position.set(s.pos[0],s.top+0.3,s.pos[2]);m.visible=false;HS.scene.add(m);return m;});
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);
+  document.querySelectorAll('.mapc').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
+  buildPalette();showBest();
+}
+HS.mapList.forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{HS.ac();selectMap(m.id);};$('maps').appendChild(b);});
+[30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.onclick=()=>{save.hideTime=s;persist();markTime();};b.dataset.s=s;$('hideTimeRow').appendChild(b);});
+function markTime(){document.querySelectorAll('#hideTimeRow .chip').forEach(b=>b.classList.toggle('sel',+b.dataset.s===save.hideTime));}
+markTime();
+function showBest(){const b=save.best[W.def.id]||1;$('best').textContent=b>1?'Best seeker level here: '+b:'';$('seekBtn').textContent=b>1?'🔍 I\'m the Seeker (level '+b+')':'🔍 I\'m the Seeker';}
+
+/* ---------- HUD helpers ---------- */
+let toastT=0;
+function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
+function help(t,d){const h=$('help');h.textContent=t;h.style.opacity=t?1:0;if(t&&d)setTimeout(()=>{if(h.textContent===t)h.style.opacity=0;},d);}
+function show(id,on){$(id).style.display=on?'':'none';}
+function btn(id,on){$(id).style.display=on?'inline-block':'none';}
+function hudFor(mode){
+  $('hud').style.display='block';$('pal').style.display='none';
+  const seek=mode==='seek';
+  show('dogBtn',seek);show('cross',seek);btn('paintBtn',!seek);btn('viewBtn',!seek);btn('action',false);btn('shooBtn',false);show('camo',false);
+  $('jumpBtn').style.display=HS.isTouch?'block':'none';$('big').style.display='none';
+}
+function renderStatus(){
+  const e=$('status');
+  if(lastMode==='seek')e.innerHTML=hiders.map(h=>'<span class="cap'+(h.found?'':' no')+'" style="background:'+h.color+'">'+(h.found?'✓':'')+'</span>').join('')+'<span style="margin-left:3px">'+hiders.filter(h=>h.found).length+'/'+hiders.length+'</span>';
+  else e.innerHTML='🙈 You hide!';
+}
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
+
+/* ---------- seek mode ---------- */
+function clearHiders(){hiders.forEach(h=>HS.scene.remove(h.fig));hiders=[];}
+function startSeek(lv){
+  lastMode='seek';level=lv;clearHiders();seekerFig.visible=false;me.visible=false;bubble.visible=false;markers.forEach(m=>m.visible=false);third=false;
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);
+  const n=Math.min(2+lv,8,W.spots.length);
+  const pick=W.spots.slice().sort(()=>Math.random()-0.5).slice(0,n);
+  pick.forEach((s,k)=>{const fig=HS.makeFigure({cap:COLORS[k],shirt:COLORS[k],helmet:!!s.helmet});HS.placeFigure(fig,s);
+    const camo=s.camo||Math.random()<Math.min(0.45,0.07*lv);if(camo)HS.paint(fig,s.bg);
+    fig.traverse(o=>{if(o.isMesh)o.castShadow=true;});const hit=HS.setHit(fig,s.pose);HS.scene.add(fig);fig.updateMatrixWorld(true);
+    const c=new THREE.Vector3();hit.getWorldPosition(c);
+    hiders.push({fig,hit,spot:s,name:NAMES[k],color:COLORS[k],found:false,phase:Math.random()*6,wig:0,anim:0,center:c,camo});});
+  homeIdx=0;dogUses=3;dogTarget=null;arrowT=0;timeLeft=Math.max(75,60+n*25-(lv-1)*4);
+  const sp=W.def.spawn.seek;HS.resetPlayer(sp[0],sp[1],sp[2],sp[3]);
+  state='seekCount';count=10;hudFor('seek');renderStatus();$('dogBtn').textContent='🐶 '+dogUses;$('timer').textContent=HS.fmt(timeLeft);
+  $('cover').classList.add('show');$('coverNum').textContent=10;
+}
+function beginSeeking(){$('cover').classList.remove('show');state='seek';HS.sfx.go();HS.say('Ready or not, here I come!');
+  toast('Level '+level+': find '+hiders.length+' friends!',2.5);
+  const c=hiders.filter(h=>h.camo).length;if(c)setTimeout(()=>{if(state==='seek')toast('👀 '+c+(c>1?' are':' is')+' painted to blend in!',2.5);},2800);
+  help(HS.isTouch?'Left thumb: walk • Right thumb: look • Tap a hider!':'WASD: walk • Drag: look • Click a hider! • Space: jump',7000);}
+function foundHider(h){if(h.found)return;h.found=true;h.anim=0.001;HS.sfx.found();HS.say('Found '+h.name+'!');toast('Found '+h.name+' '+h.spot.label+'!',2.2);renderStatus();
+  if(h.camo)HS.paint(h.fig,null);if(dogTarget===h){dogTarget=null;dog.hold=0;}
+  if(hiders.every(x=>x.found))setTimeout(()=>{if(state==='seek')endSeek(true);},1300);}
+function tapAt(x,y){if(state!=='seek')return;const r=HS.pick(x,y,hiders.filter(h=>!h.found).map(h=>h.hit));
+  if(r.obj){foundHider(hiders.find(h=>h.hit===r.obj));}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
+$('dogBtn').onclick=e=>{e.stopPropagation();if(state!=='seek'||!dogUses)return;const left=hiders.filter(h=>!h.found);if(!left.length)return;
+  dogUses--;$('dogBtn').textContent='🐶 '+dogUses;$('dogBtn').style.opacity=dogUses?1:0.45;
+  const cp=HS.camera.position;left.sort((a,b)=>a.center.distanceTo(cp)-b.center.distanceTo(cp));const h=left[0];dogTarget=h;
+  HS.dogGoTo(dog,h.spot.look[0],h.spot.look[1],()=>{if(dogTarget===h){dog.hold=6;HS.dogBark(dog,2);h.wig=2;HS.sfx.giggle();}},5);
+  HS.sfx.bark();toast('🐶 Sniff sniff… follow the dog!',2.2);arrowT=4;};
+function endSeek(win){
+  state='end';const left=hiders.filter(h=>!h.found);
+  $('endTitle').textContent=win?'You found everyone! 🎉':"Time's up!";
+  if(win){const total=Math.max(75,60+hiders.length*25-(level-1)*4);const f=timeLeft/total;$('endStars').textContent=f>0.5?'⭐⭐⭐':f>0.25?'⭐⭐':'⭐';HS.sfx.win();HS.say('You found everyone!');
+    const id=W.def.id;if(level+1>(save.best[id]||1)){save.best[id]=level+1;persist();}}
+  else{$('endStars').textContent='';HS.sfx.lose();HS.say('Time is up!');}
+  $('endBody').innerHTML=win?'<p>Level '+level+' done with '+HS.fmt(timeLeft)+' left.</p>':'<p>Still hiding:</p><ul class="list">'+left.map(h=>'<li><b style="color:'+h.color+'">'+h.name+'</b> '+h.spot.label+'</li>').join('')+'</ul>';
+  $('endNext').style.display=win?'':'none';$('endAgain').textContent=win?'Replay level':'Try again';
+  left.forEach(h=>{h.wig=99;if(h.camo)HS.paint(h.fig,null);});
+  setTimeout(()=>{if(state==='end')$('end').classList.add('show');},win?900:1700);
+}
+
+/* ---------- hide mode ---------- */
+function buildPalette(){const p=$('pal');const cols=W.def.palette.concat(HS.funColors.filter(c=>!W.def.palette.includes(c)));
+  p.innerHTML='<p>Paint yourself! Pick the color of the place you hide to blend in 😎</p>'+cols.map(c=>'<span class="sw" data-c="'+c+'" style="background:'+c+'"></span>').join('')+'<span class="sw" data-c="" style="background:repeating-linear-gradient(45deg,#fff 0 6px,#ddd 6px 12px);font-size:20px;line-height:32px">✖</span>';
+  p.querySelectorAll('.sw').forEach(s=>s.onclick=e=>{e.stopPropagation();setPaint(s.dataset.c||null);p.style.display='none';});markPal();}
+function markPal(){$('pal').querySelectorAll('.sw').forEach(s=>s.classList.toggle('sel',(s.dataset.c||null)===myPaint));$('paintBtn').style.background=myPaint||'';$('paintBtn').style.color=myPaint&&new THREE.Color(myPaint).getHSL({}).l<0.45?'#fff':'';}
+function setPaint(c){myPaint=c;HS.paint(me,c);HS.sfx.paint();markPal();toast(c?'🎨 Painted! Now hide by something this color.':'Paint washed off!',2);if(!third&&c){third=true;$('viewBtn').textContent='👁 My eyes';toast('🎨 Painted! Here you are — find something this color.',2.4);}updateCamoTip();}
+$('paintBtn').onclick=e=>{e.stopPropagation();HS.ac();const p=$('pal');p.style.display=p.style.display==='block'?'none':'block';};
+$('viewBtn').onclick=e=>{e.stopPropagation();third=!third;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';};
+function updateCamoTip(){const c=$('camo');if(!P.hidden||state==='end'){c.style.display='none';return;}c.style.display='block';
+  const ok=myPaint&&myPaint.toLowerCase()===P.hidden.bg.toLowerCase();
+  c.innerHTML=ok?'😎 Camouflage: you match!':'Camouflage: <span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+P.hidden.bg+'"></span> would match here';}
+function startHide(){
+  lastMode='hide';clearHiders();state='hideRun';count=save.hideTime;lastTick=count;
+  const s=W.def.spawn.seeker;sk.x=s[0];sk.z=s[1];sk.y=HS.floorAt(s[0],s[1]);sk.yaw=Math.atan2(s[2]-s[0],s[3]-s[1]);sk.path=[];sk.spot=null;sk.lookT=0;sk.checked=new Set();sk.priority=null;
+  seekerFig.visible=true;seekerFig.position.set(sk.x,sk.y,sk.z);seekerFig.rotation.set(0,sk.yaw,0);HS.pose(seekerFig.userData.inner,'cover');
+  bubble.visible=false;markers.forEach(m=>m.visible=true);
+  const sp=W.def.spawn.hide;HS.resetPlayer(sp[0],sp[1],sp[2],sp[3]);P.hidden=null;
+  HS.setLie(me,false);HS.paint(me,myPaint);
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);dogTimer=6;
+  hudFor('hide');renderStatus();$('timer').textContent='—';$('big').style.display='block';
+  help('Run to a ★, press “Hide here!”. Use 🎨 to paint yourself the same color as your hiding place!',9000);
+}
+$('action').onclick=e=>{e.stopPropagation();HS.ac();
+  if(state==='hideRun'&&!P.hidden&&nearSpot){P.hidden=nearSpot;HS.releaseJoy();HS.placeFigure(me,nearSpot);P.yaw=Math.atan2(-(sk.x-nearSpot.eye.x),-(sk.z-nearSpot.eye.z));P.pitch=nearSpot.eye.y>2?-0.3:0;
+    markers.forEach(m=>m.visible=false);toast('Shh… you’re '+nearSpot.label,2.2);HS.sfx.tick();updateCamoTip();}
+  else if(state==='hideRun'&&P.hidden){count=Math.min(count,3.01);}};
+$('shooBtn').onclick=e=>{e.stopPropagation();const p=HS.randomSpot();HS.dogGoTo(dog,p[0],p[1],null,4.5);dog.hold=0;dogTimer=9;HS.sfx.bark();toast('🐶 Go play over there!',1.5);};
+function startSearch(){state='search';searchTime=45;HS.sfx.go();HS.say('Ready or not, here I come!');HS.pose(seekerFig.userData.inner,'stand');
+  $('big').style.display='none';btn('action',false);btn('paintBtn',false);seekerNext();}
+function seekerNext(){
+  if(sk.priority&&!sk.checked.has(sk.priority.i)){sk.spot=sk.priority;sk.priority=null;}
+  else{const opts=W.spots.filter(s=>!sk.checked.has(s.i));if(!opts.length){endHide(true);return;}
+    const w=opts.map(s=>1/Math.pow(Math.hypot(s.look[0]-sk.x,s.look[1]-sk.z)+2,1.3));const sum=w.reduce((a,b)=>a+b,0);let r=Math.random()*sum,k=0;while(r>w[k]&&k<w.length-1){r-=w[k];k++;}sk.spot=opts[k];}
+  sk.path=HS.findPath(sk.x,sk.z,sk.spot.look[0],sk.spot.look[1]);sk.lookT=0;}
+function updateSeeker(dt){
+  const inner=seekerFig.userData.inner;
+  if(state==='search'&&sk.spot){
+    if(sk.path.length){const p=sk.path[0];const dx=p[0]-sk.x,dz=p[1]-sk.z,d=Math.hypot(dx,dz),sp=2.4*dt;
+      if(d<=sp){sk.x=p[0];sk.z=p[1];sk.path.shift();}else{sk.x+=dx/d*sp;sk.z+=dz/d*sp;let dy=Math.atan2(dx,dz)-sk.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));sk.yaw+=dy*Math.min(1,dt*10);}
+      sk.walkT+=dt;HS.pose(inner,'walk',sk.walkT);bubble.visible=false;}
+    else{const s=sk.spot;sk.yaw=Math.atan2(s.pos[0]-sk.x,s.pos[2]-sk.z);sk.lookT+=dt;HS.pose(inner,'look',T);inner.userData.head.rotation.x=s.pos[1]>2?-0.5:0.15;
+      bubble.visible=true;
+      if(sk.lookT>1.15){
+        if(P.hidden===s){const camo=myPaint&&myPaint.toLowerCase()===s.bg.toLowerCase();
+          if(camo&&Math.random()<0.75){HS.say(s.camoSay||'Hmm… nothing here.');toast('😎 Your camouflage tricked the seeker!',2.4);}
+          else{endHide(false);return;}}
+        else if(Math.random()<0.45)HS.say(['Not here…','Hmm…','Where are you?','Nope!'][(Math.random()*4)|0]);
+        sk.checked.add(s.i);seekerNext();}}
+  }
+  sk.y+=(HS.floorAt(sk.x,sk.z)-sk.y)*Math.min(1,dt*12);
+  seekerFig.position.set(sk.x,sk.y,sk.z);seekerFig.rotation.y=sk.yaw;bubble.position.set(sk.x,sk.y+2.5,sk.z);
+}
+function endHide(win){
+  state='end';$('endStars').textContent=win?'⭐⭐⭐':'';btn('shooBtn',false);
+  if(win){$('endTitle').textContent='You win! 🎉';$('endBody').innerHTML='<p>The seeker never found you '+P.hidden.label+'!</p>';HS.sfx.win();HS.say('I give up! You win!');HS.pose(seekerFig.userData.inner,'stand');bubble.visible=false;}
+  else{$('endTitle').textContent='Found you! 😄';$('endBody').innerHTML=P.hidden?'<p>The seeker looked '+P.hidden.label+'.<br>'+(myPaint&&myPaint.toLowerCase()===P.hidden.bg.toLowerCase()?'Your paint matched, but he looked very carefully!':'Tip: 🎨 paint yourself '+'the same color as your hiding place!')+'</p>':'<p>You have to hide before the seeker gets to 0!</p>';
+    HS.sfx.lose();HS.say('Found you!');HS.pose(seekerFig.userData.inner,'wave');HS.spriteText(bubble,'!','#ffb3b3');bubble.visible=true;}
+  $('endNext').style.display='none';$('endAgain').textContent='Hide again';
+  setTimeout(()=>{if(state==='end'){$('end').classList.add('show');HS.spriteText(bubble,'?');}},1600);
+}
+
+/* ---------- menus ---------- */
+const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);
+if(ON_SITE)document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';b.onclick=()=>{location.href=new URL('../',location.href).href;};});
+function closeOverlays(){['menu','end','cover'].forEach(id=>$(id).classList.remove('show'));}
+$('seekBtn').onclick=()=>{HS.ac();closeOverlays();startSeek(save.best[W.def.id]||1);};
+$('hideBtn').onclick=()=>{HS.ac();closeOverlays();startHide();};
+$('skipCount').onclick=()=>{count=0;};
+$('endNext').onclick=()=>{closeOverlays();startSeek(level+1);};
+$('endAgain').onclick=()=>{closeOverlays();if(lastMode==='seek')startSeek(level);else startHide();};
+function goMenu(){state='menu';clearHiders();seekerFig.visible=false;bubble.visible=false;me.visible=false;P.hidden=null;markers.forEach(m=>m.visible=false);$('hud').style.display='none';closeOverlays();showBest();$('menu').classList.add('show');try{speechSynthesis.cancel();}catch(e){}}
+$('endMenu').onclick=goMenu;$('menuBtn').onclick=e=>{e.stopPropagation();goMenu();};
+$('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
+$('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
+function canMove(){return state==='seek'||(state==='hideRun'&&!P.hidden);}
+HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();}});
+
+/* ---------- main loop ---------- */
+selectMap(HS.maps[save.map]?save.map:'house');
+let last=performance.now();const tv=new THREE.Vector3(),head=new THREE.Vector3();
+function frame(now){
+  requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
+  let moving=false;
+  if(canMove()){const m=HS.moveVec(dt,4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else if(!P.hidden)HS.movePlayer(0,0,dt);
+  // camera
+  if(state==='menu'){const b=W.def.bounds,a=T*0.08;HS.camera.position.set(Math.cos(a)*(b.x1-b.x0)*0.32,W.def.env.sky?6:4.6,Math.sin(a)*(b.z1-b.z0)*0.3);HS.camera.lookAt(0,1.4,0);}
+  else if(lastMode==='hide'&&third){me.visible=true;
+    if(!P.hidden){me.position.set(P.x,P.feet,P.z);me.rotation.set(0,P.yaw+Math.PI,0);HS.setLie(me,false);HS.pose(me.userData.inner,moving?'walk':'stand',T);}
+    else{HS.placeFigure(me,P.hidden);HS.pose(me.userData.inner,P.hidden.pose,T);}
+    me.userData.inner.userData.head.getWorldPosition(head);HS.thirdPerson(head,P.hidden?2.6:3.4);}
+  else{me.visible=false;HS.firstPerson(P.hidden?P.hidden.eye:null);}
+  if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
+
+  if(state==='seekCount'){count-=dt*2;const n=Math.max(1,Math.ceil(count));if($('coverNum').textContent!=n){$('coverNum').textContent=n;HS.sfx.tick();}if(count<=0)beginSeeking();}
+  if(state==='seek'){timeLeft-=dt;$('timer').textContent=HS.fmt(timeLeft);$('timer').style.color=timeLeft<20?'#c0392b':'';
+    const cp=HS.camera.position;hiders.forEach(h=>{if(!h.found&&Math.hypot(h.center.x-cp.x,h.center.z-cp.z)<1.5&&Math.abs(h.center.y-cp.y)<1.9)foundHider(h);});
+    if(dogTarget&&dog.hold>0&&dog.bark<=0&&((T*10)|0)%14===0)HS.dogBark(dog,1);
+    if(timeLeft<=0){timeLeft=0;endSeek(false);}}
+  // arrow toward the dog / hider
+  if(state==='seek'&&arrowT>0&&dogTarget&&!dogTarget.found){arrowT-=dt;const tgt=dog.path.length?new THREE.Vector3(dog.x,0.6,dog.z):dogTarget.center;
+    tv.copy(tgt).applyMatrix4(HS.camera.matrixWorldInverse);const a=Math.atan2(tv.x,-tv.z)*180/Math.PI;$('arrow').style.display='block';$('arrow').style.transform='rotate('+a+'deg)';
+    const d=tgt.distanceTo(HS.camera.position);$('arrowTxt').style.display='block';$('arrowTxt').textContent=(d<4?'🔥 Super warm!':d<8?'☀️ Warm':'❄️ Cold')+(dogTarget.center.y-HS.camera.position.y>1.3?' — look up! ⬆️':'');}
+  else{$('arrow').style.display='none';$('arrowTxt').style.display='none';}
+  if(dogTarget&&dog.hold>0)arrowT=Math.max(arrowT,0.2);
+  // hiders
+  hiders.forEach(h=>{const inner=h.fig.userData.inner;
+    if(!h.found){HS.pose(inner,h.spot.pose,T+h.phase);if(h.wig>0){h.wig-=dt;h.fig.rotation.z=Math.sin(T*28)*0.07;if(h.wig>50)HS.pose(inner,'wave',T);}else h.fig.rotation.z=0;return;}
+    h.anim+=dt;
+    if(h.anim<1.1){h.fig.rotation.z=0;HS.pose(inner,'wave',T);}
+    else if(h.anim<1.4){h.fig.scale.setScalar(Math.max(0.01,1-(h.anim-1.1)/0.3));}
+    else if(!h.home){h.home=true;HS.setLie(h.fig,false);const hm=W.def.spawn.home;const x=hm[0]+homeIdx*hm[2],z=hm[1]+homeIdx*hm[3];homeIdx++;h.fig.position.set(x,HS.floorAt(x,z,0.1),z);h.fig.rotation.set(0,0,0);h.fig.scale.setScalar(1);}
+    else HS.pose(inner,(Math.floor(T+h.phase)%4===0)?'wave':'stand',T);});
+  // hide mode
+  if(state==='hideRun'){
+    count-=dt;const n=Math.max(0,Math.ceil(count));$('big').innerHTML=n+'<small>seeker is counting…</small>';
+    if(n<lastTick){lastTick=n;HS.sfx.tick();if(n<=5&&n>0)HS.say(String(n));}
+    if(!P.hidden){nearSpot=null;let bd=1.6;W.spots.forEach(s=>{const d=Math.hypot(P.x-s.look[0],P.z-s.look[1]);if(d<bd&&Math.abs(P.feet-s.lookY)<1){bd=d;nearSpot=s;}});
+      markers.forEach((m,i)=>{const on=nearSpot&&nearSpot.i===i;m.scale.set(on?1.1:0.8,on?0.5:0.36,1);});
+      if(nearSpot){btn('action',true);$('action').textContent='Hide here! ('+nearSpot.label+')';}else btn('action',false);
+      dogTimer-=dt;if(dogTimer<=0){dogTimer=1.5;if(Math.hypot(dog.x-P.x,dog.z-P.z)>2.5&&!dog.hold)HS.dogGoTo(dog,P.x+HS.rnd(-1,1),P.z+HS.rnd(-1,1),null,4);}}
+    else{btn('action',true);$('action').textContent=count>3.1?'I\'m ready! ✋':'Shh…';}
+    HS.pose(seekerFig.userData.inner,'cover');
+    if(count<=0){if(P.hidden)startSearch();else{sk.yaw=Math.atan2(P.x-sk.x,P.z-sk.z);markers.forEach(m=>m.visible=false);btn('action',false);$('big').style.display='none';endHide(false);}}
+  }
+  if(state==='search'){searchTime-=dt;$('timer').textContent=HS.fmt(searchTime);if(searchTime<=0){endHide(true);}
+    // the dog might give you away!
+    const s=P.hidden;dogTimer-=dt;
+    if(dogTimer<=0&&!dog.path.length){dogTimer=7;if(Math.random()<0.45&&!sk.checked.has(s.i)){HS.dogGoTo(dog,s.look[0],s.look[1],()=>{if(state!=='search')return;dog.hold=3.5;HS.dogBark(dog,2.5);toast('🐶 Uh oh! The dog is barking at you!',2.2);if(!sk.checked.has(s.i))sk.priority=s;},2.6);}}
+    const near=Math.hypot(dog.x-s.look[0],dog.z-s.look[1])<5&&(dog.path.length||dog.hold>0);
+    btn('shooBtn',near);
+  }
+  if(state==='hideRun'||state==='search'||(state==='end'&&lastMode==='hide'))updateSeeker(dt);
+  if(state!=='menu')HS.dogUpdate(dog,dt,P.hidden?P.hidden.pos[0]:P.x,P.hidden?P.hidden.pos[2]:P.z);else HS.dogUpdate(dog,dt);
+  HS.render(dt);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "name": "Felix's Hide & Seek",
+  "short_name": "Hide & Seek",
+  "description": "A 3D hide-and-seek game designed by Felix: three places to play, paint yourself to blend in, and watch out for the dog!",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "landscape",
+  "background_color": "#ffe98a",
+  "theme_color": "#ffe98a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
