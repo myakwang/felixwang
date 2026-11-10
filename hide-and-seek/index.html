@@ -383,7 +383,7 @@ function frame(now){
 /* ---------- live "players online" number (read-only, from this site's /api/online) ---------- */
 function apiBase(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
 async function showOnline(){const el=document.getElementById('onlineNow');if(!el)return;
-  try{const r=await fetch(apiBase()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0);
+  try{const r=await fetch(apiBase()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0)+(j.paper|0);
     el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online right now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
 showOnline();setInterval(()=>{if(!document.hidden&&(state==='menu'||state==='lobby'))showOnline();},15000);
 requestAnimationFrame(frame);
