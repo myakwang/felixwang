@@ -92,6 +92,7 @@
   <div class="sheet">
     <h1>Hide &amp; Seek Online</h1>
     <p class="sub">Two players, two devices! One hides anywhere, one seeks, then you swap.</p>
+    <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
     <p><b>1. Pick your nickname</b></p>
     <div class="row"><select id="nameA"></select><select id="nameB"></select><button class="btn" id="dice" style="font-size:20px;padding:3px 10px">🎲</button></div>
     <p><b>2. Make or join a room</b></p>
@@ -354,6 +355,13 @@ function frame(now){
   else if(G.phase==='seek'){$('timer').textContent=HS.fmt(G.left);$('timer').style.color=G.left<20?'#c0392b':'';}
   HS.render(dt);
 }
+
+/* ---------- live "players online" number (read-only, from this site's /api/online) ---------- */
+function apiBase(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
+async function showOnline(){const el=document.getElementById('onlineNow');if(!el)return;
+  try{const r=await fetch(apiBase()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0);
+    el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online right now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
+showOnline();setInterval(()=>{if(!document.hidden&&(state==='menu'||state==='lobby'))showOnline();},15000);
 requestAnimationFrame(frame);
 })();
 </script>

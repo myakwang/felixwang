@@ -114,6 +114,7 @@
     <p class="sub">Pick a place to play:</p>
     <div class="maps" id="maps"></div>
     <div class="chips" id="hideTimeRow">Hiding time: </div>
+    <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
     <div class="row">
       <button class="btn big yellow" id="seekBtn">🔍 I'm the Seeker</button>
       <button class="btn big blue" id="hideBtn">🙈 I'll Hide</button>
@@ -378,6 +379,13 @@ function frame(now){
   if(state!=='menu')HS.dogUpdate(dog,dt,P.x,P.z);else HS.dogUpdate(dog,dt);
   HS.render(dt);
 }
+
+/* ---------- live "players online" number (read-only, from this site's /api/online) ---------- */
+function apiBase(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
+async function showOnline(){const el=document.getElementById('onlineNow');if(!el)return;
+  try{const r=await fetch(apiBase()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0);
+    el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online right now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
+showOnline();setInterval(()=>{if(!document.hidden&&(state==='menu'||state==='lobby'))showOnline();},15000);
 requestAnimationFrame(frame);
 })();
 </script>
