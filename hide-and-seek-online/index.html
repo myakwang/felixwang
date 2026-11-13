@@ -41,6 +41,7 @@
   #pal .sw{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:3px;cursor:pointer;font-size:19px;line-height:28px;text-align:center;background:#fff}
   #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px;transform:scale(1.12)}
   #pal .brot{font-size:24px;padding:2px 10px}
+  #pal .bmode{font-size:22px;padding:2px 8px}#pal .bmode.sel{background:#ffe98a;outline:3px solid #f39c12}
   #pal .bdone{font-size:19px;padding:4px 10px;white-space:nowrap}
   #pal .btip{margin:3px 0 0;font-size:17px}
   body.brushing #camo{top:58px;bottom:auto}body.brushing #bottom{visibility:hidden}
@@ -178,7 +179,12 @@ function onMsg(m){switch(m.t){
   case 'ph':if(!isHost()&&G.phase!=='over'){G.left=+m.left||0;if(m.ph==='seek'&&G.phase==='hide')beginSeek();}break;
   case 'p':R.last=m;R.t=performance.now();break;
   case 'sp':if(state==='play'&&okVec(m.p)&&okVec(m.n)&&typeof m.c==='string')HS.splat(m.p,m.n,m.c,+m.r||0.28);break;
-  case 'spx':if(state==='play'&&okVec(m.p))HS.eraseSplats(m.p,0.5);break;
+  case 'spx':if(state==='play'&&okVec(m.p)){HS.eraseSplats(m.p,0.5);HS.eraseDots(m.p,0.5);}break;
+  case 'ln':if(state==='play'&&okVec(m.a)&&okVec(m.b)&&okVec(m.n)&&typeof m.c==='string')HS.dotLine(m.a,m.b,m.n,m.c);break;
+  case 'lx':if(state==='play'&&okVec(m.p))HS.eraseDots(m.p,0.18);break;
+  case 'bl':if(state==='play'&&R.fig&&Number.isInteger(m.b)&&okVec(m.a)&&okVec(m.z)&&okVec(m.n)&&typeof m.c==='string')HS.bodyLine(R.fig,m.b,m.a,m.z,m.n,m.c,HS.PARTS.includes(m.pt)?m.pt:null);break;
+  case 'bx':if(state==='play'&&R.fig&&Number.isInteger(m.b)&&okVec(m.p))HS.eraseBodyDots(R.fig,m.b,new THREE.Vector3(m.p[0],m.p[1],m.p[2]),0.08);break;
+  case 'bpc':if(state==='play'&&R.fig&&HS.PARTS.includes(m.pt))HS.clearBodyDots(R.fig,m.pt);break;
   case 'tag':if(G.phase==='seek'&&iAmHider())roundOver('seeker');break;
   case 'over':if(!isHost()){if(m.score)G.score={p1:m.score.p1|0,p2:m.score.p2|0};if(G.phase!=='over')roundOver(m.w,true);else $('overScore').textContent=scoreText();}break;
   case 'lobby':if(!isHost())toLobby();break;
@@ -230,10 +236,10 @@ function hostStart(){const hider=nextHider();G.round++;let map=G.map;if(map==='r
 /* ---------- a round ---------- */
 function startRound(map,ht,hider,round,score){
   if(G.map!=='random'||!isHost())G.map=G.map==='random'?'random':map;G.ht=ht||45;G.hider=hider;G.round=round;if(score)G.score={p1:score.p1|0,p2:score.p2|0};G.meAgain=G.otherAgain=false;
-  loadMap(map);resetWorld();HS.clearSplats();setBrush(false);splatsSent=0;G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
+  loadMap(map);resetWorld();HS.clearSplats();setBrush(false);splatsSent=0;linesSent=0;G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
   R.fig=HS.makeFigure(hider===NET.role?{seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12}:{cap:'#3498db',shirt:'#3498db'});HS.scene.add(R.fig);R.paint=undefined;R.last=null;
   const hs=W.def.spawn.hide,ss=W.def.spawn.seeker;
-  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.paint(meFig,null);}
+  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.clearBodyDots(meFig);HS.paint(meFig,null);}
   else{HS.resetPlayer(ss[0],ss[1],ss[2],ss[3]);R.x=hs[0];R.z=hs[1];R.pose='stand';third=false;}
   R.y=HS.floorAt(R.x,R.z);
   HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);dogTimer=8;
@@ -269,14 +275,17 @@ const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 
 $('poseBtn').onclick=e=>{e.stopPropagation();G.pose=POSES[(POSES.indexOf(G.pose)+1)%3];$('poseBtn').textContent=POSE_LBL[G.pose];};
 $('viewBtn').onclick=e=>{e.stopPropagation();third=!third;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';};
 let camoT=0;const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let brushing=false,prevThird=true,orbit=0,splatsSent=0,lastSplatSend=0;
+let brushing=false,prevThird=true,orbit=0,splatsSent=0,lastSplatSend=0,linesSent=0;
 const brushUI=HS.makeBrushUI($('pal'),{onRotate:r=>{orbit+=r;},onDone:()=>setBrush(false)});
 function buildPalette(){const sp=HS.surfacePalette(14);brushUI.build(sp.concat(HS.funColors.filter(c=>!sp.some(x=>HS.colorNear(x,c)))));}
 function setBrush(on){if(on===brushing)return;brushing=on;document.body.classList.toggle('brushing',on);$('pal').style.display=on?'block':'none';
   if(on){prevThird=third;third=true;orbit=G.spot?meFig.rotation.y:P.yaw+Math.PI;HS.releaseJoy();}else{third=prevThird;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';}}
 $('paintBtn').onclick=e=>{e.stopPropagation();HS.ac();if(iAmHider()&&G.phase==='hide')setBrush(true);};
 const r2=v=>Math.round(v*100)/100;
-const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)})};
+const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)}),
+  line:(a,b,n,c)=>{if(linesSent<5000){linesSent++;send({t:'ln',a:a.map(r2),b:b.map(r2),n:n.map(r2),c});}},lineErase:p=>send({t:'lx',p:p.map(r2)}),
+  bodyLine:(b,a,z,n,c,pt)=>{if(linesSent<5000){linesSent++;send({t:'bl',b,a:a.map(r3),z:z.map(r3),n:n.map(r3),c,pt});}},bodyErase:(b,lp)=>send({t:'bx',b,p:lp.toArray().map(r3)}),part:(pt)=>send({t:'bpc',pt})};
+const r3=v=>Math.round(v*1000)/1000;
 const okVec=v=>Array.isArray(v)&&v.length===3&&v.every(x=>typeof x==='number'&&isFinite(x)&&Math.abs(x)<60);
 let nearSpot=null;
 $('spotBtn').onclick=e=>{e.stopPropagation();if(!nearSpot)return;if(G.spot===nearSpot){G.spot=null;}else{G.spot=nearSpot;HS.releaseJoy();}setButtons();toast(G.spot?'Shh… you’re '+G.spot.label:'Out of the hiding spot',1.6);};
@@ -289,7 +298,7 @@ function updateStatus(){$('status').textContent=(iAmHider()?'🙈 You hide':'�
 /* ---------- input ---------- */
 const canMove=()=>!brushing&&state==='play'&&G.phase!=='over'&&(iAmHider()?!G.spot:G.phase==='seek');
 function tapAt(x,y){if(state!=='play'||G.phase!=='seek'||iAmHider()||!R.fig)return;const r=HS.pick(x,y,[R.fig.userData.hit]);if(r.obj){send({t:'tag'});roundOver('seeker');}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
-HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>HS.brushAt(x,y,st,meFig,brushUI.color,brushCb)});
+HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>HS.brushAt(x,y,st,meFig,brushUI.color,brushCb,brushUI.mode)});
 $('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
 $('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
 const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);

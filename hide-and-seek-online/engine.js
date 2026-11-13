@@ -337,16 +337,16 @@ HS.splat=function(p,n,color,r){if(!W||!/^#[0-9a-f]{6}$/i.test(color))return null
   m.position.set(p[0]+n[0]*0.012,p[1]+n[1]*0.012,p[2]+n[2]*0.012);m.lookAt(p[0]+n[0],p[1]+n[1],p[2]+n[2]);m.rotateZ(Math.random()*6.28);m.receiveShadow=true;m.userData.color=color;
   W.group.add(m);W.splats.push(m);if(W.splats.length>600){const o=W.splats.shift();W.group.remove(o);}return m;};
 HS.eraseSplats=function(p,rad){if(!W||!W.splats)return 0;const v=new THREE.Vector3(p[0],p[1],p[2]);let n=0;W.splats=W.splats.filter(m=>{if(m.position.distanceTo(v)<(rad||0.45)){W.group.remove(m);n++;return false;}return true;});return n;};
-HS.clearSplats=function(){if(!W||!W.splats)return;W.splats.forEach(m=>W.group.remove(m));W.splats=[];};
+HS.clearSplats=function(){if(!W)return;if(W.splats){W.splats.forEach(m=>W.group.remove(m));W.splats=[];}if(W.dotMesh){W.dotMesh.count=0;W.dotN=0;W.dotColors=[];W.dotPos=[];}};
 // where on the world did the brush touch? (only things within reach)
 HS.pickWorld=function(cx_,cy_,reach){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=reach||7;
   const hits=ray.intersectObjects(W.solids.concat(W.splats||[]),false);if(!hits.length||!hits[0].face)return null;const h=hits[0];const n=h.face.normal.clone().transformDirection(h.object.matrixWorld);
   if(n.dot(ray.ray.direction)>0)n.negate();return {p:[h.point.x,h.point.y,h.point.z],n:[n.x,n.y,n.z],dist:h.distance,hit:h};};
 // which body part of a figure did the brush touch?
 HS.pickPart=function(cx_,cy_,fig){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=12;
-  const hits=ray.intersectObject(fig.userData.inner,true);for(const h of hits)if(h.object.userData.part)return {part:h.object.userData.part,dist:h.distance};return null;};
+  const hits=ray.intersectObject(fig.userData.inner,true);for(const h of hits)if(h.object.userData.part)return {part:h.object.userData.part,dist:h.distance,hit:h};return null;};
 // the color of whatever a ray hit
-HS.surfaceColor=function(h){const o=h.object;if(o.userData.color)return o.userData.color;let m=o.material;if(Array.isArray(m))m=m[h.face?h.face.materialIndex:0]||m[0];if(!m)return null;return m.userData.camo||('#'+m.color.getHexString());};
+HS.surfaceColor=function(h){const o=h.object;if(W&&o===W.dotMesh)return W.dotColors[h.instanceId]||null;if(o.userData.color)return o.userData.color;let m=o.material;if(Array.isArray(m))m=m[h.face?h.face.materialIndex:0]||m[0];if(!m)return null;return m.userData.camo||('#'+m.color.getHexString());};
 const cA=new THREE.Color(),cB=new THREE.Color();
 HS.colorNear=function(a,b){if(!a||!b)return false;cA.set(a);cB.set(b);return Math.hypot(cA.r-cB.r,cA.g-cB.g,cA.b-cB.b)<0.2;};
 HS.figPoints=function(fig){const u=fig.userData.inner.userData;const h=new THREE.Vector3(),b=new THREE.Vector3();u.head.getWorldPosition(h);u.spine.getWorldPosition(b);b.y+=0.12;return [h,b];};
@@ -355,30 +355,70 @@ const rv=new THREE.Vector3();
 HS.canSee=function(eye,fig){let n=0;for(const p of HS.figPoints(fig)){rv.copy(p).sub(eye);const d=rv.length();rv.normalize();ray.set(eye,rv);ray.far=d;const hit=ray.intersectObjects(W.solids,false);if(!hit.length||hit[0].distance>d-0.3)n++;}return n;};
 // how well does the figure blend in with what is behind it, seen from eye? (painted parts that match)
 HS.camoFrom=function(eye,fig){const c=HS.figPoints(fig)[1];rv.copy(c).sub(eye);const d=rv.length();rv.normalize();ray.set(eye,rv);ray.far=d+8;
-  const hits=ray.intersectObjects(W.solids.concat(W.splats||[]),false);let bg=null;for(const h of hits){if(h.distance>d-0.35){bg=HS.surfaceColor(h);break;}}
+  const hits=ray.intersectObjects(W.solids.concat(W.splats||[],W.dotMesh&&W.dotMesh.count?[W.dotMesh]:[]),false);let bg=null;for(const h of hits){if(h.distance>d-0.35){bg=HS.surfaceColor(h);break;}}
   const st=fig.userData.paintState||{};let k=0;HS.PARTS.forEach(p=>{if(HS.colorNear(st[p],bg))k++;});return {bg,score:k/HS.PARTS.length,matched:k,total:HS.PARTS.length};};
 // the main colors of the place (for the paint palette)
 HS.surfacePalette=function(n){const cnt={};W.solids.forEach(o=>{(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{const c=m&&m.userData&&m.userData.camo;if(c)cnt[c]=(cnt[c]||0)+1;});});
   const out=[];Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).forEach(c=>{if(out.length<(n||14)&&!out.some(x=>HS.colorNear(x,c)))out.push(c);});return out;};
+/* ---------- ✏️ line mode: thin lines made of little dots ---------- */
+HS.dotCap=5000;const dotGeo=new THREE.CircleGeometry(1,8),dObj=new THREE.Object3D(),dCol=new THREE.Color(),ZV=new THREE.Vector3(0,0,1),tq=new THREE.Quaternion();
+function dotMeshOf(){if(W.dotMesh)return W.dotMesh;const mat=new THREE.MeshToonMaterial({color:0xffffff,gradientMap:GM,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+  const m=new THREE.InstancedMesh(dotGeo,mat,HS.dotCap);m.setColorAt(0,dCol.set('#ffffff'));m.count=0;m.frustumCulled=false;m.receiveShadow=true;W.group.add(m);W.dotMesh=m;W.dotN=0;W.dotColors=[];W.dotPos=[];return m;}
+const okC=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
+HS.dot=function(p,n,color,r){if(!W||!okC(color))return;const m=dotMeshOf();const i=W.dotN%HS.dotCap;W.dotN++;const nv=new THREE.Vector3(n[0],n[1],n[2]).normalize();
+  dObj.position.set(p[0]+nv.x*0.006,p[1]+nv.y*0.006,p[2]+nv.z*0.006);dObj.quaternion.setFromUnitVectors(ZV,nv);dObj.scale.setScalar(r||0.035);dObj.updateMatrix();
+  m.setMatrixAt(i,dObj.matrix);m.setColorAt(i,dCol.set(color));m.count=Math.min(W.dotN,HS.dotCap);m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true;W.dotColors[i]=color.toLowerCase();W.dotPos[i]=[p[0],p[1],p[2]];};
+HS.dotLine=function(a,b,n,color){const d=Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]);if(d>1.2)return;const k=Math.max(1,Math.ceil(d/0.025));for(let i=1;i<=k;i++){const t=i/k;HS.dot([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t],n,color);}if(d===0)HS.dot(a,n,color);};
+HS.eraseDots=function(p,rad){if(!W||!W.dotMesh)return 0;const m=W.dotMesh;let n=0;dObj.position.set(0,-1000,0);dObj.scale.setScalar(0.0001);dObj.updateMatrix();
+  for(let i=0;i<m.count;i++){const q=W.dotPos[i];if(q&&Math.hypot(q[0]-p[0],q[1]-p[1],q[2]-p[2])<rad){m.setMatrixAt(i,dObj.matrix);W.dotPos[i]=null;W.dotColors[i]=null;n++;}}if(n)m.instanceMatrix.needsUpdate=true;return n;};
+// lines drawn on a body stick to that body part (they move with you)
+HS.bones=function(fig){if(!fig.userData.bones){const a=[];fig.userData.inner.traverse(o=>{if(o.isGroup)a.push(o);});fig.userData.bones=a;}return fig.userData.bones;};
+HS.bodyHit=function(fig,h){const bone=h.object.parent;const b=HS.bones(fig).indexOf(bone);if(b<0)return null;const lp=bone.worldToLocal(h.point.clone());
+  const n=h.face.normal.clone().transformDirection(h.object.matrixWorld);bone.getWorldQuaternion(tq);n.applyQuaternion(tq.invert()).normalize();return {b,lp,ln:n,part:h.object.userData.part};};
+HS.bodyDot=function(fig,b,lp,ln,color,part){const bone=HS.bones(fig)[b];if(!bone||!okC(color))return;const d=new THREE.Mesh(dotGeo,splatMat(color.toLowerCase()));const nv=new THREE.Vector3(ln[0]!=null?ln[0]:ln.x,ln[1]!=null?ln[1]:ln.y,ln[2]!=null?ln[2]:ln.z).normalize();
+  d.position.set((lp.x!=null?lp.x:lp[0])+nv.x*0.004,(lp.y!=null?lp.y:lp[1])+nv.y*0.004,(lp.z!=null?lp.z:lp[2])+nv.z*0.004);d.quaternion.setFromUnitVectors(ZV,nv);d.scale.setScalar(0.026);d.userData.part=null;d.userData.dotPart=part||null;
+  bone.add(d);const L=fig.userData.dots=fig.userData.dots||[];L.push(d);if(L.length>500){const o=L.shift();o.parent&&o.parent.remove(o);}};
+HS.bodyLine=function(fig,b,a,z,ln,color,part){const A=new THREE.Vector3(...a),Z=new THREE.Vector3(...z);const d=A.distanceTo(Z);if(d>0.4)return;const k=Math.max(1,Math.ceil(d/0.02));for(let i=1;i<=k;i++)HS.bodyDot(fig,b,A.clone().lerp(Z,i/k),ln,color,part);if(d===0)HS.bodyDot(fig,b,A,ln,color,part);};
+HS.eraseBodyDots=function(fig,b,lp,rad){const L=fig.userData.dots||[];const bone=HS.bones(fig)[b];let n=0;fig.userData.dots=L.filter(d=>{if(d.parent===bone&&d.position.distanceTo(lp)<rad){bone.remove(d);n++;return false;}return true;});return n;};
+HS.clearBodyDots=function(fig,part){const L=fig.userData.dots||[];fig.userData.dots=L.filter(d=>{if(!part||d.userData.dotPart===part){d.parent&&d.parent.remove(d);return false;}return true;});};
 // the paintbrush color strip
 HS.makeBrushUI=function(el,o){
-  let color=null;const api={get color(){return color;}};
+  let color=null,mode='splash';const api={get color(){return color;},get mode(){return mode;}};
   api.build=function(cols){color=cols[0];
-    el.innerHTML='<div class="bwrap"><button class="btn brot" data-r="1">↺</button><div class="bcols">'+cols.map(c=>'<span class="sw" data-c="'+c+'" style="background:'+c+'"></span>').join('')+
-      '<span class="sw er" data-c="pick" title="Copy a color">💧</span><span class="sw er" data-c="" title="Wash off">🧽</span></div><button class="btn brot" data-r="-1">↻</button><button class="btn yellow bdone">✋ Done</button></div><p class="btip">🖌 Tap or drag on <b>yourself</b> or the <b>walls/ground</b> to paint! 💧 copies a color.</p>';
+    el.innerHTML='<div class="bwrap"><button class="btn bmode" data-m="line" title="Line: thin lines">✏️</button><button class="btn bmode" data-m="splash" title="Splash: color a whole part">💦</button><button class="btn brot" data-r="1">↺</button><div class="bcols">'+cols.map(c=>'<span class="sw" data-c="'+c+'" style="background:'+c+'"></span>').join('')+
+      '<span class="sw er" data-c="pick" title="Copy a color">💧</span><span class="sw er" data-c="" title="Wash off">🧽</span></div><button class="btn brot" data-r="-1">↻</button><button class="btn yellow bdone">✋ Done</button></div><p class="btip"></p>';
     el.querySelectorAll('.sw').forEach(s=>s.onclick=e=>{e.stopPropagation();color=s.dataset.c||null;mark();HS.sfx.paint();});
     el.querySelectorAll('.brot').forEach(b=>{const r=+b.dataset.r;let iv=null;const go=e=>{e.preventDefault();e.stopPropagation();o.onRotate(r*0.25);clearInterval(iv);iv=setInterval(()=>o.onRotate(r*0.12),90);};const stop=()=>clearInterval(iv);
       b.addEventListener('touchstart',go,{passive:false});b.addEventListener('touchend',stop);b.addEventListener('mousedown',go);b.addEventListener('mouseup',stop);b.addEventListener('mouseleave',stop);b.onclick=e=>e.stopPropagation();});
+    el.querySelectorAll('.bmode').forEach(b=>b.onclick=e=>{e.stopPropagation();mode=b.dataset.m;mark();HS.sfx.paint();});
     el.querySelector('.bdone').onclick=e=>{e.stopPropagation();o.onDone();};mark();};
-  function mark(){el.querySelectorAll('.sw').forEach(s=>s.classList.toggle('sel',(s.dataset.c||null)===color));}
+  function mark(){el.querySelectorAll('.sw').forEach(s=>s.classList.toggle('sel',(s.dataset.c||null)===color));el.querySelectorAll('.bmode').forEach(b=>b.classList.toggle('sel',b.dataset.m===mode));
+    const t=el.querySelector('.btip');if(t)t.innerHTML=mode==='line'?'✏️ <b>Line</b>: drag to draw thin lines on yourself or the walls (try drawing bricks!)':'💦 <b>Splash</b>: tap a body part to color all of it, or splash the walls/ground. 💧 copies a color.';}
   api.setColor=function(c){if(!el.querySelector('.sw[data-c="'+c+'"]')){const sp=document.createElement('span');sp.className='sw';sp.dataset.c=c;sp.style.background=c;sp.onclick=e=>{e.stopPropagation();color=c;mark();HS.sfx.paint();};el.querySelector('.bcols').prepend(sp);}color=c;mark();};
   return api;};
-let lastB={t:0,x:0,y:0};
-HS.brushAt=function(x,y,start,fig,color,cb){cb=cb||{};const now=performance.now();if(color==='pick'){if(!start)return;const w=HS.pickWorld(x,y,12);if(w){const c=HS.surfaceColor(w.hit);if(c){HS.sfx.paint();cb.picked&&cb.picked(c);}}return;}if(!start&&(now-lastB.t<55||Math.hypot(x-lastB.x,y-lastB.y)<12))return;lastB={t:now,x,y};
+let lastB={t:0,x:0,y:0},lastL=null,lastSnd=0;
+const snd=()=>{const n=performance.now();if(n-lastSnd>110){lastSnd=n;HS.sfx.brush();}};
+HS.brushAt=function(x,y,start,fig,color,cb,mode){cb=cb||{};const now=performance.now();
+  if(color==='pick'){if(!start)return;const w=HS.pickWorld(x,y,12);if(w){const c=HS.surfaceColor(w.hit);if(c){HS.sfx.paint();cb.picked&&cb.picked(c);}}return;}
+  if(mode==='line'){if(start)lastL=null;
+    const part=fig&&fig.visible?HS.pickPart(x,y,fig):null;const w=HS.pickWorld(x,y,7);
+    if(part&&(!w||part.dist<=w.dist+0.05)){const bh=HS.bodyHit(fig,part.hit);if(!bh){lastL=null;return;}
+      if(!color){if(HS.eraseBodyDots(fig,bh.b,bh.lp,0.08)){snd();cb.bodyErase&&cb.bodyErase(bh.b,bh.lp);}lastL=null;return;}
+      const from=(lastL&&lastL.kind==='b'&&lastL.b===bh.b&&lastL.lp.distanceTo(bh.lp)<0.4)?lastL.lp:bh.lp;
+      HS.bodyLine(fig,bh.b,from.toArray(),bh.lp.toArray(),bh.ln,color,bh.part);cb.bodyLine&&cb.bodyLine(bh.b,from.toArray(),bh.lp.toArray(),bh.ln.toArray(),color,bh.part);
+      lastL={kind:'b',b:bh.b,lp:bh.lp};snd();return;}
+    if(!w){lastL=null;if(start)HS.sfx.miss();return;}
+    if(!color){if(HS.eraseDots(w.p,0.18)){snd();cb.lineErase&&cb.lineErase(w.p);}lastL=null;return;}
+    const p=new THREE.Vector3(...w.p),n=new THREE.Vector3(...w.n);
+    const join=lastL&&lastL.kind==='w'&&lastL.obj===w.hit.object&&lastL.p.distanceTo(p)<1.0&&lastL.n.dot(n)>0.9;
+    const a=join?lastL.p.toArray():w.p;HS.dotLine(a,w.p,w.n,color);cb.line&&cb.line(a,w.p,w.n,color);
+    lastL={kind:'w',obj:w.hit.object,p,n};snd();return;}
+  // 💦 splash mode
+  if(!start&&(now-lastB.t<55||Math.hypot(x-lastB.x,y-lastB.y)<12))return;lastB={t:now,x,y};
   const part=fig&&fig.visible?HS.pickPart(x,y,fig):null;const w=HS.pickWorld(x,y,7);
-  if(part&&(!w||part.dist<=w.dist+0.05)){if((fig.userData.paintState[part.part]||null)!==(color||null)){HS.paintPart(fig,part.part,color);HS.sfx.brush();cb.part&&cb.part(part.part,color);}return;}
+  if(part&&(!w||part.dist<=w.dist+0.05)){if((fig.userData.paintState[part.part]||null)!==(color||null)||(fig.userData.dots||[]).some(d=>d.userData.dotPart===part.part)){HS.paintPart(fig,part.part,color);HS.clearBodyDots(fig,part.part);HS.sfx.brush();cb.part&&cb.part(part.part,color);}return;}
   if(!w){if(start)HS.sfx.miss();return;}
   if(color){const r=rnd(0.22,0.32);HS.splat(w.p,w.n,color,r);if(start||Math.random()<0.4)HS.sfx.brush();cb.splat&&cb.splat(w.p,w.n,color,r);}
-  else if(HS.eraseSplats(w.p,0.5)){HS.sfx.brush();cb.erase&&cb.erase(w.p);}};
+  else{const k=HS.eraseSplats(w.p,0.5)+HS.eraseDots(w.p,0.5);if(k){HS.sfx.brush();cb.erase&&cb.erase(w.p);}}};
 HS.fmt=function(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 })();

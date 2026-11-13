@@ -49,6 +49,7 @@
   #pal .sw{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:3px solid #2b2b2b;display:inline-block;margin:3px;cursor:pointer;font-size:19px;line-height:28px;text-align:center;background:#fff}
   #pal .sw.sel{outline:4px solid #f39c12;outline-offset:2px;transform:scale(1.12)}
   #pal .brot{font-size:24px;padding:2px 10px}
+  #pal .bmode{font-size:22px;padding:2px 8px}#pal .bmode.sel{background:#ffe98a;outline:3px solid #f39c12}
   #pal .bdone{font-size:19px;padding:4px 10px;white-space:nowrap}
   #pal .btip{margin:3px 0 0;font-size:17px}
   body.brushing #camo{top:58px}body.brushing #big{display:none!important}
@@ -323,7 +324,7 @@ $('endMenu').onclick=goMenu;$('menuBtn').onclick=e=>{e.stopPropagation();goMenu(
 $('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
 $('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
 function canMove(){return !brushing&&(state==='seek'||state==='hideRun'||state==='search');}
-HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>{HS.brushAt(x,y,st,me,brushUI.color,{picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);}});camoT=0;}});
+HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>{HS.brushAt(x,y,st,me,brushUI.color,{picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);}},brushUI.mode);camoT=0;}});
 
 /* ---------- main loop ---------- */
 selectMap(HS.maps[save.map]||save.map==='random'?save.map:'house');
