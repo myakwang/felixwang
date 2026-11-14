@@ -225,7 +225,7 @@ function startSeek(lv){
   const pick=[],pool=W.spots.slice();while(pick.length<n&&pool.length){const w=pool.map(spotWeight);let r=Math.random()*w.reduce((a,b)=>a+b,0),i=0;while(r>w[i]&&i<w.length-1){r-=w[i];i++;}pick.push(pool.splice(i,1)[0]);}
   pick.forEach((s,k)=>{const fig=HS.makeFigure({cap:COLORS[k],shirt:COLORS[k],helmet:!!s.helmet});const h={fig,hit:null,spot:s,name:NAMES[k],color:COLORS[k],found:false,phase:Math.random()*6,wig:0,anim:0,center:new THREE.Vector3(),camo:false,moved:false};
     fig.traverse(o=>{if(o.isMesh)o.castShadow=true;});HS.scene.add(fig);hideAt(h,s,lv);hiders.push(h);});
-  homeIdx=0;dogUses=3;dogTarget=null;arrowT=0;timeLeft=Math.max(75,60+n*25-(lv-1)*4);
+  homeIdx=0;dogUses=3;dogTarget=null;arrowT=0;timeLeft=Math.round(Math.max(90,75+n*30-(lv-1)*4)*(W.def.time||1));
   const sp=W.def.spawn.seek;HS.resetPlayer(sp[0],sp[1],sp[2],sp[3]);
   state='seekCount';count=10;hudFor('seek');renderStatus();$('dogBtn').textContent='🐶 '+dogUses;$('timer').textContent=HS.fmt(timeLeft);
   $('coverTxt').textContent='🙈 Level '+lv+' · '+W.def.emoji+' '+W.def.name+' · Eyes closed!';
@@ -286,7 +286,7 @@ function startHide(){
 }
 $('action').onclick=e=>{e.stopPropagation();HS.ac();if(state==='hideRun')count=Math.min(count,3.01);};
 $('shooBtn').onclick=e=>{e.stopPropagation();const p=HS.randomSpot();HS.dogGoTo(dog,p[0],p[1],null,4.5);dog.hold=0;dogTimer=9;HS.sfx.bark();toast('🐶 Go play over there!',1.5);};
-function startSearch(){state='search';searchTime=60;HS.sfx.go();HS.say('Ready or not, here I come!');HS.pose(seekerFig.userData.inner,'stand');
+function startSearch(){state='search';searchTime=Math.round(75*(W.def.time||1));HS.sfx.go();HS.say('Ready or not, here I come!');HS.pose(seekerFig.userData.inner,'stand');
   $('big').style.display='none';setBrush(false);btn('action',false);btn('paintBtn',false);
   // the seeker checks the usual hiding places, plus some random places
   sk.wps=W.spots.map(s=>s.look).sort(()=>Math.random()-0.5);for(let i=0;i<6;i++)sk.wps.splice((Math.random()*sk.wps.length)|0,0,HS.randomSpot());

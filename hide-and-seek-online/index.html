@@ -145,7 +145,7 @@
 const $=id=>document.getElementById(id);
 if(!window.THREE||!HS.init($('c'))){document.body.innerHTML='<p style="padding:30px;font-size:24px">Sorry, this device can\'t show 3D games.</p>';return;}
 const P=HS.P;
-const SEEK_TIME=150,MAXP=6;
+const SEEK_TIME=180,MAXP=6;
 /* ---------- nicknames (sent as list positions only) ---------- */
 const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
 const NICK_B=['Comet','Star','Pencil','Giant','Dragon','Tiger','Shark','Wizard','Robot','Panda','Falcon','Knight','Puppy','Taco','Volcano','Penguin'];
@@ -378,7 +378,7 @@ function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
   if(NET.state==='in'&&now-NET.lastSend>110){NET.lastSend=now;send(myState());}
-  if(isHost()&&(G.ph==='hide'||G.ph==='seek')){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;if(G.left<=0){if(G.ph==='hide'){G.ph='seek';G.left=SEEK_TIME;lastSec=SEEK_TIME;pushG();}else hostOver('hiders');}else pushG();}}
+  if(isHost()&&(G.ph==='hide'||G.ph==='seek')){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;if(G.left<=0){if(G.ph==='hide'){G.ph='seek';G.left=Math.round(SEEK_TIME*(W.def.time||1));lastSec=G.left;pushG();}else hostOver('hiders');}else pushG();}}
   else if(G.ph==='hide'||G.ph==='seek')G.left=Math.max(0,G.left-rdt);
   if(state!=='play'){const b=W.def.bounds,a=T*0.08;HS.camera.position.set(Math.cos(a)*(b.x1-b.x0)*0.32,W.def.env.sky?6:4.6,Math.sin(a)*(b.z1-b.z0)*0.3);HS.camera.lookAt(0,1.4,0);HS.dogUpdate(dog,dt);HS.render(dt);return;}
   const role=myRole();

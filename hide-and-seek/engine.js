@@ -292,12 +292,17 @@ HS.movePlayer=function(mx,mz,dt){
 HS.jump=function(){if(P.ground){P.vy=7.6;P.ground=false;HS.sfx.jump();return true;}return false;};
 HS.firstPerson=function(pos){camera.position.copy(pos||new THREE.Vector3(P.x,P.camY,P.z));camera.rotation.set(P.pitch,P.yaw,0);};
 const tv=new THREE.Vector3();
+// keep the camera on our side of walls (big maps have lots of rooms)
+function inCol(c,x,y,z,r){return x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&y<c.top+0.05&&y>(c.bot||0)-0.05;}
+function camFree(t,p){const dx=p.x-t.x,dy=p.y-t.y,dz=p.z-t.z,L=Math.hypot(dx,dy,dz);if(L<0.2)return;const cs=W.cols.filter(c=>!inCol(c,t.x,t.y,t.z,0.12)&&c.top>Math.min(t.y,p.y)-0.1);
+  const n=Math.ceil(L/0.1);let last=0;for(let i=1;i<=n;i++){const k=i/n,x=t.x+dx*k,y=t.y+dy*k,z=t.z+dz*k;if(cs.some(c=>inCol(c,x,y,z,0.12)))break;last=k;}
+  if(last<1){const k=Math.max(0,last-0.02);p.set(t.x+dx*k,t.y+dy*k,t.z+dz*k);}}
 HS.thirdPerson=function(target,dist){dist=dist||3.4;const cp=Math.cos(P.pitch),sp=Math.sin(P.pitch);tv.set(-Math.sin(P.yaw)*cp,sp,-Math.cos(P.yaw)*cp);
-  const p=target.clone().addScaledVector(tv,-dist);p.y+=0.35;const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camera.position.copy(p);camera.lookAt(target);};
+  const p=target.clone().addScaledVector(tv,-dist);p.y+=0.35;const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camFree(target,p);camera.position.copy(p);camera.lookAt(target);};
 
 // camera that circles a target (used by the paintbrush so you can see yourself)
 HS.orbitCamera=function(target,yaw,pitch,dist){const cp=Math.cos(pitch),sp=Math.sin(pitch);const p=new THREE.Vector3(target.x+Math.sin(yaw)*cp*dist,target.y-sp*dist,target.z+Math.cos(yaw)*cp*dist);
-  const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camera.position.copy(p);camera.lookAt(target);};
+  const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camFree(target,p);camera.position.copy(p);camera.lookAt(target);};
 /* ================= input ================= */
 const keys=HS.keys={};const J=HS.joy={x:0,y:0};
 HS.isTouch=('ontouchstart' in window);
