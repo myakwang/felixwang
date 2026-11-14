@@ -200,16 +200,26 @@ $('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textC
 
 /* ---------- seek mode ---------- */
 function clearHiders(){hiders.forEach(h=>HS.scene.remove(h.fig));hiders=[];}
+function spotWeight(s){return (s.sky?3:1)*(s.camo?2.5:1)*(s.pose==='lie'||s.pose==='crouch'?1.5:s.pose==='stand'?0.6:1);}
+// put a friend in a hiding place; most of them paint themselves to match it
+function hideAt(h,s,lv){h.spot=s;HS.setLie(h.fig,false);h.fig.rotation.z=0;HS.placeFigure(h.fig,s);h.camo=s.camo||Math.random()<Math.min(0.85,0.45+0.08*lv);HS.paint(h.fig,h.camo?s.bg:null);
+  h.hit=HS.setHit(h.fig,s.pose);h.fig.updateMatrixWorld(true);h.hit.getWorldPosition(h.center);}
+// a friend may sneak to a new place when you come close while looking the other way (once each)
+let sneakT=0;
+function sneakCheck(dt){if((sneakT-=dt)>0)return;sneakT=0.5;const cp=HS.camera.position,fw=new THREE.Vector3();HS.camera.getWorldDirection(fw);
+  for(const h of hiders){if(h.found||h.moved)continue;const d=h.center.distanceTo(cp);if(d>4.5||d<1.2)continue;
+    const to=h.center.clone().sub(cp).normalize();if(to.dot(fw)>-0.1)continue;if(Math.random()>0.35)continue;
+    const used=new Set(hiders.map(x=>x.spot));const free=W.spots.filter(s=>!used.has(s)&&Math.hypot(s.pos[0]-cp.x,s.pos[2]-cp.z)>7);if(!free.length)continue;
+    const w=free.map(spotWeight);let r=Math.random()*w.reduce((a,b)=>a+b,0),i=0;while(r>w[i]&&i<w.length-1){r-=w[i];i++;}
+    h.moved=true;hideAt(h,free[i],level);toast('👂 You heard sneaky footsteps…',2);HS.sfx.giggle();break;}}
 function startSeek(lv){
   setBrush(false);HS.clearSplats();lastMode='seek';level=lv;clearHiders();seekerFig.visible=false;me.visible=false;bubble.visible=false;third=false;
   HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);
   const n=Math.min(2+lv,8,W.spots.length);
-  const pick=W.spots.slice().sort(()=>Math.random()-0.5).slice(0,n);
-  pick.forEach((s,k)=>{const fig=HS.makeFigure({cap:COLORS[k],shirt:COLORS[k],helmet:!!s.helmet});HS.placeFigure(fig,s);
-    const camo=s.camo||Math.random()<Math.min(0.45,0.07*lv);if(camo)HS.paint(fig,s.bg);
-    fig.traverse(o=>{if(o.isMesh)o.castShadow=true;});const hit=HS.setHit(fig,s.pose);HS.scene.add(fig);fig.updateMatrixWorld(true);
-    const c=new THREE.Vector3();hit.getWorldPosition(c);
-    hiders.push({fig,hit,spot:s,name:NAMES[k],color:COLORS[k],found:false,phase:Math.random()*6,wig:0,anim:0,center:c,camo});});
+  // sneaky friends pick the hardest places more often: up in the sky, on matching walls, lying or crouching
+  const pick=[],pool=W.spots.slice();while(pick.length<n&&pool.length){const w=pool.map(spotWeight);let r=Math.random()*w.reduce((a,b)=>a+b,0),i=0;while(r>w[i]&&i<w.length-1){r-=w[i];i++;}pick.push(pool.splice(i,1)[0]);}
+  pick.forEach((s,k)=>{const fig=HS.makeFigure({cap:COLORS[k],shirt:COLORS[k],helmet:!!s.helmet});const h={fig,hit:null,spot:s,name:NAMES[k],color:COLORS[k],found:false,phase:Math.random()*6,wig:0,anim:0,center:new THREE.Vector3(),camo:false,moved:false};
+    fig.traverse(o=>{if(o.isMesh)o.castShadow=true;});HS.scene.add(fig);hideAt(h,s,lv);hiders.push(h);});
   homeIdx=0;dogUses=3;dogTarget=null;arrowT=0;timeLeft=Math.max(75,60+n*25-(lv-1)*4);
   const sp=W.def.spawn.seek;HS.resetPlayer(sp[0],sp[1],sp[2],sp[3]);
   state='seekCount';count=10;hudFor('seek');renderStatus();$('dogBtn').textContent='🐶 '+dogUses;$('timer').textContent=HS.fmt(timeLeft);
@@ -217,7 +227,7 @@ function startSeek(lv){
 }
 function beginSeeking(){$('cover').classList.remove('show');state='seek';HS.sfx.go();HS.say('Ready or not, here I come!');
   toast('Level '+level+': find '+hiders.length+' friends!',2.5);
-  const c=hiders.filter(h=>h.camo).length;if(c)setTimeout(()=>{if(state==='seek')toast('👀 '+c+(c>1?' are':' is')+' painted to blend in!',2.5);},2800);
+  setTimeout(()=>{if(state==='seek')toast('🤫 Your friends are extra sneaky. Look everywhere, even up high!',2.8);},2800);
   help(HS.isTouch?'Left thumb: walk • Right thumb: look • Tap a hider!':'WASD: walk • Drag: look • Click a hider! • Space: jump',7000);}
 function foundHider(h){if(h.found)return;h.found=true;h.anim=0.001;HS.sfx.found();HS.say('Found '+h.name+'!');toast('Found '+h.name+' '+h.spot.label+'!',2.2);renderStatus();
   if(h.camo)HS.paint(h.fig,null);if(dogTarget===h){dogTarget=null;dog.hold=0;}
@@ -343,7 +353,7 @@ function frame(now){
 
   if(state==='seekCount'){count-=dt*2;const n=Math.max(1,Math.ceil(count));if($('coverNum').textContent!=n){$('coverNum').textContent=n;HS.sfx.tick();}if(count<=0)beginSeeking();}
   if(state==='seek'){timeLeft-=dt;$('timer').textContent=HS.fmt(timeLeft);$('timer').style.color=timeLeft<20?'#c0392b':'';
-    const cp=HS.camera.position;hiders.forEach(h=>{if(!h.found&&Math.hypot(h.center.x-cp.x,h.center.z-cp.z)<1.5&&Math.abs(h.center.y-cp.y)<1.9)foundHider(h);});
+    const cp=HS.camera.position;hiders.forEach(h=>{if(!h.found&&Math.hypot(h.center.x-cp.x,h.center.z-cp.z)<1.1&&Math.abs(h.center.y-cp.y)<1.9)foundHider(h);});sneakCheck(dt);
     if(dogTarget&&dog.hold>0&&dog.bark<=0&&((T*10)|0)%14===0)HS.dogBark(dog,1);
     if(timeLeft<=0){timeLeft=0;endSeek(false);}}
   // arrow toward the dog / hider
@@ -354,7 +364,7 @@ function frame(now){
   if(dogTarget&&dog.hold>0)arrowT=Math.max(arrowT,0.2);
   // hiders
   hiders.forEach(h=>{const inner=h.fig.userData.inner;
-    if(!h.found){HS.pose(inner,h.spot.pose,T+h.phase);if(h.wig>0){h.wig-=dt;h.fig.rotation.z=Math.sin(T*28)*0.07;if(h.wig>50)HS.pose(inner,'wave',T);}else h.fig.rotation.z=0;return;}
+    if(!h.found){HS.pose(inner,h.spot.pose,0);if(h.wig>0){h.wig-=dt;h.fig.rotation.z=Math.sin(T*28)*0.07;if(h.wig>50)HS.pose(inner,'wave',T);}else h.fig.rotation.z=0;return;}
     h.anim+=dt;
     if(h.anim<1.1){h.fig.rotation.z=0;HS.pose(inner,'wave',T);}
     else if(h.anim<1.4){h.fig.scale.setScalar(Math.max(0.01,1-(h.anim-1.1)/0.3));}

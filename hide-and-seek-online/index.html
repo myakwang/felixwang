@@ -64,6 +64,12 @@
   #bigCode{font-size:72px;letter-spacing:10px;line-height:1}
   #hud{z-index:3}.overlay{z-index:4}#cover{z-index:2!important;background:#1e1c22;color:#fffdf6}#cover .num{font-size:110px;line-height:1}
   .score{font-size:22px}
+  .plist{width:100%;display:flex;flex-direction:column;gap:5px;max-height:36vh;overflow:auto}
+  .prow{display:flex;align-items:center;gap:8px;border:2.5px solid #2b2b2b;border-radius:12px;padding:3px 10px;background:#fff;font-size:20px;text-align:left}
+  .prow .nm{flex:1}.prow .sub{font-size:16px}
+  .btn.kick{font-size:17px;padding:2px 10px;box-shadow:2px 2px 0 #2b2b2b}
+  #spec{position:absolute;top:60px;left:50%;transform:translateX(-50%);display:none;font-size:20px;white-space:nowrap}
+  #list{background:linear-gradient(#f3e9d800,#f3e9d8cc)}
 </style>
 </head>
 <body>
@@ -82,47 +88,52 @@
     <button class="btn pink" id="paintBtn">🖌 Paintbrush</button>
     <button class="btn" id="poseBtn">🧎 Crouch</button>
     <button class="btn" id="viewBtn">👁 My eyes</button>
-    <button class="btn yellow" id="spotBtn">★ Hide here</button>
-    <button class="btn" id="shooBtn">🐶 Shoo!</button>
   </div>
   <button class="btn" id="jumpBtn">Jump</button>
+  <div class="pill" id="spec">👀 A round is going on. You'll play in the next round!</div>
 </div>
 <div id="joy"><div id="knob"></div></div>
 
 <div class="overlay show" id="menu">
   <div class="sheet">
     <h1>Hide &amp; Seek Online</h1>
-    <p class="sub">Two players, two devices! One hides anywhere, one seeks, then you swap.</p>
+    <p class="sub">Up to 6 players! One seeker, everyone else hides. Hiders who get found become seekers too.</p>
     <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
     <p><b>1. Pick your nickname</b></p>
     <div class="row"><select id="nameA"></select><select id="nameB"></select><button class="btn" id="dice" style="font-size:20px;padding:3px 10px">🎲</button></div>
-    <p><b>2. Make or join a room</b></p>
-    <div class="row"><button class="btn big yellow" id="makeBtn">⭐ Make a room</button></div>
-    <div class="row"><input id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn blue" id="joinBtn">Join</button></div>
+    <p><b>2. Find a server, or make one</b></p>
+    <div class="row"><button class="btn big yellow" id="listBtn">🌍 Server list</button></div>
+    <div class="row"><button class="btn green" id="makePub">⭐ Make a public server</button><button class="btn blue" id="makeFr">🔒 Make a friends-only server</button></div>
+    <div class="row"><input id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn" id="joinBtn">Join with a code</button></div>
     <p id="netMsg" class="sub" style="color:#c0392b">&nbsp;</p>
-    <p class="sub" style="font-size:15px">Both devices need the internet. Only game moves and your picked nickname are sent between your two devices: no real names, no chat, nothing saved.</p>
+    <p class="sub" style="font-size:15px">Public servers are shown in the server list, so anyone playing can join. Friends-only servers can only be joined with their code. Only game moves and your picked nickname are sent: no real names, no chat, nothing saved.</p>
     <div class="row"><button class="btn homeBtn" style="display:none">🏠 All games</button></div>
   </div>
 </div>
-<div class="overlay" id="wait">
-  <div class="sheet"><p>Tell your friend this code:</p><div id="bigCode">ABCD</div><p class="sub" id="waitMsg">Waiting for your friend to join…</p><button class="btn" id="cancelWait">Cancel</button></div>
+<div class="overlay" id="list">
+  <div class="sheet">
+    <h2>🌍 Public servers</h2>
+    <div class="plist" id="slist"></div>
+    <p class="sub" id="slistMsg"></p>
+    <div class="row"><button class="btn" id="slRefresh">🔄 Refresh</button><button class="btn" id="slBack">◀ Back</button></div>
+  </div>
 </div>
 <div class="overlay" id="lobby">
   <div class="sheet">
-    <h2 id="lobbyTitle">Ready!</h2>
-    <p class="score" id="scoreLine"></p>
-    <p id="roleLine"></p>
+    <h2 id="lobbyTitle"></h2>
+    <p class="sub" id="lobbyCode"></p>
+    <div class="plist" id="plist"></div>
     <div class="maps" id="maps"></div>
     <div class="row" id="timeRow">Hiding time: </div>
     <div class="row"><button class="btn big green" id="startBtn">▶ Start round</button></div>
     <p class="sub" id="lobbyMsg"></p>
-    <button class="btn" id="lobbyLeave" style="font-size:18px;padding:3px 12px">Leave room</button>
+    <button class="btn" id="lobbyLeave" style="font-size:18px;padding:3px 12px">Leave server</button>
   </div>
 </div>
 <div class="overlay" id="cover"><p style="font-size:28px" id="coverTxt">🙈 Eyes closed!</p><div class="num" id="coverNum">45</div><p id="coverSub" style="font-size:22px"></p></div>
 <div class="overlay" id="over">
-  <div class="sheet"><h2 id="overTitle"></h2><p id="overBody"></p><p class="score" id="overScore"></p>
-    <div class="row"><button class="btn big green" id="againBtn">Next round (swap!) ▶</button><button class="btn" id="placeBtn">🗺 Change place</button></div><p class="sub" id="overMsg"></p></div>
+  <div class="sheet"><h2 id="overTitle"></h2><p id="overBody"></p><div class="plist" id="overList"></div>
+    <div class="row"><button class="btn big green" id="againBtn">▶ Next round</button><button class="btn" id="placeBtn">🗺 Server lobby</button></div><p class="sub" id="overMsg"></p></div>
 </div>
 
 <script src="three.min.js"></script>
@@ -134,170 +145,225 @@
 const $=id=>document.getElementById(id);
 if(!window.THREE||!HS.init($('c'))){document.body.innerHTML='<p style="padding:30px;font-size:24px">Sorry, this device can\'t show 3D games.</p>';return;}
 const P=HS.P;
-const SEEK_TIME=150;
+const SEEK_TIME=150,MAXP=6;
 /* ---------- nicknames (sent as list positions only) ---------- */
 const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
 const NICK_B=['Comet','Star','Pencil','Giant','Dragon','Tiger','Shark','Wizard','Robot','Panda','Falcon','Knight','Puppy','Taco','Volcano','Penguin'];
 let myNick=[(Math.random()*16)|0,(Math.random()*16)|0];
 try{const v=JSON.parse(localStorage.getItem('hideSeekOnlineName')||'null');if(Array.isArray(v)&&NICK_A[v[0]]&&NICK_B[v[1]])myNick=v;}catch(e){}
-const nickText=n=>n&&NICK_A[n[0]]&&NICK_B[n[1]]?NICK_A[n[0]]+' '+NICK_B[n[1]]:'Your friend';
+const okNick=n=>Array.isArray(n)&&NICK_A[n[0]]!==undefined&&NICK_B[n[1]]!==undefined;
+const nickText=n=>okNick(n)?NICK_A[n[0]]+' '+NICK_B[n[1]]:'A player';
 NICK_A.forEach((w,i)=>$('nameA').add(new Option(w,i)));NICK_B.forEach((w,i)=>$('nameB').add(new Option(w,i)));
 function fillNick(){$('nameA').value=myNick[0];$('nameB').value=myNick[1];}
 function setNick(n){myNick=n;try{localStorage.setItem('hideSeekOnlineName',JSON.stringify(n));}catch(e){}fillNick();}
 $('nameA').onchange=()=>setNick([+$('nameA').value,myNick[1]]);$('nameB').onchange=()=>setNick([myNick[0],+$('nameB').value]);
 $('dice').onclick=()=>setNick([(Math.random()*16)|0,(Math.random()*16)|0]);fillNick();
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- network (this site's own room relay) ---------- */
-const NET={ws:null,role:null,code:null,want:null,state:'idle',friend:null,timer:0,lastSend:0};
+/* ---------- network: this site's own server relay (/api/server/CODE, up to 6 players) ---------- */
+const NET={ws:null,id:0,host:0,code:null,mode:null,pub:true,state:'idle',timer:0,lastSend:0,tries:0};
 const CODE_ABC='ABCDEFGHJKMNPQRSTUVWXYZ';
 const randCode=()=>{let c='';for(let i=0;i<4;i++)c+=CODE_ABC[(Math.random()*CODE_ABC.length)|0];return c;};
 function base(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
 function send(o){if(NET.ws&&NET.ws.readyState===1){try{NET.ws.send(JSON.stringify(o));}catch(e){}}}
-function closeNet(){clearTimeout(NET.timer);const w=NET.ws;NET.ws=null;NET.state='idle';NET.friend=null;if(w){try{w.close();}catch(e){}}}
-function fail(msg){closeNet();toMenu();$('netMsg').textContent=msg;}
-function open(code,want){closeNet();NET.code=code;NET.want=want;NET.state='connecting';$('netMsg').textContent='Connecting…';let ws;
-  try{ws=new WebSocket(base().replace(/^http/,'ws')+'/api/room/'+code);}catch(e){fail('Could not connect. Check the internet and try again.');return;}
-  NET.ws=ws;ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data);}catch(_){return;}onMsg(m);};
+const isHost=()=>NET.id>0&&NET.id===NET.host;
+function closeNet(){clearTimeout(NET.timer);const w=NET.ws;NET.ws=null;NET.state='idle';NET.id=0;NET.host=0;PLclear();if(w){try{w.close();}catch(e){}}}
+function fail(msg){closeNet();resetWorld();toMenu();$('netMsg').textContent=msg;}
+function open(code,mode){const tries=NET.tries;closeNet();NET.tries=tries;NET.code=code;NET.mode=mode;NET.state='connecting';$('netMsg').textContent='Connecting…';let ws;
+  const q=mode==='make'?'?make=1&pub='+(NET.pub?1:0):'';
+  try{ws=new WebSocket(base().replace(/^http/,'ws')+'/api/server/'+code+q);}catch(e){fail('Could not connect. Check the internet and try again.');return;}
+  NET.ws=ws;ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data);}catch(_){return;}if(m&&typeof m==='object')onMsg(m);};
   ws.onclose=()=>{if(NET.ws!==ws)return;NET.ws=null;lost();};ws.onerror=()=>{};
   NET.timer=setTimeout(()=>{if(NET.state==='connecting')fail('Could not reach the game server. Check the internet and try again.');},9000);}
-$('makeBtn').onclick=()=>{HS.ac();open(randCode(),'p1');};
-$('joinBtn').onclick=()=>{HS.ac();const c=$('codeIn').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('netMsg').textContent='Type the 4-letter code from your friend.';return;}open(c,'p2');};
+function make(pub){HS.ac();NET.pub=pub;NET.tries=0;open(randCode(),'make');}
+$('makePub').onclick=()=>make(true);$('makeFr').onclick=()=>make(false);
+function joinCode(c){HS.ac();NET.tries=0;open(c,'join');}
+$('joinBtn').onclick=()=>{const c=$('codeIn').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('netMsg').textContent='Type the 4-letter server code.';return;}joinCode(c);};
 $('codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('joinBtn').click();});
-$('cancelWait').onclick=()=>{closeNet();toMenu();$('netMsg').innerHTML='&nbsp;';};
-const isHost=()=>NET.role==='p1';
-function onMsg(m){switch(m.t){
-  case 'hello':clearTimeout(NET.timer);NET.role=m.role;
-    if(NET.want==='p1'&&m.role!=='p1'){open(randCode(),'p1');return;}
-    if(NET.want==='p2'&&m.role!=='p2'){fail('There is no room with the code '+NET.code+'. Check the code and try again.');return;}
-    NET.state='waiting';if(m.role==='p1'){showOnly('wait');$('bigCode').textContent=NET.code;$('waitMsg').textContent='Hi '+nickText(myNick)+'! Waiting for your friend to join…';}else $('netMsg').textContent='Joined! Getting ready…';break;
-  case 'full':fail('That room already has two players.');break;
-  case 'ready':NET.state='ready';send({t:'name',a:myNick[0],b:myNick[1]});G.score={p1:0,p2:0};G.round=0;
-    if(isHost()){G.map=G.map||'house';G.ht=G.ht||45;}toLobby();break;
-  case 'name':{const a=m.a|0,b=m.b|0;if(NICK_A[a]&&NICK_B[b]){NET.friend=[a,b];if(state==='lobby')renderLobby();}}break;
-  case 'cfg':if(!isHost()&&(HS.maps[m.map]||m.map==='random')){G.map=m.map;G.ht=m.ht|0;if(state==='lobby')renderLobby();}break;
-  case 'start':if(!isHost()&&HS.maps[m.map])startRound(m.map,m.ht|0,m.hider==='p1'?'p1':'p2',m.round|0,m.score);break;
-  case 'ph':if(!isHost()&&G.phase!=='over'){G.left=+m.left||0;if(m.ph==='seek'&&G.phase==='hide')beginSeek();}break;
-  case 'p':R.last=m;R.t=performance.now();break;
+function lost(){const was=NET.state;closeNet();if(was==='connecting'){fail('Could not connect. Check the internet and try again.');return;}
+  state='menu';resetWorld();toMenu();$('netMsg').textContent='The connection to the server was closed.';}
+
+/* ---------- the other players ---------- */
+const PL=new Map();
+function pl(id){let p=PL.get(id);if(!p){p={id,nick:null,last:null,fig:null,role:null,x:0,y:0,z:0,yaw:0,pose:'stand',tagS:null,barked:false,tagT:0};PL.set(id,p);}return p;}
+function dropFig(p){if(p.fig){HS.scene.remove(p.fig);p.fig=null;}if(p.tagS){HS.scene.remove(p.tagS);p.tagS=null;}p.role=null;}
+function PLclear(){PL.forEach(dropFig);PL.clear();}
+const nameOf=id=>id===NET.id?nickText(myNick):nickText(PL.get(id)&&PL.get(id).nick);
+const allIds=()=>[NET.id,...PL.keys()].filter(x=>x>0).sort((a,b)=>a-b);
+
+const okVec=v=>Array.isArray(v)&&v.length===3&&v.every(x=>typeof x==='number'&&isFinite(x)&&Math.abs(x)<60);
+const figOf=f=>{const p=PL.get(f);return p&&p.fig;};
+function onMsg(m){const f=m.f|0;switch(m.t){
+  case 'hello':clearTimeout(NET.timer);NET.id=m.id|0;NET.host=m.host|0;NET.pub=!!m.pub;NET.code=typeof m.code==='string'?m.code.slice(0,4):NET.code;NET.state='in';
+    (Array.isArray(m.ids)?m.ids:[]).forEach(i=>{if((i|0)>0)pl(i|0);});$('netMsg').innerHTML='&nbsp;';
+    if(isHost()){G=newG();prevG=null;applyG(G);listInfo();}else{state='lobby';showOnly('lobby');renderLobby();}
+    send({t:'hi',n:myNick});break;
+  case 'taken':if(++NET.tries<8){open(randCode(),'make');}else fail('Could not make a server. Try again.');break;
+  case 'nosuch':fail('There is no server with the code '+NET.code+'. It may have closed.');break;
+  case 'full':fail('That server is full (6 players). Try another one!');break;
+  case 'kicked':fail('The host removed you from that server.');break;
+  case 'join':{pl(m.id|0);NET.host=m.host|0;send({t:'hi',n:myNick,to:m.id|0});if(isHost()){send({t:'g',g:G,to:m.id|0});listInfo();}renderLobby();}break;
+  case 'leave':{const id=m.id|0;const p=PL.get(id);const nm=nameOf(id);if(p){dropFig(p);PL.delete(id);}const was=isHost();NET.host=m.host|0;
+    if(state==='play'||state==='lobby')toast(nm+' left the server',1.8);if(isHost()){if(!was)toast('👑 You are the host now!',2.2);hostOnLeave(id);}renderLobby();}break;
+  case 'hi':if(f>0&&okNick(m.n)){pl(f).nick=[m.n[0]|0,m.n[1]|0];renderLobby();if(state==='over')renderOverList();}break;
+  case 'g':if(f>0&&f===NET.host&&!isHost())applyG(m.g);break;
+  case 'p':if(f>0){const p=pl(f);p.last=m;if(okNick(m.n))p.nick=[m.n[0]|0,m.n[1]|0];}break;
+  case 'tag':if(isHost())hostTag(f,m.v|0);break;
   case 'sp':if(state==='play'&&okVec(m.p)&&okVec(m.n)&&typeof m.c==='string')HS.splat(m.p,m.n,m.c,+m.r||0.28);break;
   case 'spx':if(state==='play'&&okVec(m.p)){HS.eraseSplats(m.p,0.5);HS.eraseDots(m.p,0.5);}break;
   case 'ln':if(state==='play'&&okVec(m.a)&&okVec(m.b)&&okVec(m.n)&&typeof m.c==='string')HS.dotLine(m.a,m.b,m.n,m.c);break;
   case 'lx':if(state==='play'&&okVec(m.p))HS.eraseDots(m.p,0.18);break;
-  case 'bl':if(state==='play'&&R.fig&&Number.isInteger(m.b)&&okVec(m.a)&&okVec(m.z)&&okVec(m.n)&&typeof m.c==='string')HS.bodyLine(R.fig,m.b,m.a,m.z,m.n,m.c,HS.PARTS.includes(m.pt)?m.pt:null);break;
-  case 'bx':if(state==='play'&&R.fig&&Number.isInteger(m.b)&&okVec(m.p))HS.eraseBodyDots(R.fig,m.b,new THREE.Vector3(m.p[0],m.p[1],m.p[2]),0.08);break;
-  case 'bpc':if(state==='play'&&R.fig&&HS.PARTS.includes(m.pt))HS.clearBodyDots(R.fig,m.pt);break;
-  case 'tag':if(G.phase==='seek'&&iAmHider())roundOver('seeker');break;
-  case 'over':if(!isHost()){if(m.score)G.score={p1:m.score.p1|0,p2:m.score.p2|0};if(G.phase!=='over')roundOver(m.w,true);else $('overScore').textContent=scoreText();}break;
-  case 'lobby':if(!isHost())toLobby();break;
-  case 'shoo':if(isHost())shooDog();break;
-  case 'again':G.otherAgain=true;if(isHost()&&G.meAgain)hostStart();else $('overMsg').textContent=nickText(NET.friend)+' is ready!';break;
-  case 'left':lost();break;}}
-function lost(){const fn=nickText(NET.friend);const was=NET.state;closeNet();if(was==='connecting'){fail('Could not connect. Check the internet and try again.');return;}
-  state='menu';resetWorld();toMenu();$('netMsg').textContent=(was==='ready'?fn+' left the game.':'The connection was closed.')+' Make a new room to play again.';}
+  case 'bl':{const fg=figOf(f);if(state==='play'&&fg&&Number.isInteger(m.b)&&okVec(m.a)&&okVec(m.z)&&okVec(m.n)&&typeof m.c==='string')HS.bodyLine(fg,m.b,m.a,m.z,m.n,m.c,HS.PARTS.includes(m.pt)?m.pt:null);}break;
+  case 'bx':{const fg=figOf(f);if(state==='play'&&fg&&Number.isInteger(m.b)&&okVec(m.p))HS.eraseBodyDots(fg,m.b,new THREE.Vector3(m.p[0],m.p[1],m.p[2]),0.08);}break;
+  case 'bpc':{const fg=figOf(f);if(state==='play'&&fg&&HS.PARTS.includes(m.pt))HS.clearBodyDots(fg,m.pt);}break;
+}}
 
-/* ---------- game state ---------- */
-const G={map:'house',ht:45,round:0,hider:'p2',phase:'none',left:0,score:{p1:0,p2:0},meAgain:false,otherAgain:false,pose:'stand',spot:null,paint:null};
-let state='menu',T=0,third=true,W=null,lastSec=0,dogTimer=0;
-const iAmHider=()=>G.hider===NET.role;
-const myName=()=>nickText(myNick),friendName=()=>nickText(NET.friend);
-// remote player
-const R={fig:null,last:null,t:0,x:0,y:0,z:0,yaw:0,pose:'stand',paint:undefined};
-const meFig=HS.makeFigure({cap:'#3498db',shirt:'#3498db'});HS.scene.add(meFig);meFig.visible=false;
-const dog=HS.makeDogAgent();
-const tag=HS.sprite('',{w:1.8,h:0.5,font:40});HS.scene.add(tag);tag.visible=false;
-let markers=[];
-function loadMap(id){if(id==='random'||(W&&W.def.id===id))return;W=HS.loadMap(id);markers.forEach(m=>HS.scene.remove(m));
-  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);try{buildPalette();}catch(e){setTimeout(buildPalette,0);}}
-loadMap('house');
-function resetWorld(){if(R.fig){HS.scene.remove(R.fig);R.fig=null;}meFig.visible=false;tag.visible=false;markers.forEach(m=>m.visible=false);$('hud').style.display='none';}
+/* ---------- the game (the host keeps the score and the clock, everyone shows it) ---------- */
+function newG(){return {ph:'lobby',map:'house',real:'house',ht:45,left:0,round:0,rot:0,players:[],seekers:[],found:[],sc:{},win:null};}
+let G=newG(),prevG=null;
+let state='menu',T=0,third=true,W=null,lastSec=0,myRoleNow=null;
+const ints=a=>Array.isArray(a)?a.map(x=>x|0).filter(x=>x>0&&x<100).slice(0,MAXP):[];
+function clean(g){if(!g||typeof g!=='object')return null;const o=newG();
+  o.ph=['lobby','hide','seek','over'].includes(g.ph)?g.ph:'lobby';o.map=(HS.maps[g.map]||g.map==='random')?g.map:'house';o.real=HS.maps[g.real]?g.real:'house';
+  o.ht=[30,45,60,90].includes(g.ht|0)?g.ht|0:45;o.left=Math.max(0,Math.min(200,+g.left||0));o.round=g.round|0;o.rot=g.rot|0;
+  o.players=ints(g.players);o.seekers=ints(g.seekers);o.found=ints(g.found);o.win=g.win==='seekers'||g.win==='hiders'?g.win:null;
+  if(g.sc&&typeof g.sc==='object')for(const k in g.sc){const id=k|0;if(id>0&&id<100)o.sc[id]=Math.max(0,Math.min(999,g.sc[k]|0));}return o;}
+function myRole(){if(!G.players.includes(NET.id))return 'spec';return G.seekers.includes(NET.id)?'seek':'hide';}
+const roleOf=id=>!G.players.includes(id)?'spec':G.seekers.includes(id)?'seek':'hide';
+function applyG(g){const ng=isHost()?g:clean(g);if(!ng)return;const old=prevG;G=ng;prevG=JSON.parse(JSON.stringify(ng));
+  const newRound=!old||old.round!==ng.round;
+  if(ng.ph==='lobby'){if(!old||old.ph!=='lobby'||state!=='lobby')enterLobby();else renderLobby();}
+  else{if(newRound||state!=='play')startRound();
+    if(ng.ph==='seek'&&(newRound||old.ph!=='seek'))beginSeek();
+    if(ng.ph==='over'&&(newRound||old.ph!=='over'))roundOver();}
+  if(old&&!newRound)ng.found.filter(v=>!old.found.includes(v)).forEach(onFound);
+  syncRoles();updateStatus();setButtons();if(state==='over')renderOverList();}
+function listInfo(){if(isHost())send({t:'list',m:G.map==='random'?'random':G.map,h:myNick,ph:G.ph==='lobby'?'lobby':'play'});}
+setInterval(()=>{if(NET.state==='in')listInfo();},60000);
+function pushG(){if(!isHost())return;send({t:'g',g:G});applyG(G);}
+function hostStartRound(){const ids=allIds();if(ids.length<2){toast('You need at least 2 players!',2);return;}
+  const seeker=ids[G.rot%ids.length];G.rot++;G.round++;let real=G.map;if(real==='random'){const opts=HS.mapList.map(m=>m.id).filter(x=>x!==G.real);real=opts[(Math.random()*opts.length)|0];}
+  G.real=real;G.ph='hide';G.left=G.ht;G.players=ids;G.seekers=[seeker];G.found=[];G.win=null;ids.forEach(i=>{if(G.sc[i]==null)G.sc[i]=0;});lastSec=Math.ceil(G.left);pushG();listInfo();
+  if(G.map==='random')toast('🎲 Surprise! The '+HS.maps[real].name+' '+HS.maps[real].emoji,2.6);}
+function hostTag(by,v){if(G.ph!=='seek'||!G.seekers.includes(by)||!G.players.includes(v)||G.seekers.includes(v))return;
+  G.found.push(v);G.seekers.push(v);G.sc[by]=(G.sc[by]|0)+1;if(G.players.every(i=>G.seekers.includes(i)))hostOver('seekers');else pushG();}
+function hostOver(w){G.ph='over';G.win=w;if(w==='hiders')G.players.filter(i=>!G.seekers.includes(i)).forEach(i=>{G.sc[i]=(G.sc[i]|0)+2;});pushG();listInfo();}
+function hostOnLeave(id){const inRound=G.players.includes(id);G.players=G.players.filter(i=>i!==id);G.seekers=G.seekers.filter(i=>i!==id);G.found=G.found.filter(i=>i!==id);
+  if(inRound&&(G.ph==='hide'||G.ph==='seek')){if(G.players.length<2||!G.seekers.length){G.ph='lobby';toast('Not enough players. Back to the server lobby.',2.4);}
+    else if(G.players.every(i=>G.seekers.includes(i))){hostOver('seekers');return;}}
+  pushG();listInfo();}
+function onFound(v){if(v===NET.id){toast('You were found! Now you are a seeker too 🔍',2.6);HS.sfx.lose();setBrush(false);}else{toast('🎉 '+nameOf(v)+' was found!',2);HS.sfx.found();}}
 
 /* ---------- screens ---------- */
-function showOnly(id){['menu','wait','lobby','cover','over'].forEach(x=>$(x).classList.toggle('show',x===id));}
-function toMenu(){state='menu';showOnly('menu');$('hud').style.display='none';}
-HS.mapList.concat([{id:'random',emoji:'🎲',name:'Surprise!'}]).forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{if(!isHost())return;G.map=m.id;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('maps').appendChild(b);});
-[30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.dataset.s=s;b.onclick=()=>{if(!isHost())return;G.ht=s;send({t:'cfg',map:G.map,ht:G.ht});renderLobby();};$('timeRow').appendChild(b);});
-function nextHider(){return G.round%2===0?'p2':'p1';}
-function scoreText(){const me=G.score[NET.role]|0,fr=G.score[NET.role==='p1'?'p2':'p1']|0;return '⭐ '+myName()+' '+me+' — '+fr+' '+friendName();}
-function renderLobby(){
-  loadMap(G.map);
-  $('lobbyTitle').textContent=NET.friend?'Playing with '+friendName()+'!':'Friend joined!';
-  $('scoreLine').textContent=scoreText();
-  const h=nextHider();$('roleLine').innerHTML='Round '+(G.round+1)+': <b>'+(h===NET.role?'You hide 🙈':'You seek 🔍')+'</b>';
+function showOnly(id){['menu','list','lobby','cover','over'].forEach(x=>$(x).classList.toggle('show',x===id));}
+function toMenu(){state='menu';showOnly('menu');$('hud').style.display='none';$('spec').style.display='none';}
+function resetWorld(){PL.forEach(p=>dropFig(p));meFig.visible=false;$('hud').style.display='none';$('spec').style.display='none';HS.clearSplats();}
+function enterLobby(){state='lobby';resetWorld();setBrush(false);showOnly('lobby');loadMap(G.map==='random'?G.real:G.map);renderLobby();}
+HS.mapList.concat([{id:'random',emoji:'🎲',name:'Surprise!'}]).forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;
+  b.onclick=()=>{if(!isHost())return;G.map=m.id;pushG();listInfo();};$('maps').appendChild(b);});
+[30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.dataset.s=s;b.onclick=()=>{if(!isHost())return;G.ht=s;pushG();};$('timeRow').appendChild(b);});
+function playerRows(ids,withKick){return ids.map(id=>{const me=id===NET.id;const host=id===NET.host;const sc=G.sc[id]|0;
+  return '<div class="prow"><span class="nm">'+(host?'👑 ':'')+esc(nameOf(id))+(me?' <b>(you)</b>':'')+'</span><span>⭐ '+sc+'</span>'+(withKick&&!me?'<button class="btn kick" data-k="'+id+'">✖ Kick</button>':'')+'</div>';}).join('');}
+function renderLobby(){if(state!=='lobby'||NET.state!=='in')return;
+  loadMap(G.map==='random'?G.real:G.map);
+  const ids=allIds();
+  $('lobbyTitle').textContent=(NET.pub?'🌍 ':'🔒 ')+nameOf(NET.host)+'\'s server';
+  $('lobbyCode').innerHTML='Code: <b style="letter-spacing:3px;font-size:24px">'+esc(NET.code||'')+'</b> · '+(NET.pub?'public: anyone can find it in the server list':'friends-only: share the code')+' · 👥 '+ids.length+'/'+MAXP;
+  $('plist').innerHTML=playerRows(ids,isHost());
+  $('plist').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const id=+b.dataset.k;send({t:'kick',id});toast('Removed '+nameOf(id),1.6);});
   document.querySelectorAll('#maps .mapc').forEach(b=>{b.classList.toggle('sel',b.dataset.id===G.map);b.disabled=!isHost();});
   document.querySelectorAll('#timeRow .chip').forEach(b=>{b.classList.toggle('sel',+b.dataset.s===G.ht);b.disabled=!isHost();});
-  $('startBtn').style.display=isHost()?'':'none';$('lobbyMsg').textContent=isHost()?'You pick the place and the hiding time.':'Waiting for '+friendName()+' to start…';
-}
-function toLobby(){state='lobby';resetWorld();showOnly('lobby');renderLobby();if(isHost())send({t:'cfg',map:G.map,ht:G.ht});}
-$('startBtn').onclick=()=>{HS.ac();hostStart();};
-$('lobbyLeave').onclick=()=>{closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
-$('leaveBtn').onclick=e=>{e.stopPropagation();closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
-function hostStart(){const hider=nextHider();G.round++;let map=G.map;if(map==='random'){const ids=HS.mapList.map(m=>m.id).filter(x=>!W||x!==W.def.id);map=ids[(Math.random()*ids.length)|0];}
-  send({t:'start',map,ht:G.ht,hider,round:G.round,score:G.score});startRound(map,G.ht,hider,G.round,G.score);if(G.map==='random')toast('🎲 Surprise! The '+HS.maps[map].name+' '+HS.maps[map].emoji,2.6);}
+  $('startBtn').style.display=isHost()?'':'none';$('startBtn').disabled=ids.length<2;
+  $('lobbyMsg').textContent=isHost()?(ids.length<2?'Waiting for players to join…':'You pick the place and the time. Each round a different player seeks.'):'Waiting for '+nameOf(NET.host)+' to start…';}
+$('startBtn').onclick=()=>{HS.ac();if(isHost())hostStartRound();};
+const leave=()=>{closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;';};
+$('lobbyLeave').onclick=leave;$('leaveBtn').onclick=e=>{e.stopPropagation();leave();};
+// the public server list
+let listTimer=0;
+async function loadList(){const el=$('slist');$('slistMsg').textContent='Looking for servers…';
+  try{const r=await fetch(base()+'/api/servers',{cache:'no-store'});const arr=await r.json();if(!$('list').classList.contains('show'))return;
+    const ok=(Array.isArray(arr)?arr:[]).filter(s=>s&&typeof s.c==='string'&&/^[A-Z]{4}$/.test(s.c));
+    el.innerHTML=ok.map(s=>{const m=HS.maps[s.m];const place=s.m==='random'?'🎲 Surprise!':m?m.emoji+' '+m.name:'';
+      return '<div class="prow"><span class="nm">'+esc(nickText(Array.isArray(s.h)?[s.h[0]|0,s.h[1]|0]:null))+'\'s server<br><span class="sub">'+esc(place)+(s.ph==='play'?' · playing a round':' · waiting')+'</span></span><span>👥 '+(s.n|0)+'/'+MAXP+'</span><button class="btn green kick" data-j="'+s.c+'">Join</button></div>';}).join('');
+    el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{clearInterval(listTimer);joinCode(b.dataset.j);});
+    $('slistMsg').textContent=ok.length?'Tap Join to play!':'No public servers right now. Go back and make one!';}
+  catch(e){$('slistMsg').textContent='Could not load the server list. Check the internet.';}}
+$('listBtn').onclick=()=>{HS.ac();showOnly('list');$('slist').innerHTML='';loadList();clearInterval(listTimer);listTimer=setInterval(()=>{if($('list').classList.contains('show')&&!document.hidden)loadList();},5000);};
+$('slRefresh').onclick=loadList;$('slBack').onclick=()=>{clearInterval(listTimer);toMenu();};
+// end of a round
+$('againBtn').onclick=()=>{if(isHost())hostStartRound();};
+$('placeBtn').onclick=()=>{if(isHost()){G.ph='lobby';pushG();listInfo();}};
+function renderOverList(){const ids=allIds().slice().sort((a,b)=>(G.sc[b]|0)-(G.sc[a]|0));$('overList').innerHTML=playerRows(ids,false);
+  $('againBtn').style.display=isHost()?'':'none';$('placeBtn').style.display=isHost()?'':'none';$('againBtn').disabled=allIds().length<2;
+  $('overMsg').textContent=isHost()?(allIds().length<2?'Waiting for more players…':''):'Waiting for '+nameOf(NET.host)+' to start the next round…';}
 
 /* ---------- a round ---------- */
-function startRound(map,ht,hider,round,score){
-  if(G.map!=='random'||!isHost())G.map=G.map==='random'?'random':map;G.ht=ht||45;G.hider=hider;G.round=round;if(score)G.score={p1:score.p1|0,p2:score.p2|0};G.meAgain=G.otherAgain=false;
-  loadMap(map);resetWorld();HS.clearSplats();setBrush(false);splatsSent=0;linesSent=0;G.phase='hide';G.left=G.ht;lastSec=G.ht;G.pose='stand';G.spot=null;$('pal').style.display='none';
-  R.fig=HS.makeFigure(hider===NET.role?{seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12}:{cap:'#3498db',shirt:'#3498db'});HS.scene.add(R.fig);R.paint=undefined;R.last=null;
-  const hs=W.def.spawn.hide,ss=W.def.spawn.seeker;
-  if(iAmHider()){HS.resetPlayer(hs[0],hs[1],hs[2],hs[3]);R.x=ss[0];R.z=ss[1];R.yaw=Math.atan2(ss[2]-ss[0],ss[3]-ss[1]);R.pose='cover';third=true;HS.clearBodyDots(meFig);HS.paint(meFig,null);}
-  else{HS.resetPlayer(ss[0],ss[1],ss[2],ss[3]);R.x=hs[0];R.z=hs[1];R.pose='stand';third=false;}
-  R.y=HS.floorAt(R.x,R.z);
-  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);dogTimer=8;
-  state='play';$('hud').style.display='block';
-  if(iAmHider()){showOnly(null);toast('Hide anywhere! You have '+G.ht+' seconds 🙈',2.5);}
-  else{showOnly('cover');$('coverTxt').textContent='🙈 Eyes closed! '+friendName()+' is hiding…';}
-  setButtons();updateStatus();
-}
-function beginSeek(){setBrush(false);G.phase='seek';G.left=SEEK_TIME;markers.forEach(m=>m.visible=false);showOnly(null);HS.sfx.go();
-  if(!iAmHider()){HS.say('Ready or not, here I come!');toast('Find '+friendName()+'! Tap them when you see them.',2.6);}else{toast('Here comes '+friendName()+'! Shh… 🤫',2.4);}
+const meFig=HS.makeFigure({cap:'#3498db',shirt:'#3498db'});HS.scene.add(meFig);meFig.visible=false;
+const dog=HS.makeDogAgent();
+function loadMap(id){if(!HS.maps[id]||(W&&W.def.id===id))return;W=HS.loadMap(id);HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);try{buildPalette();}catch(e){setTimeout(buildPalette,0);}}
+loadMap('house');
+function spawnFor(id,role){const sp=role==='seek'?W.def.spawn.seeker:W.def.spawn.hide;const k=Math.max(0,G.players.indexOf(id));
+  if(role==='seek')return [sp[0],sp[1],sp[2],sp[3]];const dx=((k%3)-1)*1.2,dz=((k/3)|0)*1.2;const c=HS.clampXZ(sp[0]+dx,sp[1]+dz);return [c[0],c[1],sp[2],sp[3]];}
+function startRound(){
+  loadMap(G.real);resetWorld();setBrush(false);splatsSent=0;linesSent=0;myPoseSel='stand';$('poseBtn').textContent=POSE_LBL.stand;$('pal').style.display='none';
+  myRoleNow=myRole();const s=spawnFor(NET.id,myRoleNow);HS.resetPlayer(s[0],s[1],s[2],s[3]);
+  HS.clearBodyDots(meFig);HS.paint(meFig,null);third=myRoleNow==='hide';
+  PL.forEach(p=>{p.last=null;});syncRoles(true);
+  HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);
+  state='play';$('hud').style.display='block';lastSec=Math.ceil(G.left);
+  if(myRoleNow==='seek'&&G.ph==='hide'){showOnly('cover');$('coverTxt').textContent='🙈 Eyes closed! You are the seeker!';}
+  else{showOnly(null);if(myRoleNow==='hide'&&G.ph==='hide')toast('Hide anywhere! The seeker is '+nameOf(G.seekers[0])+' 🙈',2.6);}
+  $('spec').style.display=myRoleNow==='spec'?'block':'none';
   setButtons();updateStatus();}
-function roundOver(winner,fromHost){
-  if(G.phase==='over')return;G.phase='over';setBrush(false);
-  if(isHost()&&!fromHost){const wRole=winner==='seeker'?(G.hider==='p1'?'p2':'p1'):G.hider;G.score[wRole]=(G.score[wRole]|0)+1;send({t:'over',w:winner,score:G.score});}
-  const iWon=(winner==='seeker')!==iAmHider();
-  $('overTitle').textContent=winner==='seeker'?(iAmHider()?'Found you! 😄':'You found '+friendName()+'! 🎉'):(iAmHider()?'You win! Never found! 🎉':friendName()+' was too sneaky! 🙈');
-  $('overBody').textContent=iWon?'⭐ +1 point for you!':'⭐ +1 point for '+friendName()+'.';
-  (iWon?HS.sfx.win:HS.sfx.lose)();HS.say(winner==='seeker'?'Found you!':'Time is up!');
-  $('overMsg').textContent='';$('againBtn').disabled=false;$('placeBtn').style.display=isHost()?'':'none';
-  setTimeout(()=>{$('overScore').textContent=scoreText();if(state==='play'){showOnly('over');}},1500);
-  setButtons();
-}
-$('placeBtn').onclick=()=>{if(!isHost())return;send({t:'lobby'});toLobby();};
-$('againBtn').onclick=()=>{G.meAgain=true;$('againBtn').disabled=true;send({t:'again'});if(isHost()&&G.otherAgain)hostStart();else $('overMsg').textContent='Waiting for '+friendName()+'…';};
+// make sure every other player in the round has a figure that matches their role
+function syncRoles(fresh){if(state!=='play')return;
+  PL.forEach(p=>{const r=roleOf(p.id);if(r==='spec'){dropFig(p);return;}
+    if(p.role!==r||!p.fig){const keepPos=p.fig&&!fresh;dropFig(p);p.role=r;
+      p.fig=HS.makeFigure(r==='seek'?{seeker:true,cap:'#e74c3c',shirt:'#e74c3c',scale:1.12}:{cap:'#3498db',shirt:'#3498db'});HS.scene.add(p.fig);HS.setHit(p.fig,'stand');
+      p.tagS=HS.sprite(nameOf(p.id),{w:1.9,h:0.5,font:38,bg:r==='seek'?'#ffd6d6':'#d6ecff'});HS.scene.add(p.tagS);p.tagName=nameOf(p.id);
+      if(!keepPos){const s=spawnFor(p.id,r);p.x=s[0];p.z=s[1];p.y=HS.floorAt(p.x,p.z);p.yaw=Math.atan2(s[2]-s[0],s[3]-s[1]);p.pose=r==='seek'&&G.ph==='hide'?'cover':'stand';}}});
+  const r=myRole();if(r!==myRoleNow){myRoleNow=r;if(r==='seek'){third=false;setBrush(false);}}}
+function beginSeek(){setBrush(false);showOnly(null);HS.sfx.go();
+  if(myRole()==='seek'){HS.say('Ready or not, here I come!');toast('Find everyone! Tap a hider when you see them.',2.6);}else if(myRole()==='hide')toast('Here comes '+nameOf(G.seekers[0])+'! Shh… 🤫',2.4);
+  setButtons();updateStatus();}
+function roundOver(){setBrush(false);const r=myRole();
+  const hidersLeft=G.players.filter(i=>!G.seekers.includes(i));
+  $('overTitle').textContent=G.win==='seekers'?'The seekers found everyone! 🔍':'The hiders win! 🙈';
+  $('overBody').textContent=G.win==='seekers'?'Everybody was found this round.':'Never found: '+hidersLeft.map(nameOf).join(', ')+' (+2 ⭐ each)';
+  const iWon=(G.win==='seekers'&&r==='seek')||(G.win==='hiders'&&hidersLeft.includes(NET.id));
+  if(r!=='spec'){(iWon?HS.sfx.win:HS.sfx.lose)();HS.say(G.win==='seekers'?'Found everyone!':'Time is up!');}
+  setTimeout(()=>{if(state==='play'&&G.ph==='over'){state='over';showOnly('over');renderOverList();}},1500);
+  setButtons();}
 
 /* ---------- hider tools ---------- */
-function setButtons(){const hid=iAmHider()&&state==='play'&&G.phase!=='over';
+function setButtons(){const r=myRole(),play=state==='play'&&(G.ph==='hide'||G.ph==='seek');const hid=r==='hide'&&play;
   const b=(id,on)=>{$(id).style.display=on?'inline-block':'none';};
-  b('paintBtn',hid&&G.phase==='hide');b('poseBtn',hid&&!G.spot);b('viewBtn',hid);b('spotBtn',false);b('shooBtn',false);
-  $('cross').style.display=(!iAmHider()&&G.phase==='seek')?'':'none';
-  $('jumpBtn').style.display=HS.isTouch&&state==='play'&&G.phase!=='over'?'block':'none';$('camo').style.display='none';}
-const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 Lie down',lie:'🧍 Stand'};
-$('poseBtn').onclick=e=>{e.stopPropagation();G.pose=POSES[(POSES.indexOf(G.pose)+1)%3];$('poseBtn').textContent=POSE_LBL[G.pose];};
+  b('paintBtn',hid&&G.ph==='hide');b('poseBtn',hid);b('viewBtn',hid);
+  $('cross').style.display=(r==='seek'&&G.ph==='seek')?'':'none';
+  $('jumpBtn').style.display=HS.isTouch&&play&&r!=='spec'?'block':'none';if(!hid)$('camo').style.display='none';}
+const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 Lie down',lie:'🧍 Stand'};let myPoseSel='stand';
+$('poseBtn').onclick=e=>{e.stopPropagation();myPoseSel=POSES[(POSES.indexOf(myPoseSel)+1)%3];$('poseBtn').textContent=POSE_LBL[myPoseSel];};
 $('viewBtn').onclick=e=>{e.stopPropagation();third=!third;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';};
-let camoT=0;const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let brushing=false,prevThird=true,orbit=0,splatsSent=0,lastSplatSend=0,linesSent=0;
+let camoT=0;
+let brushing=false,prevThird=true,orbit=0,splatsSent=0,linesSent=0;
 const brushUI=HS.makeBrushUI($('pal'),{onRotate:r=>{orbit+=r;},onDone:()=>setBrush(false)});
 function buildPalette(){const sp=HS.surfacePalette(14);brushUI.build(sp.concat(HS.funColors.filter(c=>!sp.some(x=>HS.colorNear(x,c)))));}
 function setBrush(on){if(on===brushing)return;brushing=on;document.body.classList.toggle('brushing',on);$('pal').style.display=on?'block':'none';
-  if(on){prevThird=third;third=true;orbit=G.spot?meFig.rotation.y:P.yaw+Math.PI;HS.releaseJoy();}else{third=prevThird;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';}}
-$('paintBtn').onclick=e=>{e.stopPropagation();HS.ac();if(iAmHider()&&G.phase==='hide')setBrush(true);};
-const r2=v=>Math.round(v*100)/100;
+  if(on){prevThird=third;third=true;orbit=P.yaw+Math.PI;HS.releaseJoy();}else{third=prevThird;$('viewBtn').textContent=third?'👁 My eyes':'📷 See me';}}
+$('paintBtn').onclick=e=>{e.stopPropagation();HS.ac();if(myRole()==='hide'&&G.ph==='hide')setBrush(true);};
+const r2=v=>Math.round(v*100)/100,r3=v=>Math.round(v*1000)/1000;
 const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)}),
   line:(a,b,n,c)=>{if(linesSent<5000){linesSent++;send({t:'ln',a:a.map(r2),b:b.map(r2),n:n.map(r2),c});}},lineErase:p=>send({t:'lx',p:p.map(r2)}),
   bodyLine:(b,a,z,n,c,pt)=>{if(linesSent<5000){linesSent++;send({t:'bl',b,a:a.map(r3),z:z.map(r3),n:n.map(r3),c,pt});}},bodyErase:(b,lp)=>send({t:'bx',b,p:lp.toArray().map(r3)}),part:(pt)=>send({t:'bpc',pt})};
-const r3=v=>Math.round(v*1000)/1000;
-const okVec=v=>Array.isArray(v)&&v.length===3&&v.every(x=>typeof x==='number'&&isFinite(x)&&Math.abs(x)<60);
-let nearSpot=null;
-$('spotBtn').onclick=e=>{e.stopPropagation();if(!nearSpot)return;if(G.spot===nearSpot){G.spot=null;}else{G.spot=nearSpot;HS.releaseJoy();}setButtons();toast(G.spot?'Shh… you’re '+G.spot.label:'Out of the hiding spot',1.6);};
-function shooDog(){const p=HS.randomSpot();HS.dogGoTo(dog,p[0],p[1],null,4.5);dog.hold=0;dogTimer=10;}
-$('shooBtn').onclick=e=>{e.stopPropagation();if(isHost())shooDog();else send({t:'shoo'});toast('🐶 Go play over there!',1.4);};
 $('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';};
 let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
-function updateStatus(){$('status').textContent=(iAmHider()?'🙈 You hide':'🔍 You seek')+' • R'+G.round;}
+function updateStatus(){const r=myRole();$('status').textContent=(r==='hide'?'🙈 You hide':r==='seek'?'🔍 You seek':'👀 Watching')+' · 👥 '+allIds().length+' · R'+G.round;}
 
 /* ---------- input ---------- */
-const canMove=()=>!brushing&&state==='play'&&G.phase!=='over'&&(iAmHider()?!G.spot:G.phase==='seek');
-function tapAt(x,y){if(state!=='play'||G.phase!=='seek'||iAmHider()||!R.fig)return;const r=HS.pick(x,y,[R.fig.userData.hit]);if(r.obj){send({t:'tag'});roundOver('seeker');}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
+const canMove=()=>!brushing&&state==='play'&&(myRole()==='hide'?(G.ph==='hide'||G.ph==='seek'):myRole()==='seek'&&G.ph==='seek');
+function sendTag(v){const p=PL.get(v);if(!p||performance.now()-p.tagT<1000)return;p.tagT=performance.now();if(isHost())hostTag(NET.id,v);else send({t:'tag',v});}
+function tapAt(x,y){if(state!=='play'||G.ph!=='seek'||myRole()!=='seek')return;const hs=[];PL.forEach(p=>{if(p.fig&&p.role==='hide')hs.push(p.fig.userData.hit);});
+  const r=HS.pick(x,y,hs);if(r.obj){PL.forEach(p=>{if(p.fig&&p.fig.userData.hit===r.obj)sendTag(p.id);});}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
 HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>HS.brushAt(x,y,st,meFig,brushUI.color,brushCb,brushUI.mode)});
 $('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
 $('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
@@ -306,71 +372,57 @@ if(ON_SITE)document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';
 
 /* ---------- loop ---------- */
 let last=performance.now(),myPose='stand';const head=new THREE.Vector3(),tv=new THREE.Vector3();
-function myState(){const s={t:'p',x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:HS.getPaint(meFig)};if(G.spot)s.s=G.spot.i;
-  if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.bark>0?2:dog.hold>0?3:0];return s;}
+function myState(){const s={t:'p',n:myNick,x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:HS.getPaint(meFig)};
+  if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.hold>0?3:0];return s;}
 function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
+  if(NET.state==='in'&&now-NET.lastSend>110){NET.lastSend=now;send(myState());}
+  if(isHost()&&(G.ph==='hide'||G.ph==='seek')){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;if(G.left<=0){if(G.ph==='hide'){G.ph='seek';G.left=SEEK_TIME;lastSec=SEEK_TIME;pushG();}else hostOver('hiders');}else pushG();}}
+  else if(G.ph==='hide'||G.ph==='seek')G.left=Math.max(0,G.left-rdt);
   if(state!=='play'){const b=W.def.bounds,a=T*0.08;HS.camera.position.set(Math.cos(a)*(b.x1-b.x0)*0.32,W.def.env.sky?6:4.6,Math.sin(a)*(b.z1-b.z0)*0.3);HS.camera.lookAt(0,1.4,0);HS.dogUpdate(dog,dt);HS.render(dt);return;}
+  const role=myRole();
   // me
   let moving=false;
-  if(canMove()){const m=HS.moveVec(dt,iAmHider()&&G.pose!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else if(!G.spot)HS.movePlayer(0,0,dt);
-  myPose=G.spot?G.spot.pose:(moving||!P.ground)?'walk':(iAmHider()?G.pose:'stand');
-  if(!iAmHider()&&G.phase==='hide')myPose='cover';
-  if(iAmHider()){
-    if(G.spot){HS.placeFigure(meFig,G.spot);HS.pose(meFig.userData.inner,G.spot.pose,T);}
-    else{HS.setLie(meFig,myPose==='lie');meFig.position.set(P.x,P.feet,P.z);meFig.rotation.set(0,P.yaw+Math.PI,0);HS.pose(meFig.userData.inner,myPose,T);}
-    HS.tickPaint(meFig,dt);
-    if(third){meFig.visible=true;meFig.userData.inner.userData.head.getWorldPosition(head);if(brushing){const cc=HS.figPoints(meFig)[1];cc.y+=0.25;HS.orbitCamera(cc,orbit,myPose==='lie'?-0.6:-0.15,2.7);}else HS.thirdPerson(head,G.spot?2.6:3.4);}else{meFig.visible=false;HS.firstPerson(G.spot?G.spot.eye:null);}
-    // hiding spots
-    nearSpot=null;
-
-    $('spotBtn').style.display='none';
-    const c=$('camo');if(G.phase!=='over'&&R.fig&&(camoT-=dt)<=0){camoT=0.4;const k=HS.camoFrom(new THREE.Vector3(R.x,R.y+1.9,R.z),meFig);c.style.display='block';
-      c.innerHTML='👀 From '+esc(friendName())+': '+(k.matched===k.total?'😎 you blend in!':'camouflage '+k.matched+'/'+k.total+' — behind you is <span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+(k.bg||'#fff')+'"></span>');}else if(G.phase==='over')c.style.display='none';
-    $('shooBtn').style.display='none';
-  }else{meFig.visible=false;HS.firstPerson();}
-  // send my state ~12 times a second
-  if(now-NET.lastSend>80){NET.lastSend=now;send(myState());}
-  // friend
-  const m=R.last;
-  if(m&&R.fig){
-    const spot=m.s!=null&&W.spots[m.s];
-    if(spot){HS.placeFigure(R.fig,spot);HS.pose(R.fig.userData.inner,spot.pose,T);R.pose=spot.pose;R.x=spot.pos[0];R.y=spot.pos[1];R.z=spot.pos[2];}
-    else{const k=Math.min(1,dt*12);R.x+=(+m.x-R.x)*k;R.y+=(+m.y-R.y)*k;R.z+=(+m.z-R.z)*k;let dy=(+m.r+Math.PI)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k;R.pose=['walk','stand','crouch','lie','cover'].includes(m.o)?m.o:'stand';
-      HS.setLie(R.fig,R.pose==='lie');R.fig.position.set(R.x,R.y,R.z);R.fig.rotation.set(0,R.yaw,0);HS.pose(R.fig.userData.inner,R.pose,T);}
-    HS.setPaintArr(R.fig,m.c);HS.tickPaint(R.fig,dt);
-    HS.setHit(R.fig,R.pose);
-    if(!isHost()&&Array.isArray(m.d)){const d=m.d;const k=Math.min(1,dt*10);dog.x+=(+d[0]-dog.x)*k;dog.z+=(+d[1]-dog.z)*k;dog.yaw=+d[2]||0;dog.y=HS.floorAt(dog.x,dog.z,0.2);dog.fig.position.set(dog.x,dog.y,dog.z);dog.fig.rotation.y=dog.yaw;
-      const md=['idle','walk','bark','sit'][d[3]|0]||'idle';HS.animDog(dog.fig,md,T);dog.bub.visible=md==='bark';dog.bub.position.set(dog.x,dog.y+1.45,dog.z);if(md==='bark'&&!R.barked){HS.sfx.bark();R.barked=true;}if(md!=='bark')R.barked=false;}
-  }
-  if(R.fig){R.fig.visible=true;
-    // name tag over the seeker only (a tag over the hider would give them away!)
-    if(iAmHider()){tag.visible=true;HS.spriteText(tag,friendName());tag.position.set(R.x,R.y+2.4,R.z);}else tag.visible=false;}
-  // seeker finds the hider by walking right up to them
-  if(!iAmHider()&&G.phase==='seek'&&R.fig){R.fig.userData.hit.getWorldPosition(tv);const cp=HS.camera.position;if(Math.hypot(tv.x-cp.x,tv.z-cp.z)<1.6&&Math.abs(tv.y-cp.y)<1.9){send({t:'tag'});roundOver('seeker');}}
-  // host runs the clock and the dog
-  if(isHost()){
-    if(G.phase==='hide'||G.phase==='seek'){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;send({t:'ph',ph:G.phase,left:Math.max(0,s)});}
-      if(G.left<=0){if(G.phase==='hide'){send({t:'ph',ph:'seek',left:SEEK_TIME});beginSeek();lastSec=SEEK_TIME;}else roundOver('hider');}}
-    HS.dogUpdate(dog,dt,iAmHider()?P.x:R.x,iAmHider()?P.z:R.z);
-  }else if(G.phase==='hide'||G.phase==='seek'){G.left=Math.max(0,G.left-rdt);}
+  if(canMove()){const m=HS.moveVec(dt,role==='hide'&&myPoseSel!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else HS.movePlayer(0,0,dt);
+  myPose=(moving||!P.ground)?'walk':(role==='hide'?myPoseSel:'stand');
+  if(role==='seek'&&G.ph==='hide')myPose='cover';
+  if(role==='hide'){
+    HS.setLie(meFig,myPose==='lie');meFig.position.set(P.x,P.feet,P.z);meFig.rotation.set(0,P.yaw+Math.PI,0);HS.pose(meFig.userData.inner,myPose,T);HS.tickPaint(meFig,dt);
+    if(third){meFig.visible=true;meFig.userData.inner.userData.head.getWorldPosition(head);if(brushing){const cc=HS.figPoints(meFig)[1];cc.y+=0.25;HS.orbitCamera(cc,orbit,myPose==='lie'?-0.6:-0.15,2.7);}else HS.thirdPerson(head,3.4);}
+    else{meFig.visible=false;HS.firstPerson();}
+    const c=$('camo');let sk=null;PL.forEach(p=>{if(p.fig&&p.role==='seek'&&(!sk||Math.hypot(p.x-P.x,p.z-P.z)<Math.hypot(sk.x-P.x,sk.z-P.z)))sk=p;});
+    if(G.ph!=='over'&&sk&&(camoT-=dt)<=0){camoT=0.4;const k=HS.camoFrom(new THREE.Vector3(sk.x,sk.y+1.9,sk.z),meFig);c.style.display='block';
+      c.innerHTML='👀 From '+esc(nameOf(sk.id))+': '+(k.matched===k.total?'😎 you blend in!':'camouflage '+k.matched+'/'+k.total+' — behind you is <span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+(k.bg||'#fff')+'"></span>');}
+  }else if(role==='seek'){meFig.visible=false;HS.firstPerson();}
+  else{meFig.visible=false;const b=W.def.bounds,a=T*0.08;HS.camera.position.set(Math.cos(a)*(b.x1-b.x0)*0.32,W.def.env.sky?7:4.6,Math.sin(a)*(b.z1-b.z0)*0.3);HS.camera.lookAt(0,1.4,0);}
+  // everyone else
+  PL.forEach(p=>{if(!p.fig)return;const m=p.last;
+    if(m){const k=Math.min(1,dt*12);if(isFinite(+m.x)&&isFinite(+m.z)&&isFinite(+m.y)){p.x+=(+m.x-p.x)*k;p.y+=(+m.y-p.y)*k;p.z+=(+m.z-p.z)*k;}
+      let dy=((+m.r||0)+Math.PI)-p.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));p.yaw+=dy*k;p.pose=['walk','stand','crouch','lie','cover'].includes(m.o)?m.o:'stand';HS.setPaintArr(p.fig,m.c);
+      if(p.id===NET.host&&!isHost()&&Array.isArray(m.d)){const d=m.d;dog.x+=(+d[0]-dog.x)*k;dog.z+=(+d[1]-dog.z)*k;dog.yaw=+d[2]||0;dog.y=HS.floorAt(dog.x,dog.z,0.2);dog.fig.position.set(dog.x,dog.y,dog.z);dog.fig.rotation.y=dog.yaw;HS.animDog(dog.fig,['idle','walk','idle','sit'][d[3]|0]||'idle',T);dog.bub.visible=false;}}
+    HS.setLie(p.fig,p.pose==='lie');p.fig.position.set(p.x,p.y,p.z);p.fig.rotation.set(0,p.yaw,0);HS.pose(p.fig.userData.inner,p.pose,T);HS.tickPaint(p.fig,dt);HS.setHit(p.fig,p.pose);p.fig.visible=true;
+    // names over seekers for everyone; names over hiders only for other hiders
+    const showName=p.role==='seek'||role==='hide'||role==='spec'||G.ph==='over';if(p.tagS){p.tagS.visible=showName;p.tagS.position.set(p.x,p.y+2.45,p.z);if(p.tagName!==nameOf(p.id)){p.tagName=nameOf(p.id);HS.spriteText(p.tagS,p.tagName);}}
+    // a seeker finds a hider by walking right up to them
+    if(role==='seek'&&G.ph==='seek'&&p.role==='hide'){p.fig.userData.hit.getWorldPosition(tv);const cp=HS.camera.position;if(Math.hypot(tv.x-cp.x,tv.z-cp.z)<1.6&&Math.abs(tv.y-cp.y)<1.9)sendTag(p.id);}});
+  if(isHost())HS.dogUpdate(dog,dt);
   // HUD
   const s=Math.ceil(G.left);
-  if(G.phase==='hide'){$('timer').textContent=HS.fmt(G.left);if(!iAmHider()){$('coverNum').textContent=s;$('coverSub').textContent='Get ready to seek!';}}
-  else if(G.phase==='seek'){$('timer').textContent=HS.fmt(G.left);$('timer').style.color=G.left<20?'#c0392b':'';}
+  if(G.ph==='hide'){$('timer').textContent=HS.fmt(G.left);$('timer').style.color='';if(role==='seek'){$('coverNum').textContent=s;$('coverSub').textContent=(G.players.length-1)+' players are hiding… get ready!';}}
+  else if(G.ph==='seek'){$('timer').textContent=HS.fmt(G.left);$('timer').style.color=G.left<20?'#c0392b':'';const left=G.players.filter(i=>!G.seekers.includes(i)).length;$('status').textContent=(role==='hide'?'🙈 You hide':role==='seek'?'🔍 You seek':'👀 Watching')+' · 🙈 '+left+' hiding';}
   HS.render(dt);
 }
 
 /* ---------- live "players online" number (read-only, from this site's /api/online) ---------- */
-function apiBase(){let q=null;try{q=new URLSearchParams(location.search).get('server');}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'');}
 async function showOnline(){const el=document.getElementById('onlineNow');if(!el)return;
-  try{const r=await fetch(apiBase()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0)+(j.paper|0);
+  try{const r=await fetch(base()+'/api/online',{cache:'no-store'});const j=await r.json();const n=(j.players|0)+(j.solo|0)+(j.paper|0);
     el.textContent=n>0?'🟢 '+n+(n===1?' player':' players')+' online right now':'🟢 Be the first player online!';}catch(e){el.textContent='';}}
-showOnline();setInterval(()=>{if(!document.hidden&&(state==='menu'||state==='lobby'))showOnline();},15000);
+showOnline();setInterval(()=>{if(!document.hidden&&state==='menu')showOnline();},15000);
 requestAnimationFrame(frame);
 })();
 </script>
+
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));

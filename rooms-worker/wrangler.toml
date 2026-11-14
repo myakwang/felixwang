@@ -11,6 +11,14 @@ class_name = "Room"
 name = "STATS"
 class_name = "Stats"
 
+[[durable_objects.bindings]]
+name = "SERVERS"
+class_name = "Server"
+
+[[durable_objects.bindings]]
+name = "LISTING"
+class_name = "Listing"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
@@ -27,3 +35,8 @@ new_sqlite_classes = ["Matchmaker"]
 [[migrations]]
 tag = "v4"
 deleted_classes = ["Matchmaker"]
+
+# Hide & Seek Online servers (up to 6 players) and the public server list.
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["Server", "Listing"]

@@ -26,4 +26,20 @@ const beat = bye => fetch(process.argv[2] + '/api/playing', { method: 'POST', he
 const s0 = await soloNow(); await beat(0); await wait(500); const s1 = await soloNow(); await beat(1); await wait(500); const s2 = await soloNow();
 console.log('single-player count: before', s0, 'signal', s1, 'after bye', s2);
 const ok5 = s1 === s0 + 1 && s2 === s0;
+// Hide & Seek Online servers: make a public one, see it in the list, join, pass a message, kick, empty.
+const scode = 'T' + 'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random() * 23)] + 'ZS';
+const sopen = q => new Promise((res, rej) => { const ws = new WebSocket(`${base}/api/server/${scode}${q}`); const got = []; ws.onmessage = e => got.push(JSON.parse(e.data)); ws.onopen = () => res({ ws, got }); ws.onerror = e => rej(new Error('ws error ' + (e.message || ''))); });
+const list = async () => (await (await fetch(process.argv[2] + '/api/servers', { cache: 'no-store' })).json());
+const h1 = await sopen('?make=1&pub=1'); await wait(800);
+h1.ws.send(JSON.stringify({ t: 'list', m: 'castle', h: [1, 2], ph: 'lobby' })); await wait(1000);
+const listed = (await list()).find(x => x.c === scode); console.log('listed:', JSON.stringify(listed));
+const h2 = await sopen(''); await wait(1000);
+h1.ws.send(JSON.stringify({ t: 'g', x: 1 })); await wait(800);
+h1.ws.send(JSON.stringify({ t: 'kick', id: 2 })); await wait(1200);
+console.log('H1 got', JSON.stringify(h1.got)); console.log('H2 got', JSON.stringify(h2.got));
+const okS = listed && listed.n === 1 && listed.m === 'castle' && h1.got.some(m => m.t === 'hello' && m.id === 1 && m.pub) && h2.got.some(m => m.t === 'hello' && m.id === 2) &&
+  h2.got.some(m => m.t === 'g' && m.f === 1) && h2.got.some(m => m.t === 'kicked') && h1.got.some(m => m.t === 'leave' && m.id === 2);
+h1.ws.close(); await wait(1500);
+const gone = !(await list()).some(x => x.c === scode); console.log('removed from list after empty:', gone);
+if (!okS || !gone) { console.log('SERVER TEST FAILED'); process.exit(1); }
 if (!ok || !ok2 || !ok3 || !ok5 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');
