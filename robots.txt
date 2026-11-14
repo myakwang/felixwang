@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /counter/
+Sitemap: https://felixwang.pages.dev/sitemap.xml
