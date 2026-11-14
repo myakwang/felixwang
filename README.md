@@ -17,6 +17,7 @@ _headers              Cloudflare headers: service workers are never cached
 star-army/            Star Army vs. The Bugs
 paper-adventure/      Felix's Paper Adventure: 30-level platformer from Felix's paper drawings (boss every 5 levels)
 star-army-online/     Star Army Online: two players on two devices (uses the room relay)
+escape-room/          Felix's Escape Rooms: 3D escape room, 30 levels (bundles three.min.js + font locally, no server)
 hide-and-seek/        Felix's Hide & Seek: 3D hide-and-seek (house from Felix's drawings, backyard, castle); bundles three.min.js + font locally
 hide-and-seek-online/ Hide & Seek Online: two players on two devices, one hides and one seeks (uses the room relay)
 paper-adventure-online/ Paper Adventure Together: two-player co-op platformer on two devices (uses the room relay)

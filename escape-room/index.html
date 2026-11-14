@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#10181c">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Escape Rooms">
+<title>Felix's Escape Rooms</title>
+<style>
+@font-face{font-family:"Patrick Hand";src:url("patrick-hand.woff2") format("woff2");font-display:swap}
+:root{
+  /* layout: one phone-width column. status bar, 3D room, pockets, caption. clues and locks open in a bottom sheet. */
+  --ink:#10181c;
+  --panel:#1b272d;
+  --line:#32444c;
+  --text:#e8e2d2;
+  --dim:#9aa9ab;
+  --brass:#e0a73a;
+  --paper:#f1e6c8;
+  --paperink:#2b241a;
+  --good:#58c98a;
+  --bad:#e5604d;
+  --display:"Patrick Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --note:"Patrick Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.45;display:flex;justify-content:center}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+#app{width:100%;max-width:560px;padding:12px 16px 20px;display:flex;flex-direction:column;gap:10px}
+.bar{display:flex;align-items:center;gap:8px}
+.bar h1{font-family:var(--display);font-weight:400;font-size:25px;letter-spacing:.04em;margin:0;flex:1;line-height:1.05}
+.bar h1 small{display:block;font-family:var(--body);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass)}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px;min-height:40px}
+#time{font-variant-numeric:tabular-nums;color:var(--dim);font-size:14px}
+#stage{position:relative;width:100%;aspect-ratio:1/1.08;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#000}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.turn{position:absolute;bottom:10px;width:46px;height:46px;border-radius:50%;background:rgba(16,24,28,.7);border:1px solid var(--line);font-size:18px}
+#tl{left:10px}#tr{right:10px}
+#toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(16,24,28,.88);border:1px solid var(--brass);
+  border-radius:8px;padding:8px 14px;font-size:15px;max-width:88%;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+#inv{display:flex;gap:8px;align-items:center;min-height:44px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px;color:var(--dim)}
+#inv b{font-size:24px;font-weight:400}
+#cap{margin:0;color:var(--dim);font-size:15px;min-height:3em}
+#veil{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:10}
+#veil.on{display:flex}
+#sheet{width:100%;max-width:560px;max-height:88%;overflow:auto;background:var(--panel);border-top:3px solid var(--brass);border-radius:14px 14px 0 0;padding:16px 16px 24px;display:flex;flex-direction:column;gap:12px}
+#sheet header{display:flex;align-items:center;gap:8px}
+#sheet h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.04em;margin:0;flex:1;text-wrap:balance}
+#body{display:flex;flex-direction:column;gap:12px}
+#body p{margin:0}
+.paper{background:var(--paper);color:var(--paperink);font-family:var(--note);padding:14px;border-radius:3px;font-size:17px;box-shadow:0 3px 0 rgba(0,0,0,.3);transform:rotate(-.6deg);text-align:center}
+.paper.big{font-size:25px;letter-spacing:.1em}
+.mirror{background:linear-gradient(135deg,#b9d3dc,#e9f4f6 40%,#9fbac4);color:#1c2d33;font-family:var(--display);font-size:30px;letter-spacing:.1em;padding:22px 8px;text-align:center;border:6px solid #7b5a2c;border-radius:6px}
+.mirror .m{display:inline-block;transform:scaleX(-1)}
+.flip{transform:rotate(180deg)}
+.canvas{background:#59605f;border:8px solid #7b5a2c;padding:18px 8px;text-align:center;border-radius:4px;color:#2f3433;font-size:15px}
+.canvas .uv{font-size:34px;letter-spacing:.2em;color:#c9a6ff;text-shadow:0 0 12px #a6f;display:block;margin-top:8px}
+.books{display:flex;gap:4px;justify-content:center;align-items:flex-end;background:#3a2a18;padding:12px 8px 0;border-bottom:8px solid #24190d;border-radius:4px}
+.books span{width:34px;height:110px;border-radius:3px 3px 0 0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:22px;color:rgba(0,0,0,.75);box-shadow:inset -4px 0 0 rgba(0,0,0,.2)}
+.books span:nth-child(odd){height:96px}
+.c-red{background:#d9463b}.c-blue{background:#3f7fd8}.c-yellow{background:#ecc63a}.c-green{background:#3fae62}.c-orange{background:#ea8a2e}.c-purple{background:#8c5fd0}
+.rainbow{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;border:6px solid var(--paper)}
+.rainbow i{height:22px;display:block}
+table.clues{border-collapse:collapse;width:100%;font-size:15px}
+table.clues td{padding:8px 6px;border-bottom:1px solid var(--line)}
+table.clues td:first-child{font-family:var(--display);font-size:24px;letter-spacing:.25em;color:var(--brass);white-space:nowrap}
+.grid{display:grid;gap:4px;justify-content:center}
+.grid span{width:44px;height:44px;background:#4c5356;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:24px;border-radius:4px}
+.grid span.q{color:var(--brass);background:#2a3236}
+.grid span.h{background:none;color:var(--dim);font-size:16px}
+.pyr{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pyr div{display:flex;gap:4px}
+.pyr span{width:52px;height:40px;background:#b89a5a;color:#2b241a;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:24px;border-radius:3px}
+.disp{font-family:var(--display);font-size:34px;letter-spacing:.35em;text-align:center;background:#0a0f11;border:1px solid var(--line);border-radius:6px;padding:8px 0 8px .35em;min-height:62px;color:var(--good)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.keys button,.btn{background:#26363d;border:1px solid var(--line);border-bottom-width:3px;border-radius:8px;min-height:50px;font-size:20px}
+.btn{padding:0 16px;font-size:17px}
+.btn.go{background:var(--brass);border-color:#a87a1f;color:#1d1503;font-weight:700}
+.seq{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.seq.six{grid-template-columns:repeat(3,1fr)}
+.seq button{min-height:60px;border-radius:8px;border:0;border-bottom:4px solid rgba(0,0,0,.35);font-size:26px;color:#111}
+.seq button.arrow{background:#26363d;color:var(--text)}
+.dots{display:flex;gap:6px;justify-content:center;min-height:14px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dots i.f{background:var(--brass)}
+.lights{display:grid;grid-template-columns:repeat(3,72px);gap:8px;justify-content:center}
+.lights button{height:72px;border-radius:50%;border:3px solid #0a0f11;background:#2a3236}
+.lights button.on{background:radial-gradient(#fff7c2,#f2c230);box-shadow:0 0 18px #f2c23099}
+.sw{display:flex;gap:8px;justify-content:center}
+.sw button{width:44px;height:84px;border-radius:8px;border:1px solid var(--line);background:#0a0f11;position:relative}
+.sw button::after{content:"";position:absolute;left:6px;right:6px;height:34px;bottom:6px;border-radius:5px;background:#55656c}
+.sw button.on::after{bottom:auto;top:6px;background:var(--brass)}
+input.word{width:100%;font:inherit;font-family:var(--display);font-size:28px;letter-spacing:.2em;text-transform:uppercase;text-align:center;background:#0a0f11;color:var(--good);border:1px solid var(--line);border-radius:6px;padding:10px}
+.msg{min-height:1.4em;color:var(--bad);text-align:center;font-size:15px}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}#toast{transition:none}}
+.rooms{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.rooms .btn{padding:0;font-size:16px;min-height:44px}
+.rooms button[disabled]{opacity:.35;cursor:default}
+.stat{font-family:var(--display);font-size:22px;color:var(--brass)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar">
+    <h1><small id="rnum">Room 1 of 30</small><span id="rname">Broom Closet</span></h1>
+    <span id="time">0:00</span>
+    <button class="chip" id="bhint">Hint</button>
+    <button class="chip" id="brooms">Rooms</button>
+    <button class="chip" id="bhome" style="display:none" aria-label="All games">🏠</button>
+  </div>
+  <div id="stage"><canvas id="cv" aria-label="3D room. Drag to look around, tap things to search them."></canvas>
+    <button class="turn" id="tl" aria-label="Turn left">◀</button><button class="turn" id="tr" aria-label="Turn right">▶</button>
+    <div id="toast" role="status"></div></div>
+  <div id="inv">Pockets: <span id="items">empty</span></div>
+  <p id="cap"></p>
+</div>
+<div id="veil"><div id="sheet" role="dialog" aria-modal="true">
+  <header><h2 id="stitle"></h2><button class="chip" id="sclose">Close</button></header>
+  <div id="body"></div>
+</div></div>
+
+<script src="three.min.js"></script>
+<script id="data">
+/* ---------- clues ---------- */
+const note=(t,big)=>`<div class="paper${big?' big':''}">${t}</div>`;
+function clockSvg(h,m,nums){ let t=''; for(let i=0;i<12;i++){const a=i*Math.PI/6; t+=`<line x1="${50+38*Math.sin(a)}" y1="${50-38*Math.cos(a)}" x2="${50+43*Math.sin(a)}" y2="${50-43*Math.cos(a)}" stroke="#2b241a" stroke-width="${i%3?1:2.5}"/>`;}
+  const P=(a,r)=>`x2="${50+r*Math.sin(a*Math.PI/180)}" y2="${50-r*Math.cos(a*Math.PI/180)}"`;
+  const n=nums?'<text x="50" y="20" text-anchor="middle" font-size="9">12</text><text x="83" y="53" text-anchor="middle" font-size="9">3</text><text x="50" y="87" text-anchor="middle" font-size="9">6</text><text x="17" y="53" text-anchor="middle" font-size="9">9</text>':'';
+  return `<svg viewBox="0 0 100 100" style="width:200px;align-self:center;display:block;margin:auto" role="img" aria-label="A clock face"><circle cx="50" cy="50" r="46" fill="#f1e6c8" stroke="#7b5a2c" stroke-width="4"/>${t}${n}<line x1="50" y1="50" ${P(h,22)} stroke="#2b241a" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="50" ${P(m,34)} stroke="#2b241a" stroke-width="2.4" stroke-linecap="round"/><circle cx="50" cy="50" r="3" fill="#2b241a"/></svg>`; }
+const bk=a=>'<div class="books">'+a.map(b=>`<span class="c-${b[0]}">${b[1]||''}</span>`).join('')+'</div>';
+const cbT=r=>'<table class="clues">'+r.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join('')+'</table>';
+const CL={
+ sky:note('🌙 ⭐ 🌙 ☀️ 🌙<br>⭐ 🌙 ☀️ ⭐ 🌙',1)+'<p>A hand-painted sky. Somebody counted very carefully.</p>',
+ clock720:clockSvg(220,120,1)+'<p>The hands are frozen.</p>',
+ n45:note('I always lock up 45 minutes after the clocks stop.'),
+ books5:bk([['blue'],['red'],['yellow'],['green'],['blue']])+'<p>Five books, neatly lined up. Every other shelf is a mess.</p>',
+ ltr:'<p>A card was under the vase.</p>'+note('Read left to right, like always.'),
+ mirror:'<div class="mirror"><span class="m">SIX NINE TWO FIVE</span></div><p>Someone wrote on the glass with a finger. From the other side.</p>',
+ count3:note('Count the stock every night:<br><br>BARRELS · VASES · CRATES'),
+ plaque9:note('ALL NINE LAMPS LIT = SAFE OPENS'),
+ dice:note('⚂ ⚅ ⚀',1)+'<p>Three dice were left on a table. The lock wants the numbers facing the table.</p>',
+ dice7:'<p>A note was under the vase.</p>'+note('Opposite sides of a dice always add up to 7.'),
+ books6:bk([['green',20],['purple',15],['red',5],['yellow',9],['blue',3],['orange',24]])+'<p>Six books with numbers on their spines.</p>',
+ rainbow:'<div class="rainbow"><i class="c-red"></i><i class="c-orange"></i><i class="c-yellow"></i><i class="c-green"></i></div><p>Half a rainbow. The bottom was torn off.</p>',
+ a1z26:'<p>A scroll was inside the vase.</p>'+note('A is 1.<br>B is 2.<br>Z is 26.<br><br>Read the rainbow.'),
+ compass:note('N<br>W ✛ E<br>S',1)+'<p>An old compass. North is at the top.</p>',
+ route:note('Captain’s route:<br><br>N, W, W, S, E, N',0),
+ mix:note('🔴 + 🟡<br>🟡 + 🔵<br>🔵 + 🔴<br>🟡 + 🔴',1)+'<p>Mix each pair of paints. Press what you get.</p>',
+ cb042:cbT([['682','One digit is right and in the right place.'],['614','One digit is right but in the wrong place.'],['206','Two digits are right but both in the wrong place.'],['738','Nothing is right.'],['780','One digit is right but in the wrong place.']]),
+ cb573:cbT([['519','One digit is right and in the right place.'],['725','Two digits are right but both in the wrong place.'],['194','Nothing is right.'],['382','One digit is right but in the wrong place.'],['678','One digit is right and in the right place.']]),
+ phone:'<div class="grid" style="grid-template-columns:repeat(3,64px)">'+['1','2 ABC','3 DEF','4 GHI','5 JKL','6 MNO','7 PQRS','8 TUV','9 WXYZ'].map(k=>`<span style="width:64px;font-size:16px">${k}</span>`).join('')+'</div><p>The buttons of a very old phone.</p>',
+ truth:note('Only ONE label tells the truth.<br><br>Open the wrong chest and the floor opens instead.'),
+ updown:'<div class="canvas flip"><div>THIS WAY UP ▲</div><span class="uv">↑ → ↓ ↓ ← ↑</span></div><p>In the torchlight, marks glow on the canvas. It was hung carelessly.</p>',
+ fib:note('1, 1, 2, 3, 5, 8, ?, ?',1)+'<p>On the back: "the safe wants the two that are missing".</p>',
+ zoo:note('🐱 + 🐶 = 10 kg<br>🐶 + 🐦 = 7 kg<br>🐱 + 🐦 = 9 kg',1)+'<p>The zookeeper weighed them two at a time.</p>',
+ roman:note('MMXXVI − XLII',1)+'<p>Carved over the bath.</p>',
+ romankey:'<p>A tile was under the vase.</p>'+note('I=1 &nbsp;V=5 &nbsp;X=10 &nbsp;L=50<br>C=100 &nbsp;D=500 &nbsp;M=1000<br><br>A small one in front of a big one is taken away.'),
+ mclock:'<div class="mirror" style="padding:10px"><div class="m" style="display:block">'+clockSvg(250,120,0)+'</div></div><p>A clock, seen in the mirror.</p>',
+ mnote:note('The clock hangs on the wall behind you. You can only see it in the mirror.<br><br>What time is it really?'),
+ pyr:'<div class="pyr">'+[['31'],['?','?'],['?','?','?'],['4','?','3','6']].map(r=>'<div>'+r.map(x=>`<span>${x}</span>`).join('')+'</div>').join('')+'</div><p>Each brick is the two bricks under it added together. The safe wants the second row from the bottom.</p>',
+ morse:note('— — —<br>· — — ·<br>·<br>— ·',1)+'<p>The radio keeps repeating four signals.</p>',
+ morsekey:note('A · —<br>E ·<br>N — ·<br>O — — —<br>P · — — ·<br>S · · ·<br>T —'),
+ seq2:note('2, 6, 12, 20, 30, ?<br><br>1, 4, 9, 16, ?')+'<p>The safe wants both answers side by side.</p>',
+ grid:(()=>{const R=['KMTRA','POLEW','NSHCU','FDIGY','BJVQX'];let h='<div class="grid" style="grid-template-columns:repeat(6,44px)"><span class="h"></span>'+'ABCDE'.split('').map(c=>`<span class="h">${c}</span>`).join('');R.forEach((r,i)=>{h+=`<span class="h">${i+1}</span>`+r.split('').map(c=>`<span>${c}</span>`).join('');});return h+'</div><p>A map with letters where the towns should be.</p>';})(),
+ day:note('The day after tomorrow is Sunday.<br><br>What day was yesterday?'),
+ magic:'<div class="grid" style="grid-template-columns:repeat(3,44px)">'+[8,'?',6,'?',5,'?',4,'?',2].map(n=>`<span class="${n==='?'?'q':''}">${n}</span>`).join('')+'</div><p>Every row, column and diagonal adds up the same. The safe wants what is missing, read like a book.</p>',
+ caesar3:note('Caesar was here.<br>He pushed every letter 3 forward.'),
+ caesar1:note('D R B Z O D',1)+'<p>Underneath: "Every letter is hiding one step behind itself. B is hiding as A."</p>',
+ count4:note('Count BOTH rooms:<br><br>PAINTINGS · BARRELS · VASES · CRATES')
+};
+const G3=['gem1','gem2','gem3'];
+const pad=(len,code,q)=>({t:'pad',len,code,q});
+const LIGHTQ='Nine lamps. Each button flips itself and the lamps touching its sides. Light all nine.';
+/* level: n name, th [wall pattern, wall colour, floor pattern, floor colour], i intro, main/secret [kind, slot, options] */
+const LV=[
+{n:'Broom Closet',th:['plank','#7a6248','plank','#4a382a'],i:'Drag to look around. Tap things to move them. Find the key, then tap the door.',
+ main:[['rug','m1',{has:'key'}],['crate','e2'],['barrel','w2'],['vase','s2'],['lamp','nR']],
+ hints:['Look down at the floor.','The key is under the round rug.']},
+{n:'Nursery',th:['stripe','#c98aa4','tile','#b8a585'],i:'More places to hide a key in here.',
+ main:[['vase','e1'],['vase','s3'],['plant','w1',{has:'key'}],['crate','nR'],['rug','m2'],['lamp','e3'],['painting','w3']],
+ hints:['Try everything. Something green is hiding it.','Move the plant on the left wall.']},
+{n:'Attic',th:['plank','#8a7458','plank','#5c4630'],i:'Dusty. The key is not on the floor this time.',
+ main:[['painting','e2',{has:'key'}],['painting','w2'],['crate','s1'],['crate','s3'],['barrel','nL'],['rug','m3'],['chest','w3',{flavor:'Just moths.'}]],
+ hints:['Things on the walls can move too.','Slide the painting on the right wall.']},
+{n:'Pantry',th:['tile','#c8c2a8','tile','#8d8a7a'],i:'You can see a chest, but it is nailed shut.',
+ main:[['chest','s2',{needs:['hammer'],has:'key'}],['barrel','e1',{has:'hammer'}],['barrel','e3'],['vase','w2'],['rug','m4'],['shelf','w3'],['crate','nL']],
+ hints:['The chest behind you needs a tool.','A hammer is behind a barrel on the right wall. Then tap the chest.']},
+{n:'Library',th:['stripe','#6d3b34','plank','#4f3622'],i:'There is no key anywhere in this room. Really.',
+ main:[['shelf','e2',{secret:1}],['shelf','w2'],['plant','nL'],['rug','m1'],['lamp','s1'],['vase','s3']],
+ secret:[['chest','n0',{has:'key'}],['barrel','e2']],
+ hints:['One bookshelf is not what it seems.','Tap the bookshelf on the right wall, go through the doorway and open the chest.']},
+{n:'Gem Shrine',th:['stone','#5f7a72','tile','#4a5d58'],i:'A stone altar with three empty sockets stands in the room.',
+ main:[['altar','m4',{needs:G3,has:'key'}],['rug','m3',{has:'gem1'}],['vase','e1',{has:'gem2'}],['painting','w2',{has:'gem3'}],['crate','s1'],['plant','nR'],['statue','s3']],
+ hints:['The altar wants three gems: red, blue and green. They are hidden around the room.','Under the rug, under a vase on the right wall, behind the painting on the left wall.']},
+{n:'Toy Room',th:['star','#3d4f8a','plank','#7a5b3c'],i:'The key is locked in a safe. Time for a code.',
+ main:[['safe','s2',{lock:pad(3,'235','A sticker on the safe: ☀️ ⭐ 🌙'),has:'key'}],['painting','w2',{clue:'sky'}],['vase','e1'],['crate','e3'],['rug','m1'],['plant','nL'],['lamp','w3']],
+ hints:['The safe is behind you. Its sticker shows three pictures in an order.','Count each picture on the sky painting on the left wall.','2 suns, 3 stars, 5 moons: 235.']},
+{n:'Hidden Shrine',th:['brick','#7d4a3a','stone','#51413a'],i:'Three gems again. But where is the altar?',
+ main:[['mirror','w2',{secret:1}],['rug','m2',{has:'gem1'}],['barrel','e1'],['barrel','e3',{has:'gem2'}],['crate','s1',{has:'gem3'}],['crate','s3'],['vase','nL'],['painting','e2'],['plant','nR']],
+ secret:[['altar','n0',{needs:G3,has:'key'}],['vase','e2'],['statue','w2']],
+ hints:['Three gems are hidden under things. The altar is in another room.','The tall mirror on the left wall is a secret door.','Gems: under the rug, behind a barrel, behind a crate.']},
+{n:'Clock Shop',th:['stripe','#3f6b5a','plank','#5a4630'],i:'Every clock in the shop stopped at the same moment.',
+ main:[['clock','e2',{clue:'clock720'}],['note','w2',{clue:'n45'}],['safe','s2',{lock:pad(4,'0805','Four digits. Hours first.'),has:'key'}],['clock','w3',{flavor:'This one has no hands at all.'}],['crate','nL'],['vase','e3'],['rug','m3']],
+ hints:['Read the time on the clock on the right wall.','It says 7:20. The note says to add 45 minutes.','8:05. With four digits that is 0805.']},
+{n:'Colour Library',th:['stripe','#7a5a2c','plank','#4a3420'],i:'This chest has coloured buttons instead of numbers.',
+ main:[['shelf','e2',{clue:'books5'}],['chest','s2',{lock:{t:'seq',kind:'col',opts:['red','yellow','green','blue'],ans:['blue','red','yellow','green','blue'],q:'Five lamps above four coloured buttons.'},has:'key'}],['vase','w1',{clue:'ltr'}],['shelf','w2'],['plant','nR'],['rug','m4'],['lamp','e3']],
+ hints:['One bookshelf has a tidy row of five books.','Press the buttons in the order of the books, left to right.','Blue, red, yellow, green, blue.']},
+{n:'Hall of Mirrors',th:['tile','#5b4a8a','tile','#3a3358'],i:'Gems, a safe and far too many mirrors.',
+ main:[['mirror','e2',{clue:'mirror'}],['mirror','w2',{secret:1}],['mirror','s2'],['safe','nL',{lock:pad(4,'6925','Four digits.'),has:'gem1'}],['rug','m3',{has:'gem2'}],['altar','m4',{needs:G3,has:'key'}],['vase','e3'],['plant','s1']],
+ secret:[['chest','n0',{has:'gem3'}],['mirror','e2',{flavor:'You look tired.'}]],
+ hints:['One gem is in the safe. The foggy mirror on the right wall has the code.','The writing is flipped. It says SIX NINE TWO FIVE.','The mirror on the left wall is a door. The last gem is under the rug.']},
+{n:'Storeroom',th:['brick','#6a6f58','stone','#4a4c40'],i:'The code is in this room. You are looking right at it.',
+ main:[['barrel','e1'],['barrel','w3'],['vase','nL'],['vase','s1'],['vase','w1'],['vase','m2'],['crate','e3'],['crate','s3'],['crate','nR'],['safe','s2',{lock:pad(3,'243','Three digits.'),has:'key'}],['note','w2',{clue:'count3'}]],
+ hints:['The note on the left wall lists three kinds of things.','Turn all the way around and count the barrels, the vases and the crates.','2 barrels, 4 vases, 3 crates: 243.']},
+{n:'Generator Room',th:['brick','#8a7a3a','tile','#4d4a3a'],i:'The safe here has lamps instead of a keypad.',
+ main:[['safe','e2',{lock:{t:'lights',q:LIGHTQ},has:'key'}],['barrel','w1'],['barrel','w3'],['crate','s2'],['lamp','nL'],['note','w2',{clue:'plaque9'}]],
+ hints:['Pressing a lamp flips it and its up, down, left and right neighbours. Reset if you get lost.','Four presses are enough. Try corners and the middle.','From a reset: top-left, top-right, middle, bottom-right.']},
+{n:'Dice Den',th:['stripe','#2f6b46','plank','#4a3420'],i:'Somebody left a game half finished.',
+ main:[['note','e2',{clue:'dice'}],['vase','w3',{clue:'dice7'}],['chest','s2',{lock:pad(3,'416','Three digits.'),has:'key'}],['crate','nL'],['rug','m1'],['plant','e3'],['painting','w1']],
+ hints:['There are two notes. One is under a vase.','The dice show 3, 6 and 1 on top. The side facing the table is 7 minus the top.','4, 1, 6.']},
+{n:'The Study',th:['stripe','#5a3a2a','plank','#3d2a1c'],i:'A word lock this time. Four letters.',
+ main:[['shelf','e2',{clue:'books6'}],['painting','w2',{clue:'rainbow'}],['vase','nR',{clue:'a1z26'}],['chest','s2',{lock:{t:'word',word:'EXIT',q:'Four letter wheels.'},has:'key'}],['rug','m2'],['lamp','w3'],['plant','e1']],
+ hints:['Each book number stands for a letter: 1 is A, 2 is B.','Only four colours are on the torn poster. Use those books in rainbow order from the top.','Red 5, orange 24, yellow 9, green 20: E X I T.']},
+{n:'Pirate Cabin',th:['plank','#6a4a2a','plank','#3f2c1a'],i:'The captain locked his chest with arrows.',
+ main:[['chest','m1',{lock:{t:'seq',kind:'arr',ans:['U','L','L','D','R','U'],q:'Six lamps, four arrow buttons.'},has:'key'}],['painting','e2',{clue:'compass'}],['shelf','w2',{secret:1}],['barrel','e1'],['barrel','s1'],['barrel','s3'],['crate','nL'],['rug','m2']],
+ secret:[['note','n0',{clue:'route'}],['crate','w2'],['vase','e2']],
+ hints:['The compass on the right wall tells you which arrow is north.','The captain’s route is in a secret room behind the bookshelf.','Up, left, left, down, right, up.']},
+{n:'Paint Studio',th:['plain','#cfc8b8','plank','#a58a66'],i:'Six pots of paint and a messy note.',
+ main:[['note','e2',{clue:'mix'}],['painting','w2'],['chest','s2',{lock:{t:'seq',kind:'col',opts:['red','yellow','blue','orange','green','purple'],ans:['orange','green','purple','orange'],q:'Four lamps, six paint buttons.'},has:'key'}],['vase','e1'],['vase','e3'],['painting','w1'],['painting','w3'],['rug','m4'],['crate','nR']],
+ hints:['The note shows pairs of paint. What colour does each pair make?','Red and yellow make orange. Yellow and blue make green. Blue and red make purple.','Orange, green, purple, orange.']},
+{n:'Detective’s Office',th:['stripe','#35505e','plank','#3a3026'],i:'The detective left his notes. He never found the safe, let alone the code.',
+ main:[['note','e2',{clue:'cb042'}],['painting','w2'],['statue','s2',{secret:1}],['crate','nL'],['plant','e3'],['rug','m1'],['lamp','w1']],
+ secret:[['safe','n0',{lock:pad(3,'042','Three digits.'),has:'key'}],['barrel','e2']],
+ hints:['The safe is hidden behind the statue behind you. For the code, start with 738: cross out 7, 3 and 8.','From 682 and 614 the 6 cannot be right, so 2 is last. Then 4 must be in the middle.','0 is right but not second or third: 042.']},
+{n:'Phone Exchange',th:['tile','#2f5f7a','tile','#33424a'],i:'Three gems, three different kinds of hiding place.',
+ main:[['note','e2',{clue:'phone'}],['safe','s2',{lock:pad(3,'539','A label says: DIAL K-E-Y'),has:'gem1'}],['crate','w2',{needs:['hammer'],has:'gem2'}],['rug','m2',{has:'hammer'}],['plant','nL',{has:'gem3'}],['altar','m1',{needs:G3,has:'key'}],['vase','e1'],['barrel','w3'],['lamp','s1']],
+ hints:['One gem is in the safe, one is in a nailed crate, one is just hidden.','On the phone chart, K is on button 5, E is on 3, Y is on 9: 539.','The hammer is under the rug. The third gem is behind the plant by the door.']},
+{n:'Castle Treasury',th:['stone','#6b6b78','stone','#45454f'],i:'Three chests. One key. Two trapdoors.',
+ main:[['chest','w2',{col:'#a8322c',ask:'A label on the red chest: "The key is in this chest."',trap:1}],['chest','s2',{col:'#2f5fae',ask:'A label on the blue chest: "The key is not in this chest."',has:'key'}],['chest','e2',{col:'#2f8a4c',ask:'A label on the green chest: "The key is not in the red chest."',trap:1}],['note','nL',{clue:'truth'}],['statue','s1'],['statue','s3'],['rug','m1']],
+ hints:['Pretend the key is in each chest in turn. Count how many labels come true.','In the red chest: two labels are true. In the green chest: two are true. Only one is allowed.','The blue chest, behind you.']},
+{n:'Dark Cellar',th:['brick','#3a3550','stone','#25222e'],i:'Almost no light down here. This one takes several steps.',
+ main:[['painting','e2',{needs:['torch'],clue:'updown'}],['safe','w2',{lock:pad(4,'1321','Four digits.'),has:'torch'}],['note','w3',{clue:'fib'}],['chest','s2',{lock:{t:'seq',kind:'arr',ans:['U','R','D','D','L','U'],q:'Six lamps, four arrow buttons.'},has:'key'}],['barrel','e1'],['crate','nL'],['rug','m3']],
+ hints:['Each number on the scrap is the two before it added together.','The safe code is 1321. Take the torch to the painting on the right wall.','The painting is upside down, so turn it in your head: up, right, down, down, left, up.']},
+{n:'Zoo Office',th:['stripe','#7d7d35','plank','#4a4026'],i:'The zookeeper only had a scale big enough for two animals.',
+ main:[['note','e2',{clue:'zoo'}],['safe','w2',{lock:pad(3,'643','A label: CAT · DOG · BIRD'),has:'hammer'}],['shelf','s2',{secret:1}],['plant','nL'],['plant','nR'],['rug','m1'],['vase','e3']],
+ secret:[['crate','n0',{needs:['hammer'],has:'key'}],['barrel','w2'],['vase','e2']],
+ hints:['Add all three lines: two cats, two dogs and two birds weigh 26. So one of each weighs 13.','Bird is 13 − 10 = 3. Cat is 6. Dog is 4. Code 643 gives you a hammer.','The bookshelf behind you hides a room with a nailed crate.']},
+{n:'Roman Bath',th:['tile','#7fa3a8','tile','#a8a28c'],i:'The Romans did not use the numbers you know.',
+ main:[['note','e2',{clue:'roman'}],['vase','w1',{clue:'romankey'}],['safe','nL',{lock:pad(4,'1984','Four digits.'),has:'gem1'}],['statue','w2',{secret:1}],['vase','e1',{has:'gem2'}],['vase','e3'],['vase','s1'],['rug','m2',{has:'gem3'}],['statue','s3']],
+ secret:[['altar','n0',{needs:G3,has:'key'}]],
+ hints:['A tile under a vase on the left explains the letters. MMXXVI is 2026. XLII is 42.','2026 − 42 = 1984. The other gems are under a vase on the right wall and under the rug.','The statue on the left wall hides the altar room.']},
+{n:'Barber Shop',th:['stripe','#a84a4a','tile','#c9c2b8'],i:'What time is it? Careful.',
+ main:[['mirror','e2',{clue:'mclock'}],['note','w2',{clue:'mnote'}],['safe','s2',{lock:pad(4,'0820','Four digits. Hours first.'),has:'key'}],['vase','nL'],['plant','w3'],['rug','m1'],['lamp','e1']],
+ hints:['A mirror swaps left and right. The clock looks like twenty to four, but it is not.','Flip it back: the long hand really points at 4 (twenty past) and the short hand sits just past 8.','0820.']},
+{n:'Pyramid Tomb',th:['stone','#b89a5a','stone','#8a7040'],i:'A wall of bricks, most of them blank.',
+ main:[['note','e2',{clue:'pyr'}],['safe','w2',{lock:pad(3,'879','Three digits.'),has:'gem1'}],['statue','s2',{secret:1}],['vase','nL',{has:'gem2'}],['vase','nR'],['crate','e1',{needs:['hammer'],has:'gem3'}],['barrel','w3',{has:'hammer'}],['rug','m3'],['statue','e3']],
+ secret:[['altar','n0',{needs:G3,has:'key'}],['vase','e2'],['vase','w2']],
+ hints:['Try numbers for the missing bottom brick until the top comes out as 31.','It is 4. The bottom row is 4, 4, 3, 6, so the row above is 8, 7, 9.','Other gems: a vase by the door, and a nailed crate (the hammer is behind a barrel). The statue behind you is a door.']},
+{n:'Radio Station',th:['brick','#3a5a4a','tile','#2c3a34'],i:'The radio is still sending something.',
+ main:[['note','e2',{clue:'morse'}],['painting','w2',{clue:'morsekey'}],['chest','s2',{lock:{t:'word',word:'OPEN',q:'Four letter wheels.'},has:'torch'}],['note','w3',{needs:['torch'],clue:'seq2'}],['safe','nL',{lock:pad(4,'4225','Four digits.'),has:'key'}],['barrel','e1'],['crate','e3'],['rug','m2']],
+ hints:['Match each signal to the chart on the left wall: O, P, E, N.','The torch lets you read the dark note. The first list grows by 4, 6, 8, 10, then 12. The second is 1×1, 2×2, 3×3, 4×4.','42 and 25: 4225.']},
+{n:'Map Room',th:['plank','#4f6a7a','plank','#3a2e22'],i:'Three gems behind three very different locks.',
+ main:[['painting','e2',{clue:'grid'}],['chest','e3',{lock:{t:'word',word:'SAFE',q:'Four letter wheels. A tag reads: B3 · E1 · A4 · D2'},has:'gem1'}],['safe','w2',{lock:{t:'switch',ans:'101101',q:'Each switch is worth double the one on its right. The last one is worth 1. The safe wants 45.'},has:'gem2'}],['shelf','s2',{secret:1}],['altar','m4',{needs:G3,has:'key'}],['vase','nL'],['barrel','w3'],['rug','m3']],
+ secret:[['rug','m1',{has:'gem3'}],['crate','e2'],['barrel','w2'],['vase','n0']],
+ hints:['On the map, letters go across and numbers go down. Find B3, E1, A4, D2.','The word is SAFE. From the left the switches are worth 32, 16, 8, 4, 2, 1, and 45 = 32 + 8 + 4 + 1.','Switches 1, 3, 4 and 6 go up. The third gem: bookshelf behind you, then under the rug.']},
+{n:'Calendar Crypt',th:['stone','#4a4a5a','stone','#2e2e38'],i:'A riddle, a torch and a square of numbers.',
+ main:[['note','e2',{clue:'day'}],['chest','w2',{lock:{t:'word',word:'THURSDAY',q:'Eight letter wheels.'},has:'torch'}],['statue','s2',{secret:1}],['vase','nL'],['barrel','e1'],['rug','m1'],['crate','w3']],
+ secret:[['note','e2',{needs:['torch'],clue:'magic'}],['safe','n0',{lock:pad(4,'1379','Four digits.'),has:'key'}],['vase','w2']],
+ hints:['If the day after tomorrow is Sunday, today is Friday.','THURSDAY. Take the torch through the statue behind you.','Every line of the square makes 15. The missing numbers in reading order: 1, 3, 7, 9.']},
+{n:'Caesar’s Cell',th:['brick','#7a3a3a','stone','#3a2a2a'],i:'Three gems, three of the hardest locks so far.',
+ main:[['note','e2',{clue:'caesar3'}],['chest','e3',{lock:{t:'word',word:'FREEDOM',q:'Seven letter wheels. Scratched on the lid: I U H H G R P'},has:'gem1'}],['safe','w2',{lock:{t:'lights',q:LIGHTQ},has:'gem2'}],['note','w3',{clue:'cb573'}],['safe','nL',{lock:pad(3,'573','Three digits.'),has:'gem3'}],['shelf','s2',{secret:1}],['barrel','e1'],['rug','m2']],
+ secret:[['altar','n0',{needs:G3,has:'key'}],['statue','e2'],['statue','w2']],
+ hints:['Chest: move each scratched letter back 3 in the alphabet. It spells FREEDOM.','Lamps from a reset: top-left, top-right, middle, bottom-right. Pinboard: 1, 9 and 4 are out, and 5 is first.','7 must be in the middle and 3 last: 573. The altar is behind the bookshelf.']},
+{n:'The Vault',th:['stone','#3a3a3a','tile','#222428'],i:'The last room. Nobody has ever opened this door.',
+ main:[['shelf','nL',{secret:1,lock:{t:'lights',q:'Nine lamps are set into the bookshelf. Each button flips itself and the lamps touching its sides. Light all nine.'}}],['vase','nR'],['note','e1',{needs:['torch'],clue:'caesar1'}],['painting','e2'],['safe','e3',{lock:{t:'switch',ans:'110010',q:'Each switch is worth double the one on its right. The last one is worth 1. The safe wants 50.'},has:'gem2'}],['chest','s1',{lock:{t:'word',word:'ESCAPE',q:'Six letter wheels.'},has:'gem1'}],['vase','s2'],['barrel','s3'],['painting','w1'],['chest','w2',{needs:['hammer'],has:'torch'}],['vase','w3'],['rug','m1',{has:'hammer'}],['crate','m2'],['vase','m3']],
+ secret:[['altar','n0',{needs:G3,has:'key'}],['painting','e1'],['safe','e2',{lock:pad(4,'3251','Four digits.'),has:'gem3'}],['barrel','e3'],['vase','w1'],['note','w2',{clue:'count4'}]],
+ hints:['The hammer under the rug opens the nailed chest: a torch. The torch reads the dark note. Step each letter forward one: ESCAPE.','Switches are worth 32, 16, 8, 4, 2, 1, and 50 = 32 + 16 + 2. The bookshelf by the door opens with the lamp trick: top-left, top-right, middle, bottom-right.','Across both rooms: 3 paintings, 2 barrels, 5 vases, 1 crate: 3251. Then the altar, then the door.']}
+];
+const TOG=i=>[i,i%3?i-1:-1,i%3<2?i+1:-1,i-3,i+3].filter(j=>j>=0&&j<9);
+if(typeof module!=='undefined') module.exports={LV,CL,TOG};
+</script>
+<script>
+const $=s=>document.querySelector(s);
+const KEY='escapeRoomSave';
+let S={lvl:0,max:0,hints:0,ms:0};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let F={}, inv=[], hintAt=0, done=false, room=0;
+const ICON={key:'🗝️',gem1:'🔴',gem2:'🔵',gem3:'🟢',hammer:'🔨',torch:'🔦'};
+const INAME={key:'the key',gem1:'a red gem',gem2:'a blue gem',gem3:'a green gem',hammer:'a hammer',torch:'a torch'};
+const KNAME={rug:'Rug',crate:'Crate',barrel:'Barrel',vase:'Vase',plant:'Plant',chest:'Chest',safe:'Safe',shelf:'Bookshelf',painting:'Painting',clock:'Clock',mirror:'Mirror',lamp:'Lamp',note:'Note',altar:'Altar',statue:'Statue'};
+const has=n=>inv.includes(n);
+
+/* ---------- sheet + toast ---------- */
+function sheet(title,html,setup){ $('#stitle').textContent=title; $('#body').innerHTML=html; $('#veil').classList.add('on'); if(setup) setup($('#body')); $('#sclose').focus(); }
+function closeSheet(){ $('#veil').classList.remove('on'); }
+$('#sclose').onclick=closeSheet;
+$('#veil').onclick=e=>{ if(e.target.id==='veil') closeSheet(); };
+let toastT;
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2600); }
+function wrong(el,text){ const m=el.querySelector('.msg'); if(m) m.textContent=text||'Nothing happens.'; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ---------- lock widgets ---------- */
+function box(el,html){ const w=document.createElement('div'); w.style.cssText='display:flex;flex-direction:column;gap:8px'; w.innerHTML=html; el.appendChild(w); return w; }
+function keypad(el,len,code,ok){
+  const w=box(el,'<div class="disp"></div><div class="keys">'+[1,2,3,4,5,6,7,8,9,'⌫',0,'OK'].map(k=>`<button data-k="${k}">${k}</button>`).join('')+'</div><div class="msg"></div>'); let v='';
+  const show=()=>w.querySelector('.disp').textContent=v.padEnd(len,'·'); show();
+  w.querySelector('.keys').onclick=e=>{const k=e.target.dataset.k; if(k==null)return;
+    if(k==='⌫') v=v.slice(0,-1); else if(k==='OK'){ if(v===code) return ok(); v=''; wrong(w,'Wrong code.'); } else if(v.length<len) v+=k; show(); };
+}
+function seqLock(el,lock,ok){
+  const opts=lock.kind==='arr'?[['←','L'],['↑','U'],['↓','D'],['→','R']].map(a=>({c:'arrow',t:a[0],v:a[1],n:a[0]})):lock.opts.map(c=>({c:'c-'+c,v:c,n:c,t:''}));
+  const w=box(el,'<div class="dots">'+lock.ans.map(()=>'<i></i>').join('')+`</div><div class="seq${opts.length===6?' six':''}">`+opts.map(o=>`<button class="${o.c}" data-v="${o.v}" aria-label="${o.n}">${o.t}</button>`).join('')+'</div><div class="msg"></div>'); let got=[];
+  const dots=()=>w.querySelectorAll('.dots i').forEach((d,i)=>d.className=i<got.length?'f':'');
+  w.querySelector('.seq').onclick=e=>{const b=e.target.closest('button'); if(!b)return; got.push(b.dataset.v); dots();
+    if(got.length===lock.ans.length){ if(got.join()===lock.ans.join()) return ok(); got=[]; setTimeout(dots,250); wrong(w,'The lock resets.'); } };
+}
+function wordLock(el,word,ok){
+  const w=box(el,`<input class="word" id="wordin" maxlength="${word.length}" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Word lock, ${word.length} letters" placeholder="${'·'.repeat(word.length)}"><button class="btn go">Try word</button><div class="msg"></div>`);
+  const go=()=>{ if(w.querySelector('input').value.trim().toUpperCase()===word) ok(); else wrong(w,'Wrong word.'); };
+  w.querySelector('button').onclick=go; w.querySelector('input').onkeydown=e=>{if(e.key==='Enter')go();};
+}
+function lightsLock(el,ok){
+  if(!F.g){ F.g=Array(9).fill(true); [0,4,8,2].forEach(p=>TOG(p).forEach(j=>F.g[j]=!F.g[j])); F.g0=F.g.slice(); }
+  const w=box(el,'<div class="lights"></div><button class="btn">Reset lamps</button>'); const L=w.querySelector('.lights');
+  const paint=()=>{L.innerHTML=F.g.map((on,i)=>`<button data-i="${i}" class="${on?'on':''}" aria-label="Lamp ${i+1} ${on?'on':'off'}"></button>`).join('');}; paint();
+  L.onclick=e=>{const i=e.target.dataset.i; if(i==null)return; TOG(+i).forEach(j=>F.g[j]=!F.g[j]); paint(); if(F.g.every(Boolean)){ F.g=null; ok(); } };
+  w.querySelector('.btn').onclick=()=>{F.g=F.g0.slice(); paint();};
+}
+function switchLock(el,ans,ok){
+  const sw=[0,0,0,0,0,0]; const w=box(el,'<div class="sw"></div><button class="btn go">Pull the handle</button><div class="msg"></div>'); const W=w.querySelector('.sw');
+  const paint=()=>{W.innerHTML=sw.map((on,i)=>`<button data-i="${i}" class="${on?'on':''}" aria-label="Switch ${i+1} ${on?'up':'down'}"></button>`).join('');}; paint();
+  W.onclick=e=>{const i=e.target.dataset.i; if(i==null)return; sw[i]^=1; paint();};
+  w.querySelector('.btn').onclick=()=>{ sw.join('')===ans?ok():wrong(w,'The handle springs back.'); };
+}
+function lockSheet(p,ok){ const k=p.o.lock;
+  sheet(KNAME[p.kind]+' lock',`<p>${k.q||''}</p>`,el=>{
+    if(k.t==='pad') keypad(el,k.len,k.code,ok); else if(k.t==='seq') seqLock(el,k,ok); else if(k.t==='word') wordLock(el,k.word,ok);
+    else if(k.t==='lights') lightsLock(el,ok); else switchLock(el,k.ans,ok); });
+}
+
+/* ---------- 3D ---------- */
+const T=THREE, cv=$('#cv');
+let renderer, scene, camera, roomG, amb, lamp, yaw=0, pitch=-.12, yawTo=null;
+let HIT=[], TW=[], POP=[], doorPivot=null, PROPS=[];
+const TX={};
+function tex(pat,col,rx,ry){ const k=pat+col+rx+ry; if(TX[k]) return TX[k];
+  const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  g.fillStyle=col; g.fillRect(0,0,128,128); g.strokeStyle='rgba(0,0,0,.3)'; g.lineWidth=2;
+  const L=(a,b,c2,d)=>{g.beginPath();g.moveTo(a,b);g.lineTo(c2,d);g.stroke();};
+  if(pat==='brick'){ for(let r=0;r<4;r++){ L(0,r*32,128,r*32); for(let x=(r%2)*32;x<=128;x+=64) L(x,r*32,x,r*32+32); } }
+  else if(pat==='plank'){ for(let x=0;x<128;x+=32){ L(x,0,x,128); g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x+6,0,5,128); g.fillStyle='rgba(0,0,0,.07)'; g.fillRect(x+19,0,7,128);} }
+  else if(pat==='stripe'){ g.fillStyle='rgba(255,255,255,.1)'; g.fillRect(0,0,32,128); g.fillRect(64,0,32,128); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(0,112,128,16); }
+  else if(pat==='tile'){ for(let i=0;i<=128;i+=64){ L(i,0,i,128); L(0,i,128,i);} g.fillStyle='rgba(255,255,255,.07)'; g.fillRect(2,2,60,60); g.fillRect(66,66,60,60); }
+  else if(pat==='stone'){ L(0,0,128,0); L(0,44,128,44); L(0,88,128,88); L(40,0,40,44); L(100,0,100,44); L(20,44,20,88); L(76,44,76,88); L(54,88,54,128); L(110,88,110,128); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(40,2,58,40); g.fillRect(0,90,52,36); }
+  else if(pat==='star'){ g.fillStyle='#f6dc7a'; [[20,24],[84,14],[52,62],[108,84],[18,100],[70,112]].forEach(p=>{g.beginPath();g.arc(p[0],p[1],3.2,0,7);g.fill();}); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(0,112,128,16); }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rx,ry); return TX[k]=t; }
+function art(seed){ const c=document.createElement('canvas'); c.width=128; c.height=96; const g=c.getContext('2d'), h=(seed*67+20)%360;
+  const gr=g.createLinearGradient(0,0,0,96); gr.addColorStop(0,`hsl(${h},55%,62%)`); gr.addColorStop(1,`hsl(${(h+40)%360},65%,82%)`); g.fillStyle=gr; g.fillRect(0,0,128,96);
+  g.fillStyle='#fff3c4'; g.beginPath(); g.arc(30+(seed*37)%70,28,12,0,7); g.fill();
+  g.fillStyle=`hsl(${(h+140)%360},35%,38%)`; g.beginPath(); g.moveTo(0,96); g.quadraticCurveTo(40,30+(seed*13)%30,90,96); g.fill();
+  g.fillStyle=`hsl(${(h+160)%360},40%,28%)`; g.beginPath(); g.moveTo(50,96); g.quadraticCurveTo(100,45,128,80); g.lineTo(128,96); g.fill();
+  return new T.CanvasTexture(c); }
+const mat=(c,o)=>new T.MeshLambertMaterial(Object.assign({color:c},o||{}));
+function M(geo,c,x,y,z,o){ const m=new T.Mesh(geo,typeof c==='object'&&c.isMaterial?c:mat(c,o)); m.position.set(x||0,y||0,z||0); return m; }
+const BX=(w,h,d)=>new T.BoxGeometry(w,h,d), CY=(a,b,h,s)=>new T.CylinderGeometry(a,b,h,s||18);
+const PAL=['#c8553d','#3f7fd8','#e0b23a','#4fa56a','#8c5fd0','#d8823a','#4aa3a8'];
+/* each builder returns the body group, its [w,h,d], whether it hangs on the wall, how it moves and the y of its middle */
+const B={
+ rug(o,i){ const g=new T.Group(); g.add(M(CY(.95,.95,.04,28),PAL[i%7],0,.02,0)); g.add(M(CY(.62,.62,.05,28),PAL[(i+3)%7],0,.025,0)); g.add(M(CY(.25,.25,.06,20),'#f1e6c8',0,.03,0)); return {g,size:[1.9,.2,1.9],style:'hop',cy:.1}; },
+ crate(){ const g=new T.Group(); g.add(M(BX(.9,.9,.9),mat('#ffffff',{map:tex('plank','#a5733f',1,1)}),0,.45,0)); [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(s=>g.add(M(BX(.1,.94,.1),'#6b4423',s[0]*.42,.45,s[1]*.42))); return {g,size:[.95,.95,.95],style:'hop',cy:.47}; },
+ barrel(){ const g=new T.Group(); g.add(M(CY(.4,.4,1.05),'#8a5a2e',0,.525,0)); g.add(M(CY(.44,.44,.5),'#9a6836',0,.525,0)); [.2,.85].forEach(y=>g.add(M(CY(.425,.425,.07),'#3b3b3b',0,y,0))); return {g,size:[.9,1.1,.9],style:'hop',cy:.55}; },
+ vase(o,i){ const pts=[[.0,0],[.2,0],[.34,.25],[.36,.5],[.22,.8],[.14,.95],[.2,1.05]].map(p=>new T.Vector2(p[0],p[1])); const g=new T.Group(); g.add(M(new T.LatheGeometry(pts,18),PAL[(i*3+1)%7],0,0,0,{side:T.DoubleSide})); return {g,size:[.8,1.1,.8],style:'hop',cy:.55}; },
+ plant(){ const g=new T.Group(); g.add(M(CY(.3,.22,.42),'#b5623c',0,.21,0)); [[0,.95,0,.42],[-.2,.75,.1,.3],[.22,.7,-.08,.3],[.05,.72,.22,.26]].forEach(p=>g.add(M(new T.SphereGeometry(p[3],10,8),'#3f8f4f',p[0],p[1],p[2]))); return {g,size:[.95,1.4,.95],style:'hop',cy:.7}; },
+ chest(o){ const g=new T.Group(), c=o.col||'#8a5a2e'; g.add(M(BX(1.1,.5,.65),c,0,.25,0)); g.add(M(BX(1.0,.02,.55),'#120c06',0,.5,0));
+   const lid=new T.Group(); lid.position.set(0,.5,-.325); lid.add(M(BX(1.1,.26,.65),c,0,.13,.325)); lid.add(M(BX(1.14,.06,.69),'#d6a23a',0,.03,.325)); lid.add(M(BX(.16,.2,.05),'#d6a23a',0,.02,.67)); g.add(lid);
+   return {g,size:[1.2,.85,.75],style:'lid',lid,cy:.42}; },
+ safe(){ const g=new T.Group(); g.add(M(BX(.95,1.15,.8),'#59636b',0,.575,0)); g.add(M(BX(.8,1.0,.02),'#0c0f11',0,.575,.4));
+   const d=new T.Group(); d.position.set(-.42,.575,.42); d.add(M(BX(.84,1.04,.07),'#7a868f',.42,0,.03)); const dial=M(CY(.14,.14,.06,20),'#d6a23a',.42,0,.09); dial.rotation.x=Math.PI/2; d.add(dial); d.add(M(BX(.06,.26,.05),'#22282c',.7,0,.09)); g.add(d);
+   return {g,size:[1.05,1.2,1.0],style:'door',lid:d,cy:.6}; },
+ shelf(o,i){ const g=new T.Group(); g.add(M(BX(1.7,3.0,.5),'#4a321c',0,1.5,0)); for(let r=0;r<4;r++){ g.add(M(BX(1.54,.56,.04),'#1e140a',0,.5+r*.68,.25)); for(let b=0;b<7;b++){ const h=.36+((b*7+r*5+i)%5)*.035; g.add(M(BX(.17,h,.1),PAL[(b*3+r*2+i)%7],-.63+b*.21,.24+r*.68+h/2,.27)); } } return {g,size:[1.75,3.0,.6],style:'none',cy:1.5}; },
+ statue(){ const g=new T.Group(); g.add(M(BX(.9,.5,.7),'#8b9094',0,.25,0)); g.add(M(CY(.26,.36,1.3),'#a3a8ac',0,1.15,0)); g.add(M(new T.SphereGeometry(.26,14,10),'#a3a8ac',0,2.02,0)); g.add(M(BX(.9,.16,.3),'#a3a8ac',0,1.5,0)); return {g,size:[1.0,2.3,.8],style:'none',cy:1.15}; },
+ mirror(){ const g=new T.Group(); g.add(M(BX(1.1,2.5,.12),'#b8892e',0,1.3,0)); g.add(M(BX(.9,2.25,.02),new T.MeshBasicMaterial({color:0xcfe6ee}),0,1.3,.07)); g.add(M(BX(.5,.7,.01),new T.MeshBasicMaterial({color:0xeef8fb}),-.12,1.75,.085)); return {g,size:[1.15,2.6,.3],style:'none',cy:1.3}; },
+ lamp(){ const g=new T.Group(); g.add(M(CY(.25,.3,.08),'#3b3b3b',0,.04,0)); g.add(M(CY(.035,.035,1.7,8),'#3b3b3b',0,.9,0)); g.add(M(CY(.18,.36,.42,16),new T.MeshBasicMaterial({color:0xffe6a0}),0,1.9,0)); return {g,size:[.8,2.1,.8],style:'hop',cy:1.05}; },
+ altar(){ const g=new T.Group(); g.add(M(CY(.62,.7,.25,8),'#7d8388',0,.125,0)); g.add(M(CY(.42,.5,.8,8),'#9aa0a4',0,.65,0)); g.add(M(CY(.62,.5,.2,8),'#7d8388',0,1.15,0)); [-.3,0,.3].forEach((x,k)=>g.add(M(new T.SphereGeometry(.09,10,8),['#5a1d18','#1b2f55','#1d4a2a'][k],x,1.27,.12))); return {g,size:[1.4,1.4,1.4],style:'none',cy:.7}; },
+ painting(o,i){ const g=new T.Group(); g.add(M(BX(1.5,1.15,.08),'#6b4423',0,2.4,0)); g.add(M(BX(1.3,.95,.02),new T.MeshBasicMaterial({map:art(i+S.lvl*3)}),0,2.4,.05)); return {g,size:[1.55,1.2,.25],wall:1,style:'up',cy:2.4}; },
+ clock(){ const g=new T.Group(); const f=M(CY(.55,.55,.08,28),'#6b4423',0,2.6,0); f.rotation.x=Math.PI/2; g.add(f); const w=M(CY(.47,.47,.02,28),'#f1e6c8',0,2.6,.045); w.rotation.x=Math.PI/2; g.add(w); const a=M(BX(.05,.3,.02),'#2b241a',-.07,2.5,.07); a.rotation.z=-.6; g.add(a); const b=M(BX(.035,.42,.02),'#2b241a',.15,2.5,.07); b.rotation.z=1.05; g.add(b); return {g,size:[1.2,1.2,.25],wall:1,style:'up',cy:2.6}; },
+ note(){ const g=new T.Group(); const p=M(BX(.55,.7,.02),new T.MeshBasicMaterial({color:0xf1e6c8}),0,1.9,0); p.rotation.z=.06; g.add(p); [0,1,2,3].forEach(k=>g.add(M(BX(.36,.03,.01),new T.MeshBasicMaterial({color:0x6b5d44}),0,2.08-k*.12,.012))); g.add(M(new T.SphereGeometry(.035,8,6),'#c8553d',0,2.2,.03)); return {g,size:[.8,.9,.2],wall:1,style:'none',cy:1.9}; }
+};
+const SL={nL:[-3.3,-5,0,-1],nR:[3.3,-5,0,1],n0:[0,-5,0,1],e1:[5,-3,-Math.PI/2,1],e2:[5,0,-Math.PI/2,1],e3:[5,3,-Math.PI/2,1],
+ s1:[3,5,Math.PI,1],s2:[0,5,Math.PI,1],s3:[-3,5,Math.PI,1],w1:[-5,3,Math.PI/2,1],w2:[-5,0,Math.PI/2,1],w3:[-5,-3,Math.PI/2,1],
+ m1:[2,-2,0,1],m2:[-2,2,0,1],m3:[2,2,0,1],m4:[-2,-2,0,1]};
+const ghost=new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+function hit(parent,w,h,d,x,y,z,fn){ const m=new T.Mesh(BX(w,h,d),ghost); m.position.set(x,y,z); m.userData.tap=fn; parent.add(m); HIT.push(m); return m; }
+function tw(o,k,to,d){ if(!d){ o[k]=to; return; } TW.push({o,k,a:o[k],b:to,t:0,d}); }
+
+function init3D(){
+  renderer=new T.WebGLRenderer({canvas:cv,antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  scene=new T.Scene(); camera=new T.PerspectiveCamera(74,1,.1,40); camera.position.set(0,1.75,0); camera.rotation.order='YXZ';
+  amb=new T.AmbientLight(0xffffff,.72); scene.add(amb); lamp=new T.PointLight(0xfff0d0,.75,0); lamp.position.set(0,4.3,0); scene.add(lamp);
+  const fit=()=>{ const r=$('#stage').getBoundingClientRect(); if(!r.width) return; renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); };
+  fit(); if(window.ResizeObserver) new ResizeObserver(fit).observe($('#stage')); else addEventListener('resize',fit);
+  let dn=null, moved=0;
+  cv.addEventListener('pointerdown',e=>{ dn=[e.clientX,e.clientY]; moved=0; yawTo=null; try{cv.setPointerCapture(e.pointerId)}catch(_){} });
+  cv.addEventListener('pointermove',e=>{ if(!dn) return; const dx=e.clientX-dn[0], dy=e.clientY-dn[1]; moved+=Math.abs(dx)+Math.abs(dy); yaw+=dx*.006; pitch=Math.max(-1.05,Math.min(.7,pitch+dy*.006)); dn=[e.clientX,e.clientY]; });
+  cv.addEventListener('pointerup',e=>{ if(dn&&moved<10) tapAt(e); dn=null; });
+  cv.addEventListener('pointercancel',()=>dn=null);
+  $('#tl').onclick=()=>yawTo=(yawTo==null?yaw:yawTo)+Math.PI/4; $('#tr').onclick=()=>yawTo=(yawTo==null?yaw:yawTo)-Math.PI/4;
+  let last=performance.now();
+  (function loop(now){ requestAnimationFrame(loop); const dt=Math.min(.05,(now-last)/1000); last=now;
+    if(yawTo!=null){ yaw+=(yawTo-yaw)*Math.min(1,dt*9); if(Math.abs(yawTo-yaw)<.003){ yaw=yawTo; yawTo=null; } }
+    camera.rotation.y=yaw; camera.rotation.x=pitch;
+    for(let i=TW.length-1;i>=0;i--){ const w=TW[i]; w.t+=dt; const u=Math.min(1,w.t/w.d), e=u*u*(3-2*u); w.o[w.k]=w.a+(w.b-w.a)*e; if(u>=1) TW.splice(i,1); }
+    for(let i=POP.length-1;i>=0;i--){ const p=POP[i]; p.t+=dt; p.m.position.y=p.y+Math.min(.7,p.t*.9); p.m.rotation.y+=dt*5; if(p.t>1.5){ scene.remove(p.m); POP.splice(i,1); } }
+    renderer.render(scene,camera); })(last);
+}
+function tapAt(e){ const r=cv.getBoundingClientRect(), v=new T.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1));
+  const rc=new T.Raycaster(); rc.setFromCamera(v,camera); const h=rc.intersectObjects(HIT,false); if(h.length&&!done) h[0].object.userData.tap(); }
+
+function arch(G,fn,z){ const a=new T.Group(); a.add(M(BX(1.75,2.95,.06),'#d6a23a',0,1.475,z)); a.add(M(BX(1.45,2.7,.02),new T.MeshBasicMaterial({color:0x050607}),0,1.36,z+.035)); G.add(a); hit(G,1.75,2.95,.3,0,1.475,z+.1,fn); }
+function itemMesh(n){ let m;
+  if(n==='key'){ m=new T.Group(); const gm=mat('#f2c230',{emissive:0x7a5200}); const ring=new T.Mesh(new T.TorusGeometry(.13,.04,8,18),gm); ring.position.y=.22; m.add(ring); m.add(M(CY(.035,.035,.42,8),gm,0,-.05,0)); m.add(M(BX(.12,.05,.04),gm,.07,-.2,0)); m.add(M(BX(.09,.05,.04),gm,.055,-.1,0)); }
+  else if(n.startsWith('gem')){ const c={gem1:0xe2362c,gem2:0x2f6fe0,gem3:0x2fb85a}[n]; m=new T.Mesh(new T.OctahedronGeometry(.22),mat(c,{emissive:c,emissiveIntensity:.45})); }
+  else { const c=document.createElement('canvas'); c.width=c.height=96; const g=c.getContext('2d'); g.font='72px serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(ICON[n],48,52); m=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),transparent:true})); m.scale.set(.6,.6,.6); }
+  return m; }
+
+function buildRoom(){
+  if(roomG) scene.remove(roomG); roomG=new T.Group(); scene.add(roomG); HIT=[]; TW=[]; PROPS=[]; doorPivot=null;
+  const L=LV[S.lvl], th=room?['stone','#6a5a3c','stone','#3d3424']:L.th;
+  const wm=mat('#ffffff',{map:tex(th[0],th[1],5,2.5),side:T.BackSide}), fm=mat('#ffffff',{map:tex(th[2],th[3],5,5),side:T.BackSide}), cm=mat(th[1],{side:T.BackSide});
+  cm.color.multiplyScalar(.55);
+  const box=new T.Mesh(BX(10,5,10),[wm,wm,cm,fm,wm,wm]); box.position.y=2.5; roomG.add(box);
+  amb.intensity=room?.55:.72; lamp.color.set(room?0xffd28a:0xfff0d0);
+  if(!room){ const D=new T.Group(); D.position.set(0,0,-4.98); roomG.add(D);
+    D.add(M(BX(2.0,3.3,.1),'#1a1208',0,1.65,0)); D.add(M(BX(1.6,3.1,.02),new T.MeshBasicMaterial({color:0xffe9a8}),0,1.55,.06));
+    doorPivot=new T.Group(); doorPivot.position.set(-.8,0,.1); doorPivot.add(M(BX(1.6,3.1,.08),'#8a6238',.8,1.55,0)); doorPivot.add(M(BX(1.2,1.1,.03),'#74502c',.8,2.2,.05)); doorPivot.add(M(BX(1.2,1.1,.03),'#74502c',.8,.85,.05)); doorPivot.add(M(new T.SphereGeometry(.09,12,10),'#e0a73a',1.42,1.5,.1)); D.add(doorPivot);
+    hit(D,2.0,3.3,.4,0,1.65,.15,doorTap);
+  } else { const A=new T.Group(); A.position.set(0,0,4.98); A.rotation.y=Math.PI; roomG.add(A); arch(A,()=>enter(0),.03); }
+  (room?L.secret:L.main).forEach((def,i)=>addProp(def,i));
+}
+function addProp(def,i){
+  const kind=def[0], slot=def[1], o=def[2]||{}, s=SL[slot], isM=slot[0]==='m';
+  const G=new T.Group(); G.position.set(s[0],0,s[1]); G.rotation.y=isM?Math.atan2(-s[0],-s[1]):s[2]; roomG.add(G);
+  const b=B[kind](o,i), body=b.g, z=isM?0:(b.wall?.06:b.size[2]/2+.14); body.position.z=z; G.add(body);
+  let style=b.style; if(o.secret) style='sink'; else if(o.clue&&b.wall) style='none';
+  const p={id:room+':'+slot,kind,o,G,body,style,lid:b.lid,dir:s[3],pop:[0,kind==='rug'?.5:b.wall?b.cy:style==='hop'?.6:b.size[1]+.25,z],z};
+  hit(body,b.size[0]+.2,b.size[1]+.2,b.size[2]+.2,0,b.cy,0,()=>tapProp(p)); PROPS.push(p);
+  if((F[p.id]||{}).open) moveProp(p,0);
+}
+function moveProp(p,d){
+  if(p.style==='hop') tw(p.body.position,'x',p.dir*(p.kind==='rug'?1.25:1.05),d);
+  else if(p.style==='up') tw(p.body.position,'y',1.3,d);
+  else if(p.style==='sink'){ tw(p.body.position,'y',-3.5,d*2); if(!p.arch){ p.arch=1; arch(p.G,()=>enter(1),.03); } }
+  else if(p.style==='lid') tw(p.lid.rotation,'x',-1.75,d);
+  else if(p.style==='door') tw(p.lid.rotation,'y',-1.9,d);
+}
+function give(n,p){ inv.push(n); drawInv(); toast('You found '+INAME[n]+'!');
+  const m=itemMesh(n), v=p.G.localToWorld(new T.Vector3(p.pop[0],p.pop[1],p.pop[2]+.25)); m.position.copy(v); scene.add(m); POP.push({m,t:0,y:v.y}); }
+function showClue(p){ sheet(KNAME[p.kind],CL[p.o.clue]); }
+function tapProp(p){
+  const o=p.o, st=F[p.id]||(F[p.id]={}), name=KNAME[p.kind];
+  if(st.open){ if(o.secret) return enter(1); if(o.clue) return showClue(p); return toast('Nothing else here.'); }
+  if(o.needs){ const miss=o.needs.filter(n=>!has(n));
+    if(miss.length){ const m=miss[0];
+      return sheet(name, m.startsWith('gem')?`<p>Three empty sockets: red, blue and green. You have ${3-miss.length} of 3 gems.</p>`: m==='hammer'?'<p>Nailed shut. You need a tool to break it open.</p>':'<p>Too dark to read. You need a light.</p>'); } }
+  if(o.ask&&!st.asked) return sheet(name,`<p>${o.ask}</p><button class="btn go" id="openit">Open this chest</button>`,el=>el.querySelector('#openit').onclick=()=>{ st.asked=1; closeSheet(); tapProp(p); });
+  if(o.lock&&!st.unlocked) return lockSheet(p,()=>{ st.unlocked=1; closeSheet(); tapProp(p); });
+  if(o.needs&&o.needs[0].startsWith('gem')){ inv=inv.filter(n=>!n.startsWith('gem')); drawInv(); }
+  st.open=1; moveProp(p,650);
+  if(o.trap){ done=true; return setTimeout(()=>sheet('Wrong chest','<p>The chest is empty. Then the floor drops away, and you land back where the room began.</p><button class="btn go" id="again">Try the room again</button>',el=>el.querySelector('#again').onclick=()=>start(S.lvl)),700); }
+  if(o.has) setTimeout(()=>give(o.has,p),p.style==='none'?0:450);
+  else if(o.secret) toast('A secret doorway!');
+  else if(o.clue) setTimeout(()=>showClue(p),p.style==='none'?0:600);
+  else toast(o.flavor||(p.style==='none'?'It will not move. Nothing hidden here.':'Nothing hidden here.'));
+}
+function enter(r){ room=r; buildRoom(); yaw=0; pitch=-.12; yawTo=null; closeSheet(); $('#cap').textContent=r?'A secret room. The doorway behind you leads back.':LV[S.lvl].i; toast(r?'Secret room':'Back in the main room'); }
+function doorTap(){ if(done) return; has('key')?win():sheet('The door','<p>Locked. You need the key.</p>'); }
+
+/* ---------- game loop ---------- */
+function drawInv(){ $('#items').innerHTML=inv.length?inv.map(n=>`<b title="${INAME[n]}">${ICON[n]}</b>`).join(' '):'empty'; }
+function start(n){ S.lvl=n; F={}; inv=[]; hintAt=0; done=false; room=0; save(); closeSheet();
+  const L=LV[n]; $('#rnum').textContent=`Room ${n+1} of ${LV.length}`; $('#rname').textContent=L.n; $('#cap').textContent=L.i;
+  drawInv(); yaw=0; pitch=-.12; yawTo=null; buildRoom(); }
+function win(){ if(done) return; done=true; closeSheet(); tw(doorPivot.rotation,'y',-1.45,800);
+  const last=S.lvl===LV.length-1; if(!last) S.max=Math.max(S.max,S.lvl+1); save();
+  setTimeout(()=>{
+    if(last){ const rank=S.hints===0?'Master Escapist':S.hints<=12?'Lock Picker':'Free at Last';
+      sheet('You escaped',`<p>Daylight. All thirty rooms are behind you.</p><p class="stat">${rank}</p><p>Time ${fmt(S.ms)} · Hints used ${S.hints}</p><button class="btn go" id="again">Play again from room 1</button>`,
+        el=>el.querySelector('#again').onclick=()=>{S.hints=0;S.ms=0;S.max=LV.length-1;start(0);});
+    } else sheet('Door open',`<p>${LV[S.lvl].n} cleared.</p><button class="btn go" id="next">Go to room ${S.lvl+2}</button>`,el=>el.querySelector('#next').onclick=()=>start(S.lvl+1));
+  },1000);
+}
+$('#bhint').onclick=()=>{ const H=LV[S.lvl].hints;
+  const show=i=>sheet(`Hint ${i+1} of ${H.length}`,`<p>${H[i]}</p>`+(i<H.length-1?'<button class="btn" id="more">I need a bigger hint</button>':''),
+    el=>{const m=el.querySelector('#more'); if(m) m.onclick=()=>{ if(hintAt<i+2){hintAt=i+2;S.hints++;save();} show(i+1); };});
+  if(hintAt===0){hintAt=1;S.hints++;save();} show(hintAt-1); };
+$('#brooms').onclick=()=>sheet('Rooms','<div class="rooms">'+LV.map((r,i)=>`<button class="btn" data-i="${i}" ${i>S.max?'disabled':''} aria-label="Room ${i+1}${i>S.max?' locked':''}">${i>S.max?'🔒':i+1}</button>`).join('')+'</div><p style="color:var(--dim)">Clear a room to unlock the next one.</p>',
+  el=>el.querySelector('.rooms').onclick=e=>{const b=e.target.closest('button'); if(b&&!b.disabled) start(+b.dataset.i);});
+const fmt=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+setInterval(()=>{ if(!done&&!document.hidden){S.ms+=1000; $('#time').textContent=fmt(S.ms); if(S.ms%10000===0) save();} },1000);
+$('#time').textContent=fmt(S.ms);
+const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);
+if(ON_SITE){const h=$('#bhome');h.style.display='';h.onclick=()=>{location.href=new URL('../',location.href).href;};}
+try{ init3D(); start(Math.min(S.lvl||0,LV.length-1)); }
+catch(e){ $('#cap').textContent='This device could not start the 3D view. Try another browser.'; }
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
