@@ -19,6 +19,7 @@ paper-adventure/      Felix's Paper Adventure: 30-level platformer from Felix's 
 star-army-online/     Star Army Online: two players on two devices (uses the room relay)
 hide-and-seek/        Felix's Hide & Seek: 3D hide-and-seek (house from Felix's drawings, backyard, castle); bundles three.min.js + font locally
 hide-and-seek-online/ Hide & Seek Online: two players on two devices, one hides and one seeks (uses the room relay)
+paper-adventure-online/ Paper Adventure Together: two-player co-op platformer on two devices (uses the room relay)
 counter/              Owner page: live count of Star Army Online players (not linked from the lobby)
   index.html          The game
   manifest.webmanifest, sw.js, icons/   Makes it an installable, offline PWA
@@ -31,7 +32,7 @@ wrangler.toml         Pages config: binds ROOMS to the felixwang-rooms worker
 
 ## Online play (room relay)
 
-`star-army-online/` and `hide-and-seek-online/` connect two devices through `/api/room/<4-letter code>` on this same site.
+`star-army-online/`, `hide-and-seek-online/` and `paper-adventure-online/` connect two devices through `/api/room/<4-letter code>` on this same site.
 The Pages Function in `functions/` forwards the WebSocket to a `Room` Durable Object in `rooms-worker/`
 (worker name `felixwang-rooms`). The relay only forwards messages between the two players in a room and stores nothing.
 A second Durable Object, `Stats`, keeps the live number of players in rooms; `GET /api/online` returns `{"players": N, "rooms": R, "solo": S}` for the lobby, the games and `counter/`.

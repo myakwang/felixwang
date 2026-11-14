@@ -11,7 +11,7 @@ Games are designed and drawn by Felix, a kid. Players are kids and families.
 - `<game>/` — one self-contained folder per game (e.g. `star-army/`).
 - `privacy/` — one privacy policy for all games.
 - `counter/` — owner page showing the live number of Star Army Online players (reads `/api/online`). Not a game, not linked from the lobby.
-- `functions/`, `rooms-worker/`, `wrangler.toml` — the room relay used by two-device games (`star-army-online/`). It only forwards game messages between the two players in a room and stores nothing. Not part of any game folder; never served as static files.
+- `functions/`, `rooms-worker/`, `wrangler.toml` — the room relay used by two-device games (`star-army-online/`, `hide-and-seek-online/`, `paper-adventure-online/`). It only forwards game messages between the two players in a room and stores nothing. Not part of any game folder; never served as static files.
 - `sw.js` (root) — retired service worker that cleans up the first release. Do not delete it and never turn it into a caching worker.
 - `_headers` — keeps service workers and manifests uncached. Keep it.
 - `README.md`, `CLAUDE.md` — docs; `*.md` files are not deployed.
