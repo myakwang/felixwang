@@ -215,7 +215,7 @@ HS.defineMap({
     [-6,6].forEach(x=>B.box(1.6,2.4,0.05,x,4.7,-11.97,fm,{col:false}));
     // statues
     [-5,-2,1,4,7].forEach(z=>{B.box(1.1,0.5,1.1,12.4,0.25,z,'#8f8a82',{col:2.4});
-      if(z!==1){const f=HS.makeFigure({helmet:true});HS.paint(f,'#9a9a9a');HS.placeFigure(f,{pos:[12.4,0.5,z],pose:'flat',yaw:-PI/2});f.traverse(o=>{if(o.isMesh)o.castShadow=true;});B.W.group.add(f);
+      if(z!==1){const f=HS.makeFigure({helmet:true});HS.paint(f,'#9a9a9a');HS.placeFigure(f,{pos:[12.4,0.5,z],pose:'flat',yaw:-PI/2});f.traverse(o=>{if(o.isMesh)o.castShadow=true;});B.addFx(f);
         const sw=new THREE.Mesh(new THREE.BoxGeometry(0.06,1.1,0.12),HS.mat('#bdc3c7'));sw.position.set(0,-0.6,0.05);f.userData.inner.userData.aR.add(sw);}});
     // barrels
     [[-12.2,2.4],[-11.3,2.6],[-11.8,3.4],[-10.9,3.5],[-12.3,4.25]].forEach(p=>{B.cyl(0.45,0.42,1.1,p[0],0.55,p[1],'#8b5a2b',{col:true});B.cyl(0.47,0.47,0.07,p[0],0.25,p[1],'#555555',{col:false,edges:false});B.cyl(0.47,0.47,0.07,p[0],0.85,p[1],'#555555',{col:false,edges:false});});
@@ -539,7 +539,7 @@ HS.defineMap({
   ],
   sky(B){
     [[-2.6,-2.6,0.9],[-1.2,-3.0,1.8],[0.3,-3.0,2.7],[1.7,-2.4,3.6],[2.6,-1.2,4.5]].forEach(p=>stone(B,p[0],p[1],p[2],'#efe9d2',1.1,0.15));
-    island(B,0.5,3.9,0.5,3.9,5.4,'#efe9d2',null,0.3);
+    island(B,0.5,3.9,0.0,3.9,5.4,'#efe9d2',null,0.3);
     B.box(0.12,2.2,0.12,1.2,6.5,3.6,'#a8956a',{col:false});B.box(0.12,2.2,0.12,2.4,6.5,3.6,'#a8956a',{col:false});B.box(1.32,0.12,0.12,1.8,7.6,3.6,'#a8956a',{col:false});
     B.plane(1.1,2.1,1.8,6.45,3.62,HS.mat('#1d1a17'),{ry:Math.PI});
   }
@@ -676,7 +676,7 @@ const HOUSE=HS.maps.house,YARD=HS.maps.yard,CASTLE=HS.maps.castle,SNOW=HS.maps.s
 const BLK=['#e74c3c','#f1c40f','#3498db','#2ecc71','#9b59b6'];
 HOUSE.sky=function(B){
   [[-7,-2.5,0.9],[-5.8,-3.4,1.8],[-4.4,-4.1,2.7],[-2.9,-4.6,3.6],[-1.4,-4.6,4.0]].forEach((p,i)=>stone(B,p[0],p[1],p[2],BLK[i]));
-  island(B,0,3.5,-5.4,-3.4,4.8,'#ffffff','#f4f8ff');teddy(B,3.0,4.8,-3.9);
+  island(B,-0.6,3.5,-5.4,-3.4,4.8,'#ffffff','#f4f8ff');teddy(B,3.0,4.8,-3.9);
   B.cyl(0.08,0.12,0.6,0.5,5.1,-5.0,'#d4a017',{col:false});B.ball(0.18,0.5,5.5,-5.0,HS.mat('#fff4c4',{emissive:'#ffdf80'}),{col:false,cast:false});
 };
 HOUSE.spots.push({label:'up on the cloud shelf',pos:[2.8,4.8,-4.95],pose:'crouch',look:[2,-2.4],bg:'#ffffff',sky:true},
@@ -800,7 +800,7 @@ HS.defineMap({
     const bulb=HS.mat('#fff4c4',{emissive:'#ffdf80'});for(let i=0;i<8;i++){const a=i*PI/4;B.ball(0.13,Math.cos(a)*1.3,4.5,1+Math.sin(a)*1.3,bulb,{cast:false,col:false});}
     B.light(0xffe6b0,0.55,30,0,4.2,1);
     // armor statues by the hall doors
-    [[-8.6,6.6],[8.6,6.6]].forEach(p=>{B.box(1,0.5,1,p[0],0.25,p[1],'#8f8a82',{col:2.3});const f=HS.makeFigure({helmet:true});HS.paint(f,'#a7aab0');HS.placeFigure(f,{pos:[p[0],0.5,p[1]],pose:'flat',yaw:PI});f.traverse(o=>{if(o.isMesh)o.castShadow=true;});B.W.group.add(f);});
+    [[-8.6,6.6],[8.6,6.6]].forEach(p=>{B.box(1,0.5,1,p[0],0.25,p[1],'#8f8a82',{col:2.3});const f=HS.makeFigure({helmet:true});HS.paint(f,'#a7aab0');HS.placeFigure(f,{pos:[p[0],0.5,p[1]],pose:'flat',yaw:PI});f.traverse(o=>{if(o.isMesh)o.castShadow=true;});B.addFx(f);});
     plant(-2.6,-7.2);plant(2.6,-7.2);
     B.box(2.4,0.5,0.8,-4,0.25,6.9,'#9a6a3f');B.box(2.4,0.5,0.8,4,0.25,6.9,'#9a6a3f');
 
@@ -946,6 +946,8 @@ HS.defineMap({
     {label:'next to the toy train',pos:[14.5,0,11.6],pose:'lie',yaw:PI2,look:[14.5,13],bg:'#e74c3c'}
   ]
 });
+// every place is about as big as Felix's Mansion (60 × 48 m): spread out sideways
+{const SC={house:2.5,yard:2,castle:2,snow:2,ship:2,school:2.4,backrooms:1.8,candy:2,tiny:2};HS.mapList.forEach(m=>{if(SC[m.id])m.scale=SC[m.id];});}
 // paint palette for each map = the colors you can blend into + fun colors
 HS.mapList.forEach(m=>{const s=new Set(m.spots.map(x=>x.bg));m.palette=[...s];});// (games use HS.surfacePalette() after loading a place)
 HS.funColors=['#e74c3c','#3498db','#f1c40f','#e84393','#9b59b6','#2ecc71','#ffffff','#222222'];

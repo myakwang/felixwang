@@ -112,15 +112,26 @@ function builder(W){
   // stairs rising along +x (dir 1) or -x (dir -1); z0..z1 width
   B.steps=(o)=>{const n=o.n,run=o.run,rise=o.rise,dir=o.dir||1;for(let i=0;i<n;i++){const top=(o.base||0)+(i+1)*rise;const xa=dir>0?o.x0+i*run:o.x0-(i+1)*run;
     B.box(run,top,o.z1-o.z0,xa+run/2,top/2,(o.z0+o.z1)/2,[o.side,o.side,o.top,o.side,o.side,o.side],{edges:true});}};
-  B.light=(color,int,dist,x,y,z)=>{const l=new THREE.PointLight(color,int,dist);l.position.set(x,y,z);W.group.add(l);return l;};
-  B.figure=(o,spot)=>{const f=HS.makeFigure(o);HS.placeFigure(f,spot);W.group.add(f);return f;};
+  B.light=(color,int,dist,x,y,z)=>{const l=new THREE.PointLight(color,int,dist*W.k);l.position.set(x,y,z);W.group.add(l);return l;};
+  B.figure=(o,spot)=>{const f=HS.makeFigure(o);HS.placeFigure(f,spot);B.addFx(f);return f;};
+  // things that must keep their shape (figures): placed with map coords, not stretched by the map scale
+  B.addFx=(o)=>{o.position.x*=W.k;o.position.z*=W.k;W.fx.add(o);return o;};
   return B;
 }
+// a map with scale k is spread out sideways k times (heights stay the same, so stairs and jumps still work)
+function scaleDef(d,k){const s2=a=>a&&[a[0]*k,a[1]*k].concat(a.slice(2)),s4=a=>a&&a.map(v=>v*k);const sp=d.spawn,b=d.bounds,env=Object.assign({},d.env);
+  if(d.env.ceilAt){const f=d.env.ceilAt;env.ceilAt=(x,z)=>f(x/k,z/k);}env.shadowExt=(env.shadowExt||18)*k;
+  return Object.assign({},d,{env,time:d.time||Math.min(2,k*0.85),bounds:{x0:b.x0*k,x1:b.x1*k,z0:b.z0*k,z1:b.z1*k},
+    spawn:Object.assign({},sp,{seek:s4(sp.seek),hide:s4(sp.hide),seeker:s4(sp.seeker),home:s2(sp.home),dog:s2(sp.dog)}),
+    bounce:d.bounce&&[d.bounce[0]*k,d.bounce[1]*k,d.bounce[2]*k,d.bounce[3]],
+    spots:d.spots.map(s=>Object.assign({},s,{pos:[s.pos[0]*k,s.pos[1],s.pos[2]*k],look:s.look&&[s.look[0]*k,s.look[1]*k]}))});}
 HS.loadMap=function(id){
-  if(W){scene.remove(W.group);disposeGroup(W.group);}
-  const def=HS.maps[id];const g=new THREE.Group();scene.add(g);
-  W=HS.world={def,group:g,cols:[],solids:[]};
-  const BB=builder(W);def.build(BB);if(def.sky)def.sky(BB);
+  if(W){scene.remove(W.group);disposeGroup(W.group);scene.remove(W.fx);disposeGroup(W.fx);}
+  const raw=HS.maps[id];const k=raw.scale||1;const g=new THREE.Group();g.scale.set(k,1,k);scene.add(g);const fx=new THREE.Group();scene.add(fx);
+  W=HS.world={def:raw,group:g,fx,k,cols:[],solids:[]};
+  const BB=builder(W);raw.build(BB);if(raw.sky)raw.sky(BB);
+  W.cols.forEach(c=>{c.x0*=k;c.x1*=k;c.z0*=k;c.z1*=k;});
+  const def=W.def=k===1?raw:scaleDef(raw,k);
   const e=def.env;
   scene.background=new THREE.Color(e.bg||'#cfe8ff');
   scene.fog=e.fog?new THREE.Fog(e.fog[0],e.fog[1],e.fog[2]):null;
@@ -346,9 +357,9 @@ function splatMat(c){if(!splatMats[c]){const m=new THREE.MeshToonMaterial({color
 HS.splat=function(p,n,color,r){if(!W||!/^#[0-9a-f]{6}$/i.test(color))return null;W.splats=W.splats||[];color=color.toLowerCase();
   const m=new THREE.Mesh(splatGeos[(Math.random()*3)|0],splatMat(color));m.scale.setScalar(clamp(r||0.28,0.1,0.5));
   m.position.set(p[0]+n[0]*0.012,p[1]+n[1]*0.012,p[2]+n[2]*0.012);m.lookAt(p[0]+n[0],p[1]+n[1],p[2]+n[2]);m.rotateZ(Math.random()*6.28);m.receiveShadow=true;m.userData.color=color;
-  W.group.add(m);W.splats.push(m);if(W.splats.length>600){const o=W.splats.shift();W.group.remove(o);}return m;};
-HS.eraseSplats=function(p,rad){if(!W||!W.splats)return 0;const v=new THREE.Vector3(p[0],p[1],p[2]);let n=0;W.splats=W.splats.filter(m=>{if(m.position.distanceTo(v)<(rad||0.45)){W.group.remove(m);n++;return false;}return true;});return n;};
-HS.clearSplats=function(){if(!W)return;if(W.splats){W.splats.forEach(m=>W.group.remove(m));W.splats=[];}if(W.dotMesh){W.dotMesh.count=0;W.dotN=0;W.dotColors=[];W.dotPos=[];}};
+  W.fx.add(m);W.splats.push(m);if(W.splats.length>600){const o=W.splats.shift();W.fx.remove(o);}return m;};
+HS.eraseSplats=function(p,rad){if(!W||!W.splats)return 0;const v=new THREE.Vector3(p[0],p[1],p[2]);let n=0;W.splats=W.splats.filter(m=>{if(m.position.distanceTo(v)<(rad||0.45)){W.fx.remove(m);n++;return false;}return true;});return n;};
+HS.clearSplats=function(){if(!W)return;if(W.splats){W.splats.forEach(m=>W.fx.remove(m));W.splats=[];}if(W.dotMesh){W.dotMesh.count=0;W.dotN=0;W.dotColors=[];W.dotPos=[];}};
 // where on the world did the brush touch? (only things within reach)
 HS.pickWorld=function(cx_,cy_,reach){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=reach||7;
   const hits=ray.intersectObjects(W.solids.concat(W.splats||[]),false);if(!hits.length||!hits[0].face)return null;const h=hits[0];const n=h.face.normal.clone().transformDirection(h.object.matrixWorld);
@@ -374,7 +385,7 @@ HS.surfacePalette=function(n){const cnt={};W.solids.forEach(o=>{(Array.isArray(o
 /* ---------- ✏️ line mode: thin lines made of little dots ---------- */
 HS.dotCap=5000;const dotGeo=new THREE.CircleGeometry(1,8),dObj=new THREE.Object3D(),dCol=new THREE.Color(),ZV=new THREE.Vector3(0,0,1),tq=new THREE.Quaternion();
 function dotMeshOf(){if(W.dotMesh)return W.dotMesh;const mat=new THREE.MeshToonMaterial({color:0xffffff,gradientMap:GM,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
-  const m=new THREE.InstancedMesh(dotGeo,mat,HS.dotCap);m.setColorAt(0,dCol.set('#ffffff'));m.count=0;m.frustumCulled=false;m.receiveShadow=true;W.group.add(m);W.dotMesh=m;W.dotN=0;W.dotColors=[];W.dotPos=[];return m;}
+  const m=new THREE.InstancedMesh(dotGeo,mat,HS.dotCap);m.setColorAt(0,dCol.set('#ffffff'));m.count=0;m.frustumCulled=false;m.receiveShadow=true;W.fx.add(m);W.dotMesh=m;W.dotN=0;W.dotColors=[];W.dotPos=[];return m;}
 const okC=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
 HS.dot=function(p,n,color,r){if(!W||!okC(color))return;const m=dotMeshOf();const i=W.dotN%HS.dotCap;W.dotN++;const nv=new THREE.Vector3(n[0],n[1],n[2]).normalize();
   dObj.position.set(p[0]+nv.x*0.006,p[1]+nv.y*0.006,p[2]+nv.z*0.006);dObj.quaternion.setFromUnitVectors(ZV,nv);dObj.scale.setScalar(r||0.035);dObj.updateMatrix();
