@@ -1,7 +1,7 @@
 {
   "name": "Felix's Escape Rooms",
   "short_name": "Escape Rooms",
-  "description": "A 3D escape room game with 30 rooms: find keys, crack codes, discover secret rooms and collect three gems.",
+  "description": "A 3D escape room game with 40 rooms: find keys, crack codes, discover secret rooms and collect three gems.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
