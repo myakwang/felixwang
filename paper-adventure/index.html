@@ -132,8 +132,8 @@ const BOSSES=[null,
  {name:'Wasp Queen',style:'wasp',w:72,h:48,hp:16,spd:2.6,fly:true,spit:120},
  {name:'Bug King',style:'king',w:84,h:62,hp:22,spd:2.4,hop:true,spit:95,summon:280}];
 const NAMES=['The Fan Factory','Star Sky','Moving Day','Windy Tower',"Beetle Queen's Nest",'Bug Alley','Bug Bounce','Bugs on the Move','Pencil Path',"Spider's Castle",
- 'Button Hills','Box Canyon','Gate Puzzle Pass','Think Tank Ridge','The Wasp Hive','Scribble Swamp','Glue Gap','Sharpener Steps','Inkwell Island','The Queen Returns',
- 'Brain Drop','Puzzle Mountain','Switch Sea','Big Brain Storm',"Wasp Queen's Tower",'Highlighter Heights','Tape Trail','Crayon Clouds','The Last Page','The Bug King'];
+ 'Thin Air','Deep Down','Sky High','Shy Guy','The Wasp Hive','Scribble Swamp','Glue Gap','Sharpener Steps','Inkwell Island','The Queen Returns',
+ 'Down Under','Moonlight','Hide and Sneak','Turn Around',"Wasp Queen's Tower",'Highlighter Heights','Tape Trail','Crayon Clouds','The Last Page','The Bug King'];
 
 /* ---------- level builder: joins tested pieces ("chunks") ---------- */
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -205,6 +205,47 @@ function appendHazard(L,type){
 }
 const HAZ_PLAN={9:['lava','saws'],16:['arrows','lava'],17:['saws','arrows'],18:['lava','saws','arrows'],19:['arrows','saws'],
   26:['lava','arrows','saws'],27:['saws','lava','arrows'],28:['arrows','lava','saws'],29:['lava','saws','arrows','lava']};
+/* ---------- brain tricks: think outside the box (no levers or buttons) ----------
+ ghost  : an almost-invisible bridge over a pit too wide to jump
+ wait   : stand still at the edge and a bridge draws itself
+ cave   : one hole is a secret cave with the key; a spring bounces you back out
+ sky    : steps climb past the top of the screen; the key is up there
+ shy    : the key runs away if you walk toward it, and follows you if you walk away
+ (also: goLeft = key hidden behind the start, secretEnd = the last wall is only a drawing,
+  sun = tap the sun or moon to drop the key)
+------------------------------------------------------------------------------- */
+function trickRoom(L,type,x){
+  const S=a=>L.solids.push(a);['ghosts','waits','tzones'].forEach(k=>{L[k]=L[k]||[];});
+  (L.trooms=L.trooms||[]).push({type,x0:x});
+  if(type==='ghost'){S([x,480,200,90]);L.ghosts.push([x+200,480,320,14]);S([x+520,480,240,90]);L.tzones.push([x+200,x+520,'Look closely... is something there? Try walking on it!']);return x+760;}
+  if(type==='wait'){S([x,480,220,90]);L.waits.push({x:x+220,y:480,w:300,h:14,z0:x+100,z1:x+220});S([x+520,480,240,90]);L.tzones.push([x+220,x+520,'Too far to jump... What if you just wait at the edge?']);return x+760;}
+  if(type==='cave'){S([x,480,240,90]);S([x+360,480,160,90]);S([x+600,480,240,90]);
+    S([x+160,570,20,170]);S([x+720,570,20,170]);S([x+160,740,370,40]);S([x+590,740,150,40]);S([x+530,764,60,16]);L.springs.push([x+530,740,60,24]);
+    L.key=[x+440,685];L.caveHole=[x+240,x+360];L.deathY=1150;L.riddle='Something shiny sparkles down a hole... ✨';return x+840;}
+  if(type==='sky'){S([x,480,700,90]);[[150,400],[260,320],[370,240],[480,160],[370,80],[260,0],[370,-80]].forEach(st=>S([x+st[0],st[1],80,20]));
+    L.key=[x+410,-125];L.riddle='The sky is NOT the limit! ⬆';return x+700;}
+  if(type==='shy'){S([x,480,1000,90]);L.key=[x+520,425];L.shy=[x+60,x+960];L.riddle="That key is shy. Don't walk toward it!";return x+1000;}
+}
+function appendTrick(L,type){
+  const end=trickRoom(L,type,L.width);L.solids.push([end,480,460,90]);
+  L.goal=L.goal.kind==='cage'?{kind:'cage',x:end+330,y:380,w:84,h:100}:{kind:'flag',x:end+330,y:410,w:70,h:70};L.width=end+460;
+}
+// move a whole level right (to hide the key behind the start)
+function shiftLevel(L,dx){
+  ['solids','crumbles','springs','hearts','stars','ghosts'].forEach(k=>(L[k]||[]).forEach(a=>{a[0]+=dx;}));
+  (L.movers||[]).forEach(m=>{m[0]+=dx;if(m[4]==='x'){m[5]+=dx;m[6]+=dx;}});
+  (L.fans||[]).forEach(f=>{f.x+=dx;});(L.mobs||[]).forEach(m=>{m[1]+=dx;m[2]+=dx;});
+  (L.haz||[]).forEach(h=>{['x','x0','x1','cx'].forEach(k=>{if(h[k]!=null)h[k]+=dx;});});
+  (L.waits||[]).forEach(w=>{w.x+=dx;w.z0+=dx;w.z1+=dx;});(L.tzones||[]).forEach(z=>{z[0]+=dx;z[1]+=dx;});
+  (L.chunks||[]).forEach(c=>{c.x0+=dx;});(L.trooms||[]).forEach(c=>{c.x0+=dx;});(L.hzRooms||[]).forEach(c=>{c.x0+=dx;});
+  if(L.key)L.key[0]+=dx;if(L.shy){L.shy[0]+=dx;L.shy[1]+=dx;}if(L.caveHole){L.caveHole[0]+=dx;L.caveHole[1]+=dx;}
+  L.goal.x+=dx;L.start[0]+=dx;L.width+=dx;
+}
+function goLeft(L){shiftLevel(L,700);L.solids.push([0,480,720,90]);L.key=[70,425];L.riddle='Did you look EVERYWHERE? Even behind you? 👀';}
+function secretEnd(L){const w=L.width;L.solids.push([w,480,420,90]);L.fakes=[[w-10,-300,50,780]];L.solids.push([w+400,-300,30,780]);
+  L.key=[w+200,425];L.camWall=w-10;L.width=w+430;L.riddle='Some walls are only drawings... ✏️';}
+const TRICKS={1:['goLeft'],2:['secretEnd'],3:['wait'],4:['sun'],11:['ghost'],12:['cave'],13:['sky'],14:['shy'],
+  21:['cave','ghost'],22:['sun','wait'],23:['shy','ghost','wait'],24:['goLeft','ghost','wait']};
 function appendPuzzle(L,type){
   const end=puzzleRoom(L,type,L.width,false);L.solids.push([end,480,460,90]);
   L.goal=L.goal.kind==='cage'?{kind:'cage',x:end+330,y:380,w:84,h:100}:{kind:'flag',x:end+330,y:410,w:70,h:70};L.width=end+460;
@@ -234,7 +275,7 @@ function genLevel(n){
   const types=Object.keys(CH);
   let x=360,last='';
   const nChunks=boss?2+Math.floor(diff*2):brain?3+Math.floor(diff*2):5+Math.floor(diff*4);
-  const hard=n>20,pz=brain?BRAIN_PLAN[n].slice():[],hz=(HAZ_PLAN[n]||[]).slice();
+  const hard=n>20,pz=brain?(TRICKS[n]||[]).filter(t=>['ghost','wait','cave','sky','shy'].includes(t)):[],hz=(HAZ_PLAN[n]||[]).slice();
   const hzAfter=hz.map((_,k)=>Math.floor((k+1)*nChunks/(hz.length+1))-1);
   const pzAfter=pz.map((_,k)=>Math.floor((k+1)*nChunks/(pz.length+1))-1);
   for(let c=0;c<nChunks;c++){
@@ -242,13 +283,13 @@ function genLevel(n){
     const x0=x;L.chunks.push({type:tp,x0});
     x=CH[tp](x,ri(240,380));
     if(n>5&&R()<0.15+diff*0.5&&!brain)L.mobs.push(['fly',x0+40,x-40,ri(230,350),fspd]);
-    if(brain&&pz.length&&pzAfter.includes(c))x=puzzleRoom(L,pz.shift(),x,hard);
+    if(brain&&pz.length&&pzAfter.includes(c))x=trickRoom(L,pz.shift(),x);
     while(hz.length&&hzAfter[0]===c){hzAfter.shift();x=hazardRoom(L,hz.shift(),x,diff);}
   }
-  while(pz.length)x=puzzleRoom(L,pz.shift(),x,hard);
+  while(pz.length)x=trickRoom(L,pz.shift(),x);
   while(hz.length)x=hazardRoom(L,hz.shift(),x,diff);
   if(n>=6&&R()<0.6)L.hearts.push([x-90,420]);
-  if(!boss&&L.grounds.length){const g=L.grounds[Math.floor(L.grounds.length/2)];L.key=[g[0]+g[1]/2,425];}
+  if(!boss&&!L.key&&L.grounds.length){const g=L.grounds[Math.floor(L.grounds.length/2)];L.key=[g[0]+g[1]/2,425];}
   if(boss){const tier=n/5;
     L.hearts.push([x-60,420]);
     S([x+100,480,1150,90]);S([x+420,360,120,20]);S([x+820,360,120,20]);
@@ -265,11 +306,15 @@ for(let n=1;n<=30;n++){
   else if(n>=6&&n<=8)L=HAND[n-2];
   else if(n===10){L=HAND[7];L.mobs=L.mobs.map(m=>m[0]==='boss'?['boss',m[1],m[2],m[3],2]:m);}
   else L=genLevel(n);
-  const HK={1:[1180,230],2:[1450,380],3:[980,425],4:[1480,380],6:[1600,425],7:[1100,425],8:[980,325]};if(HK[n])L.key=HK[n];
-  if(n<=4)appendPuzzle(L,BRAIN_PLAN[n][0]);
+  const HK={3:[980,425],6:[1600,425],7:[1100,425],8:[980,325]};if(HK[n])L.key=HK[n];
+  if(n===3)appendTrick(L,'wait');
+  const tr=TRICKS[n]||[];
+  if(tr.includes('sun')){L.key=null;L.sunKey=true;L.riddle=n<=10?'The sun looks extra shiny today... ☀️ Tap it!':'The moon is hiding something... 🌙 Tap it!';}
+  if(tr.includes('secretEnd'))secretEnd(L);
+  if(tr.includes('goLeft'))goLeft(L);
   if(n>=6&&n<=8)appendHazard(L,['lava','saws','arrows'][n-6]);
   if(n>=6){const ws=L.mobs.filter(m=>m[0]==='walk');if(ws.length)ws[Math.floor(ws.length/2)][5]='heart';}
-  L.name='Level '+n+': '+NAMES[n-1];L.weapon=n>=5&&!isBrain(n);L.brain=isBrain(n);L.hints=n<=4;if(!L.hints)L.signs=[];L.boss=n%5===0?BOSSES[n/5]:null;
+  L.name='Level '+n+': '+NAMES[n-1];L.weapon=n>=5&&!isBrain(n);L.brain=isBrain(n);L.hints=false;L.signs=[];L.boss=n%5===0?BOSSES[n/5]:null;
   LEVELS.push(L);
 }
 const WEAPON_FROM=4;
@@ -277,7 +322,7 @@ const WEAPON_FROM=4;
 /* ---------- state ---------- */
 let heartsAtStart=3,hearts0=3;try{const h=parseInt(localStorage.getItem('paperAdventureHearts')||'3',10);hearts0=h>=1&&h<=3?h:3;}catch(e){}
 let cur=0,curUnset=true;try{curUnset=localStorage.getItem('paperAdventureCur')===null;cur=Math.max(0,Math.min(29,parseInt(localStorage.getItem('paperAdventureCur')||'0',10)||0));}catch(e){}
-let lt=0,haz=[],plates=[],levers=[],circs=[],keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=hearts0,fireCd=0,msg='',msgT=0;
+let bumps=0,sunDropped=false,lt=0,haz=[],plates=[],levers=[],circs=[],keyItem=null,hasKey=false,LV=0,lv,blocks,stars,fans,goal,mobs,shots,blobs=[],pickups=[],p,safe,cam={x:0,y:0},t=0,state='title',flash=0,parts=[],hearts=hearts0,fireCd=0,msg='',msgT=0;
 let maxLevel=0;try{maxLevel=Math.min(LEVELS.length-1,parseInt(localStorage.getItem('paperAdventureMax')||'0',10)||0);}catch(e){}
 function saveMax(i){if(i>maxLevel){maxLevel=i;try{localStorage.setItem('paperAdventureMax',String(i));}catch(e){}}}
 function load(i){
@@ -289,11 +334,13 @@ function load(i){
   fans=(lv.fans||[]).map(f=>Object.assign({},f));
   fans.forEach(f=>{if(f.dir==='up')blocks.push({x:f.x,y:f.y,w:f.w,h:f.h,kind:'fan'});});
   (lv.gates||[]).forEach(g=>blocks.push({x:g[0],y:g[1],w:g[2],h:g[3],kind:'gate',id:g[4],all:g[5]==='all',circ:g[6]!=null?g[6]:null,on:!!g[7],open:false,latched:false,timer:0,max:1}));
+  (lv.ghosts||[]).forEach(b=>blocks.push({x:b[0],y:b[1],w:b[2],h:b[3],kind:'ghost'}));
+  (lv.waits||[]).forEach(w=>blocks.push({x:w.x,y:w.y,w:w.w,h:w.h,kind:'wait',z0:w.z0,z1:w.z1,still:0,shown:false,fade:0}));
   (lv.planks||[]).forEach(b=>blocks.push({x:b[0],y:b[1],w:b[2],h:b[3],kind:'plank'}));
   (lv.boxes||[]).forEach(b=>blocks.push({x:b[0],y:b[1],w:40,h:40,kind:'box',vy:0,hx:b[0],hy:b[1]}));
   levers=(lv.levers||[]).map(l=>({x:l[0],y:480,w:24,h:24,c:l[1],inside:false}));circs=[];levers.forEach(l=>{circs[l.c]=false;});
   plates=(lv.plates||[]).map(q=>({x:q[0],y:q[1],w:q[2],mode:q[3],gate:q[4],time:q[5]||0,pressed:false}));
-  stars=[];hasKey=false;keyItem=lv.key?{x:lv.key[0],y:lv.key[1],got:false}:null;
+  stars=[];hasKey=false;keyItem=lv.key?{x:lv.key[0],y:lv.key[1],got:false,shy:lv.shy?lv.shy.slice():null}:null;bumps=0;sunDropped=false;
   goal=lv.goal;
   mobs=(lv.mobs||[]).map((m,k)=>{
     if(m[0]==='walk'&&m[5]==='heart')return{type:'walk',heart:true,min:m[1],max:m[2],w:42,h:28,x:(m[1]+m[2])/2-21,y:m[3]-28,vx:0.9*(k%2?-1:1),hp:3,maxhp:3,hit:0};
@@ -439,7 +486,7 @@ function trophyCount(){try{return parseInt(localStorage.getItem('paperAdventureT
 function menu(){if(curUnset){cur=checkpointOf(maxLevel);curUnset=false;}state='title';if(!lv)load(0);setSong('main');
   const portrait=innerHeight>innerWidth;
   const tc=trophyCount();
-  showOv("Felix's Paper Adventure",(ON_SITE?'<div id="liveMenu" class="live">'+(liveN?liveText():'')+'</div>':'')+(tc?'<div class="champ"><canvas class="trophy small" width="220" height="180"></canvas>Paper Champion!'+(tc>1?' ×'+tc:'')+'</div>':'')+"<p>Levels drawn by Felix! Find the key 🔑 to open the door.<br>🧠 Blue = brain puzzles (stuck? press ↺) · 🐞 Pink = bugs + pencil blaster ✏️ · 👑 Boss every 5 levels<br>❤️❤️❤️ Falling or a bug hit costs a heart. Hearts never refill. Lose them all: back to the last 🚩 checkpoint.</p>"+levelButtons()+
+  showOv("Felix's Paper Adventure",(ON_SITE?'<div id="liveMenu" class="live">'+(liveN?liveText():'')+'</div>':'')+(tc?'<div class="champ"><canvas class="trophy small" width="220" height="180"></canvas>Paper Champion!'+(tc>1?' ×'+tc:'')+'</div>':'')+"<p>Levels drawn by Felix! Find the key 🔑 to open the door.<br>🧠 Blue = brain levels: think outside the box! · 🐞 Pink = bugs + pencil blaster ✏️ · 👑 Boss every 5 levels<br>❤️❤️❤️ Falling or a bug hit costs a heart. Hearts never refill. Lose them all: back to the last 🚩 checkpoint.</p>"+levelButtons()+
    (portrait?"<p><small>Tip: turn your phone sideways for a bigger view.</small></p>":"<p><small>Keys: ← → move · Space jump · X fire</small></p>"),
    cur>0?"Continue: Level "+(cur+1):"Play",()=>startLevel(cur));if(ON_SITE)ovh.classList.remove('hide');if(tc)animTrophy();}
 function countStars(){return stars.filter(s=>s.got).length;}
@@ -462,7 +509,7 @@ function checkpointOf(i){const n=i+1;return n<5?0:Math.floor(n/5)*5-1;}
 /* ---------- physics ---------- */
 const G=0.6,SPEED=5,JUMP=12.5,SPRING=19;
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
-function activeBlocks(){return blocks.filter(b=>!(b.kind==='crumble'&&b.gone)&&!(b.kind==='gate'&&b.open));}
+function activeBlocks(){return blocks.filter(b=>!(b.kind==='crumble'&&b.gone)&&!(b.kind==='gate'&&b.open)&&!(b.kind==='wait'&&!b.shown));}
 function puff(x,y,n,col){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=1+Math.random()*3;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:30+Math.random()*15,col});}}
 function hurtPlayer(fromX){
   if(p.inv>0)return;
@@ -577,14 +624,29 @@ function step(dt){
   blobs=blobs.filter(b=>b.life>0);
   // heart pickups
   pickups.forEach(h=>{if(h.fall){h.vy+=0.4*dt;h.y+=h.vy*dt;if(h.y>=h.floor){h.y=h.floor;h.fall=false;}return;}if(!h.got&&Math.abs(h.x-(p.x+p.w/2))<26&&Math.abs(h.y-(p.y+p.h/2))<34){if(hearts<3){h.got=true;hearts=Math.min(3,hearts+1);saveHearts();tone(660,.1,'triangle');setTimeout(()=>tone(990,.15,'triangle'),90);}}});
+  // wait bridges: stand still at the edge and the bridge draws itself
+  blocks.forEach(b=>{if(b.kind!=='wait'||b.shown)return;const cx=p.x+p.w/2;
+    if(p.grounded&&Math.abs(p.vx)<0.3&&cx>b.z0&&cx<b.z1+10){b.still+=dt;if(Math.floor(b.still)%30===0&&b.still>10)tone(400+b.still*3,.05,'triangle',null,.04);}else b.still=Math.max(0,b.still-dt*2);
+    if(b.still>150){b.shown=true;tone(523,.12,'triangle');setTimeout(()=>tone(784,.2,'triangle'),110);msg='A bridge! Waiting worked! ✨';msgT=110;}});
+  blocks.forEach(b=>{if(b.kind==='wait'&&b.shown&&b.fade<1)b.fade=Math.min(1,b.fade+0.03*dt);});
+  // the shy key runs away if you walk toward it, and follows you if you walk away
+  if(keyItem&&!keyItem.got&&keyItem.shy){const k=keyItem,cx=p.x+p.w/2,dx=k.x-cx,sd=Math.sign(dx)||1;
+    if(Math.abs(dx)<460){const toward=sd===p.face;
+      if(toward&&Math.abs(p.vx)>0.5){k.follow=false;k.x+=sd*5.6*dt;k.run=true;
+        if(k.x<k.shy[0]||k.x>k.shy[1]){k.x=Math.max(k.shy[0],Math.min(k.shy[1],cx-sd*170));k.y-=0;puff(k.x,k.y,6,'#ffd23f');}}
+      else if(!toward){k.x-=sd*Math.min(Math.abs(dx),(Math.abs(dx)>120?11:7)*dt);k.run=true;k.follow=true;}
+      else k.run=false;
+      if(!k.follow)k.x=Math.max(k.shy[0],Math.min(k.shy[1],k.x));}else k.run=false;
+    if(k.follow&&p.grounded&&p.ground&&p.ground.kind==='solid')k.y=p.ground.y-55;}
   // the key
   if(keyItem&&!keyItem.got){
-    if(keyItem.fall){keyItem.vy+=0.4*dt;keyItem.y+=keyItem.vy*dt;if(keyItem.y>=keyItem.floor){keyItem.y=keyItem.floor;keyItem.vy=0;keyItem.fall=false;}}
+    if(keyItem.fall){keyItem.vy+=0.4*dt;keyItem.y+=keyItem.vy*dt;if(keyItem.tx!=null)keyItem.x+=(keyItem.tx-keyItem.x)*Math.min(1,0.06*dt);if(keyItem.y>=keyItem.floor){keyItem.y=keyItem.floor;keyItem.vy=0;keyItem.fall=false;}}
     const dx=keyItem.x-(p.x+p.w/2),dy=keyItem.y-(p.y+p.h/2);
     if(!keyItem.fall&&dx*dx+dy*dy<46*46){keyItem.got=true;hasKey=true;sfx.star();msg='You got the key! 🔑 Now find the '+(goal.kind==='cage'?'cage':'door')+'!';msgT=130;
       for(let i=0;i<12;i++){const a=Math.random()*6.28;parts.push({x:keyItem.x,y:keyItem.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:30,star:true});}}}
   // fall
-  if(p.y>720){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;saveHearts();if(hearts<=0){loseLevel();return;}sfx.fall();}
+  if(p.y>(lv.deathY||720)){const fx=p.x+p.w/2,tz=(lv.tzones||[]).find(z=>fx>z[0]-40&&fx<z[1]+40);if(tz){msg=tz[2];msgT=240;}
+    p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;flash=20;p.inv=Math.max(p.inv,40);hearts--;saveHearts();if(hearts<=0){loseLevel();return;}sfx.fall();}
   // lava, chainsaws and arrow tips: lose a heart and go back to safe ground
   if(state==='play'&&p.inv<=0){
     const pr={x:p.x+3,y:p.y+3,w:p.w-6,h:p.h-4};let hit=null;
@@ -601,7 +663,7 @@ function step(dt){
   // goal
   if(state==='play'&&overlap(p,goal)){
     if(goal.needBoss&&mobs.some(m=>m.type==='boss'&&m.hp>0)){if(msgT<=0){msg='Defeat the '+(lv.boss?lv.boss.name:'boss')+' first!';msgT=90;}}
-    else if(!hasKey){if(msgT<=0){msg='Locked! You need the key 🔑';msgT=90;}}
+    else if(!hasKey){if(msgT<=0){bumps++;msg=bumps>=3&&lv.riddle?'Hint: '+lv.riddle:'Locked! You need the key 🔑';msgT=bumps>=3&&lv.riddle?260:90;}}
     else winLevel();
   }
   if(msgT>0)msgT-=dt;
@@ -775,6 +837,13 @@ function buildBG(){
   BG=B;
 }
 function bgLayer(arr,f,cb){const ox=cam.x*f;arr.forEach(it=>{const sx=it.x-ox;if(sx>-400&&sx<viewW+400)cb(it,sx);});}
+function sunPos(){const gy=480-cam.y,sec=BG?BG.sec:0;return sec===2?{x:viewW*0.78,y:gy*0.22,r:30}:{x:viewW*0.8,y:sec===1?gy*0.55:gy*0.2,r:sec===1?44:32};}
+function tapSky(e){if(state!=='play'||!lv||!lv.sunKey||sunDropped)return;const lx=e.clientX/scale,ly=e.clientY/scale,s=sunPos();
+  if(Math.hypot(lx-s.x,ly-s.y)>s.r+26)return;sunDropped=true;const wx=cam.x+s.x;
+  const g=(p.ground&&p.ground.kind==='solid')?p.ground:{x:safe.x-40,w:80,y:safe.y+p.h};const tx=Math.max(g.x+20,Math.min(g.x+g.w-20,p.x+p.w/2+(p.face||1)*110));
+  keyItem={x:wx,y:cam.y+s.y,vy:-3,fall:true,floor:g.y-26,tx,got:false};msg='Something fell out of the '+(BG.sec===2?'moon':'sun')+'! 🔑';msgT=140;
+  tone(988,.1,'triangle');setTimeout(()=>tone(1318,.2,'triangle'),100);}
+cv.addEventListener('pointerdown',tapSky);
 function drawBG(){
   if(!BG||BG.lv!==lv){buildBG();BG.lv=lv;}
   const C=SKY[BG.sec],gy=480-cam.y; // screen y of the ground line
@@ -786,6 +855,7 @@ function drawBG(){
     ctx.fillStyle='rgba(220,200,130,.5)';[[-8,-6,6],[9,6,4],[-4,12,3]].forEach(c=>{ctx.beginPath();ctx.arc(viewW*0.78+c[0],gy*0.22+c[1],c[2],0,7);ctx.fill();});}
   else{const sx=viewW*0.8,sy=BG.sec===1?gy*0.55:gy*0.2,r=BG.sec===1?44:32;ctx.fillStyle=BG.sec===1?'rgba(255,150,80,.55)':'rgba(255,220,90,.6)';ctx.strokeStyle=BG.sec===1?'#e8894a':'#e6b800';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.fill();ctx.stroke();ctx.lineWidth=2;for(let i=0;i<10;i++){const a=i*Math.PI/5+t*0.004;ctx.beginPath();ctx.moveTo(sx+Math.cos(a)*(r+8),sy+Math.sin(a)*(r+8));ctx.lineTo(sx+Math.cos(a)*(r+20),sy+Math.sin(a)*(r+20));ctx.stroke();}}
+  if(lv.sunKey&&!sunDropped&&Math.floor(t/45)%3===0){const sp=sunPos();drawKey(sp.x,sp.y,0.55,true);}
   // clouds
   if(BG.sec<2)bgLayer(BG.clouds,0.08,(c,sx)=>{const y=c.y-cam.y*0.3,s=c.s;ctx.fillStyle='rgba(255,255,255,.75)';ctx.strokeStyle=C.cloud;ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(sx,y,18*s,Math.PI*0.5,Math.PI*1.5);ctx.arc(sx+22*s,y-14*s,20*s,Math.PI,0);ctx.arc(sx+48*s,y-6*s,16*s,Math.PI*1.3,Math.PI*0.3);ctx.arc(sx+60*s,y+4*s,12*s,Math.PI*1.5,Math.PI*0.5);ctx.closePath();ctx.fill();ctx.stroke();});
@@ -822,8 +892,10 @@ function drawBG(){
 /* ---------- render ---------- */
 function render(){
   ctx.setTransform(DPR*scale,0,0,DPR*scale,0,0);
-  cam.x=Math.max(0,Math.min(p.x+p.w/2-viewW*0.4,Math.max(0,lv.width-viewW)));
-  cam.y=Math.min(0,560-viewH);
+  let camMaxX=Math.max(0,lv.width-viewW);if(lv.camWall&&p.x<lv.camWall)camMaxX=Math.max(0,Math.min(camMaxX,lv.camWall+50-viewW));
+  cam.x=Math.max(0,Math.min(p.x+p.w/2-viewW*0.4,camMaxX));
+  {const base=Math.min(0,560-viewH);let ty=base;if(p.y+p.h+90>base+viewH)ty=p.y+p.h+90-viewH;if(p.y-70<ty)ty=p.y-70;
+   if(cam.ty==null||cam.lv!==lv){cam.ty=ty;cam.lv=lv;cam.y=ty;}cam.y+=(ty-cam.y)*0.15;}
   ctx.fillStyle='#fbfaf5';ctx.fillRect(0,0,viewW,viewH);
   ctx.strokeStyle='#d6e4f2';ctx.lineWidth=1.2;
   const off=(-cam.y)%34;for(let y=off;y<viewH;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(viewW,y);ctx.stroke();}
@@ -879,6 +951,15 @@ function render(){
     else if(b.kind==='spring'){const sq=b.squash>0?6:0;srect(b.x,b.y+sq,b.w,b.h-sq,i*11,'#fffbe0');ctx.lineWidth=1.8;
       const n=Math.max(1,Math.round(b.w/20));for(let k=0;k<n;k++){arrowUp(b.x+(k+.5)*b.w/n,b.y+sq+4,b.h-sq-8);if(k<n-1)sline(b.x+(k+1)*b.w/n,b.y+sq,b.x+(k+1)*b.w/n,b.y+b.h,i+k);}}
   });
+  // trick drawings
+  blocks.forEach((b,i)=>{
+    if(b.kind==='ghost'){ctx.save();ctx.globalAlpha=0.16+0.06*Math.sin(t*0.05);ctx.setLineDash([3,9]);ctx.strokeStyle='#2b2b2b';ctx.lineWidth=1.6;ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();
+      if(Math.floor(t/40+i)%3===0){const sx=b.x+((t*3+i*77)%b.w);ctx.fillStyle='rgba(255,220,90,.7)';ctx.beginPath();ctx.arc(sx,b.y-4,2,0,7);ctx.fill();}}
+    if(b.kind==='wait'){if(b.shown){ctx.save();ctx.globalAlpha=b.fade;ctx.fillStyle='#fff3cf';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;sline(b.x,b.y,b.x+b.w,b.y,i);sline(b.x,b.y+b.h,b.x+b.w,b.y+b.h,i+3);
+        for(let k=b.x+30;k<b.x+b.w;k+=30)sline(k,b.y,k,b.y+b.h,i+k);ctx.restore();}
+      else if(b.still>5){const n=Math.floor(Math.min(1,b.still/150)*10);ctx.fillStyle='#888';for(let k=0;k<n;k++){ctx.beginPath();ctx.arc(b.x+15+k*(b.w-30)/9,b.y+6,3,0,7);ctx.fill();}}}});
+  (lv.fakes||[]).forEach((f,i)=>{srect(f[0],f[1],f[2],f[3],i*9+5,'#fff');ctx.strokeStyle='rgba(60,60,60,.5)';ctx.lineWidth=1.3;ctx.beginPath();const cx=f[0]+f[2]/2;ctx.moveTo(cx-6,400);ctx.lineTo(cx+3,412);ctx.lineTo(cx-4,424);ctx.lineTo(cx+5,438);ctx.stroke();});
+  if(lv.caveHole&&keyItem&&!keyItem.got&&Math.floor(t/50)%2===0){const hx=lv.caveHole[0]+((t*2)%(lv.caveHole[1]-lv.caveHole[0])),hy=500-((t*1.5)%40);ctx.fillStyle='rgba(255,215,60,.85)';ctx.beginPath();ctx.arc(hx,hy,2.5,0,7);ctx.fill();}
   // lava, chainsaws, arrows
   haz.forEach((h,i)=>{
     if(h.t==='lava'){ctx.save();ctx.fillStyle='#ff7a1a';ctx.fillRect(h.x,h.y,h.w,h.h);ctx.fillStyle='#ffc23d';
@@ -903,6 +984,8 @@ function render(){
     ctx.lineWidth=2;ctx.strokeStyle='#2b2b2b';for(let k=1;k<5;k++)sline(g.x+k*g.w/5,g.y,g.x+k*g.w/5,g.y+g.h,80+k);
     ctx.font='16px "Comic Sans MS",cursive';ctx.fillStyle='#333';ctx.fillText('Help!',g.x+16,g.y-10-Math.abs(Math.sin(t*.08))*6);}
   // key
+  if(keyItem&&!keyItem.got&&keyItem.shy){const k=keyItem,lg=k.run?Math.sin(t*0.6)*5:0;ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(k.x-6,k.y+6);ctx.lineTo(k.x-8+lg,k.y+30);ctx.moveTo(k.x+6,k.y+6);ctx.lineTo(k.x+8-lg,k.y+30);ctx.stroke();
+    const ex=k.x-10,ey=k.y-14;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-4,ey,4,0,7);ctx.arc(ex+5,ey,4,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#2b2b2b';const lk=Math.sign(p.x-k.x)*1.5;ctx.beginPath();ctx.arc(ex-4+lk,ey,1.6,0,7);ctx.arc(ex+5+lk,ey,1.6,0,7);ctx.fill();}
   if(keyItem&&!keyItem.got){const bob=keyItem.fall?0:Math.sin(t*0.08)*4;ctx.save();ctx.globalAlpha=.35+.2*Math.sin(t*0.1);ctx.fillStyle='#ffe36e';ctx.beginPath();ctx.arc(keyItem.x,keyItem.y+bob,24,0,7);ctx.fill();ctx.restore();drawKey(keyItem.x,keyItem.y+bob,1.2,true);}
   // mobs
   mobs.forEach(m=>{if(m.hp>0)(m.type==='boss'&&m.B.style!=='beetle'?drawBoss(m):drawBug(m));});
@@ -950,7 +1033,7 @@ function loop(now){
   if(state==='play'){const n=dt>1?Math.ceil(dt):1;for(let i=0;i<n&&state==='play';i++)step(dt/n);}
   t+=dt;render();requestAnimationFrame(loop);
 }
-if(new URLSearchParams(location.search).has('test'))window.__game={get msg(){return msg},setHearts(n){hearts=n},get haz(){return haz},get lt(){return lt},get plates(){return plates},get mus(){return mus},get hasKey(){return hasKey},get hearts(){return hearts},forceKey(){hasKey=true;},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
+if(new URLSearchParams(location.search).has('test'))window.__game={get key(){return keyItem},get cam(){return cam},sunPos(){return sunPos()},get scale(){return scale},get msg(){return msg},setHearts(n){hearts=n},get haz(){return haz},get lt(){return lt},get plates(){return plates},get mus(){return mus},get hasKey(){return hasKey},get hearts(){return hearts},forceKey(){hasKey=true;},get levels(){return LEVELS},get blocks(){return blocks},get blobs(){return blobs},get p(){return p},get mobs(){return mobs},get state(){return state},startLevel,get lv(){return LV}};
 load(0);menu();requestAnimationFrame(loop);
 })();
 </script>
