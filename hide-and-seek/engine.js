@@ -95,12 +95,12 @@ function disposeGroup(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
 function builder(W){
   const B={W};
   const add=(m,o)=>{((o&&o.parent)||W.group).add(m);return m;};
-  B.col=(x0,x1,z0,z1,top)=>W.cols.push({x0,x1,z0,z1,top});
+  B.col=(x0,x1,z0,z1,top,bot)=>W.cols.push({x0,x1,z0,z1,top,bot:bot||0});
   B.edges=(m,thr)=>{m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,thr||30),LINEM));return m;};
   const matOf=(c,o)=>Array.isArray(c)?c.map(x=>typeof x==='string'?HS.mat(x):x):(c&&c.isMaterial?c:HS.mat(c||'#ffffff',{map:o&&o.map,emissive:o&&o.emissive}));
   B.box=(w,h,d,x,y,z,color,o)=>{o=o||{};const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),matOf(color,o));m.position.set(x,y,z);if(o.ry)m.rotation.y=o.ry;if(o.rz)m.rotation.z=o.rz;if(o.rx)m.rotation.x=o.rx;
     m.castShadow=o.cast!==false;m.receiveShadow=true;if(o.edges!==false)B.edges(m);add(m,o);if(o.solid!==false)W.solids.push(m);
-    if(o.col!==false&&!o.parent&&!o.ry&&!o.rz&&!o.rx){const top=(typeof o.col==='number')?o.col:y+h/2;B.col(x-w/2,x+w/2,z-d/2,z+d/2,top);}return m;};
+    if(o.col!==false&&!o.parent&&!o.ry&&!o.rz&&!o.rx){const top=(typeof o.col==='number')?o.col:y+h/2;B.col(x-w/2,x+w/2,z-d/2,z+d/2,top,o.float?y-h/2:0);}return m;};
   B.cyl=(rt,rb,h,x,y,z,color,o)=>{o=o||{};const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,o.seg||18,1,!!o.open),matOf(color,o));m.position.set(x,y,z);if(o.rx)m.rotation.x=o.rx;if(o.rz)m.rotation.z=o.rz;if(o.ry)m.rotation.y=o.ry;
     m.castShadow=o.cast!==false;m.receiveShadow=true;if(o.edges!==false)B.edges(m,40);add(m,o);if(o.solid!==false)W.solids.push(m);
     if(o.col){const r=Math.max(rt,rb);const top=(typeof o.col==='number')?o.col:y+h/2;B.col(x-r,x+r,z-r,z+r,top);}return m;};
@@ -120,7 +120,7 @@ HS.loadMap=function(id){
   if(W){scene.remove(W.group);disposeGroup(W.group);}
   const def=HS.maps[id];const g=new THREE.Group();scene.add(g);
   W=HS.world={def,group:g,cols:[],solids:[]};
-  def.build(builder(W));
+  const BB=builder(W);def.build(BB);if(def.sky)def.sky(BB);
   const e=def.env;
   scene.background=new THREE.Color(e.bg||'#cfe8ff');
   scene.fog=e.fog?new THREE.Fog(e.fog[0],e.fog[1],e.fog[2]):null;
@@ -132,7 +132,12 @@ HS.loadMap=function(id){
   W.spots=def.spots.map((s,i)=>{const sp=Object.assign({},s,{i});const f=HS.makeFigure({});HS.placeFigure(f,sp);f.updateMatrixWorld(true);const v=new THREE.Vector3();f.userData.inner.userData.head.getWorldPosition(v);sp.eye=v.add(new THREE.Vector3(0,0.05,0));sp.lookY=HS.floorAt(s.look[0],s.look[1]);sp.top=v.y+0.45;return sp;});
   return W;
 };
-HS.floorAt=function(x,z,r){if(r===undefined)r=0.3;let h=0;for(const c of W.cols){if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top>h)h=c.top;}return h;};
+// ground-level view (seeker, dog, paths): floating things high overhead don't count
+HS.floorAt=function(x,z,r){if(r===undefined)r=0.3;let h=0;for(const c of W.cols){if(c.bot>=1.75)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top>h)h=c.top;}return h;};
+// for a player whose feet are at 'feet': what can I stand on, what blocks me, what is over my head?
+HS.standAt=function(x,z,r,feet){let h=0;for(const c of W.cols){if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top<=feet+0.62&&c.top>h)h=c.top;}return h;};
+HS.blockAt=function(x,z,r,feet){for(const c of W.cols){if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top>feet+0.62&&c.bot<feet+1.75)return true;}return false;};
+HS.ceilAt=function(x,z,r,feet){let m=null;for(const c of W.cols){if(c.bot>feet+0.05&&x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&(m===null||c.bot<m))m=c.bot;}return m;};
 HS.clampXZ=function(x,z,m){const b=W.def.bounds;m=m==null?0.3:m;return [clamp(x,b.x0+m,b.x1-m),clamp(z,b.z0+m,b.z1-m)];};
 
 /* ================= pathfinding grid ================= */
@@ -275,10 +280,11 @@ const P=HS.P={x:0,z:0,feet:0,vy:0,camY:1.55,yaw:0,pitch:0,ground:true};
 HS.resetPlayer=function(x,z,fx,fz){P.x=x;P.z=z;P.feet=HS.floorAt(x,z);P.vy=0;P.camY=P.feet+HS.EYE;P.yaw=Math.atan2(-(fx-x),-(fz-z));P.pitch=0;P.ground=true;};
 HS.movePlayer=function(mx,mz,dt){
   const b=W.def.bounds;
-  const tryPos=(nx,nz)=>{nx=clamp(nx,b.x0+0.3,b.x1-0.3);nz=clamp(nz,b.z0+0.3,b.z1-0.3);if(HS.floorAt(nx,nz)>P.feet+0.62)return false;P.x=nx;P.z=nz;return true;};
+  const tryPos=(nx,nz)=>{nx=clamp(nx,b.x0+0.3,b.x1-0.3);nz=clamp(nz,b.z0+0.3,b.z1-0.3);if(HS.blockAt(nx,nz,0.3,P.feet))return false;P.x=nx;P.z=nz;return true;};
   if(mx||mz){if(!tryPos(P.x+mx,P.z+mz)){if(!tryPos(P.x+mx,P.z))tryPos(P.x,P.z+mz);}}
-  const h=HS.floorAt(P.x,P.z);
-  if(P.vy>0||P.feet>h+0.001){P.vy-=22*dt;P.feet+=P.vy*dt;if(P.feet<=h){P.feet=h;P.vy=0;P.ground=true;}else P.ground=false;}
+  const h=HS.standAt(P.x,P.z,0.3,P.feet);
+  if(P.vy>0||P.feet>h+0.001){P.vy-=22*dt;let nf=P.feet+P.vy*dt;if(P.vy>0){const c=HS.ceilAt(P.x,P.z,0.25,P.feet);if(c!==null&&nf+1.75>c){nf=Math.max(P.feet,c-1.75);P.vy=0;}}P.feet=nf;
+    const h2=HS.standAt(P.x,P.z,0.3,P.feet);if(P.feet<=h2){P.feet=h2;P.vy=0;P.ground=true;}else P.ground=false;}
   else{P.feet=h;P.vy=0;P.ground=true;}
   const bo=W.def.bounce;if(bo&&P.ground&&Math.hypot(P.x-bo[0],P.z-bo[1])<bo[2]&&P.feet>bo[3]-0.05){P.vy=11.5;P.ground=false;HS.sfx.jump();}
   P.camY+=(P.feet+HS.EYE-P.camY)*Math.min(1,dt*14);
@@ -287,11 +293,11 @@ HS.jump=function(){if(P.ground){P.vy=7.6;P.ground=false;HS.sfx.jump();return tru
 HS.firstPerson=function(pos){camera.position.copy(pos||new THREE.Vector3(P.x,P.camY,P.z));camera.rotation.set(P.pitch,P.yaw,0);};
 const tv=new THREE.Vector3();
 HS.thirdPerson=function(target,dist){dist=dist||3.4;const cp=Math.cos(P.pitch),sp=Math.sin(P.pitch);tv.set(-Math.sin(P.yaw)*cp,sp,-Math.cos(P.yaw)*cp);
-  const p=target.clone().addScaledVector(tv,-dist);p.y+=0.35;const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;if(W.def.env.ceil&&p.y>W.def.env.ceil-0.2)p.y=W.def.env.ceil-0.2;camera.position.copy(p);camera.lookAt(target);};
+  const p=target.clone().addScaledVector(tv,-dist);p.y+=0.35;const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camera.position.copy(p);camera.lookAt(target);};
 
 // camera that circles a target (used by the paintbrush so you can see yourself)
 HS.orbitCamera=function(target,yaw,pitch,dist){const cp=Math.cos(pitch),sp=Math.sin(pitch);const p=new THREE.Vector3(target.x+Math.sin(yaw)*cp*dist,target.y-sp*dist,target.z+Math.cos(yaw)*cp*dist);
-  const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;if(W.def.env.ceil&&p.y>W.def.env.ceil-0.2)p.y=W.def.env.ceil-0.2;camera.position.copy(p);camera.lookAt(target);};
+  const c=HS.clampXZ(p.x,p.z,0.15);p.x=c[0];p.z=c[1];const f=HS.floorAt(p.x,p.z,0);if(p.y<f+0.3)p.y=f+0.3;{const cl=W.def.env.ceilAt?W.def.env.ceilAt(p.x,p.z):W.def.env.ceil;if(cl&&p.y>cl-0.2)p.y=cl-0.2;}camera.position.copy(p);camera.lookAt(target);};
 /* ================= input ================= */
 const keys=HS.keys={};const J=HS.joy={x:0,y:0};
 HS.isTouch=('ontouchstart' in window);

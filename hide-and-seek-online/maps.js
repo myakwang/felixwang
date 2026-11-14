@@ -420,16 +420,16 @@ HS.defineMap({
 HS.defineMap({
   id:'school',name:'School',emoji:'🏫',desc:'Desks, lockers, a chalkboard and the reading corner',
   bounds:{x0:-12,x1:12,z0:-9,z1:9},
-  env:{bg:'#f3e9d8',sky:false,sun:0.36,sunPos:[-10,14,8],hemi:0.44,amb:0.18,shadowExt:15,ceil:4},
+  env:{bg:'#f3e9d8',sky:false,sun:0.36,sunPos:[-10,14,8],hemi:0.44,amb:0.18,shadowExt:15,ceil:6},
   spawn:{seek:[6,-6,0,0],hide:[6,0,-6,0],seeker:[6.5,-6.5,12,-6.5],home:[2.6,8.3,0.7,0],dog:[4,-2]},
   build(B){
     B.plane(24,18,0,0,0,HS.mat('#ffffff',{map:tileTex(12,9)}),{rx:-Math.PI/2,solid:true});
     const wp=HS.tex.wallpaper(6,1);const MINT='#d7ecd9',CREAM='#fdf1c7';
-    B.plane(24,4,0,2,-9,HS.mat(CREAM,{map:wp}),{solid:true});B.plane(24,4,0,2,9,HS.mat(MINT,{map:wp}),{ry:Math.PI,solid:true});
-    B.plane(18,4,-12,2,0,HS.mat(MINT,{map:wp}),{ry:Math.PI/2,solid:true});B.plane(18,4,12,2,0,HS.mat(CREAM,{map:wp}),{ry:-Math.PI/2,solid:true});
-    B.plane(24,18,0,4,0,'#fbf8f1',{rx:Math.PI/2,solid:true});
-    for(let x=-8;x<=8;x+=8)for(let z=-5;z<=5;z+=5)B.box(2.2,0.06,0.8,x,3.97,z,HS.mat('#ffffff',{emissive:'#fff4d6'}),{col:false,cast:false});
-    B.light(0xfff2d6,0.35,16,-5,3.6,0);B.light(0xfff2d6,0.35,16,6,3.6,0);
+    B.plane(24,6,0,3,-9,HS.mat(CREAM,{map:wp}),{solid:true});B.plane(24,6,0,3,9,HS.mat(MINT,{map:wp}),{ry:Math.PI,solid:true});
+    B.plane(18,6,-12,3,0,HS.mat(MINT,{map:wp}),{ry:Math.PI/2,solid:true});B.plane(18,6,12,3,0,HS.mat(CREAM,{map:wp}),{ry:-Math.PI/2,solid:true});
+    B.plane(24,18,0,6,0,'#fbf8f1',{rx:Math.PI/2,solid:true});
+    for(let x=-8;x<=8;x+=8)for(let z=-5;z<=5;z+=5)B.box(2.2,0.06,0.8,x,5.97,z,HS.mat('#ffffff',{emissive:'#fff4d6'}),{col:false,cast:false});
+    B.light(0xfff2d6,0.4,20,-5,5.4,0);B.light(0xfff2d6,0.4,20,6,5.4,0);
     const bb={col:false,cast:false};B.box(24,0.2,0.06,0,0.1,-8.97,'#9a6a3f',bb);B.box(24,0.2,0.06,0,0.1,8.97,'#9a6a3f',bb);B.box(0.06,0.2,18,-11.97,0.1,0,'#9a6a3f',bb);B.box(0.06,0.2,18,11.97,0.1,0,'#9a6a3f',bb);
     [-5,0,5].forEach(z=>windowX(B,-11.97,2.1,z,2.4,1.6));
     // chalkboard
@@ -476,6 +476,255 @@ HS.defineMap({
   ]
 });
 
+
+/* =============== textures for the dream places =============== */
+function carpetTex(base,rx,ry){const [c,g]=cvs(128,128);g.fillStyle=base;g.fillRect(0,0,128,128);for(let i=0;i<1800;i++){g.fillStyle='rgba(0,0,0,'+(Math.random()*0.08)+')';g.fillRect(Math.random()*128,Math.random()*128,2,2);}return tx(c,rx,ry);}
+function bwallTex(){const [c,g]=cvs(128,128);g.fillStyle='#ffffff';g.fillRect(0,0,128,128);g.strokeStyle='rgba(120,100,20,0.18)';g.lineWidth=2;for(let x=0;x<128;x+=16){g.beginPath();g.moveTo(x,0);g.lineTo(x,128);g.stroke();}
+  g.fillStyle='rgba(120,100,20,0.14)';for(let y=8;y<128;y+=32)for(let x=8;x<128;x+=16){g.beginPath();g.moveTo(x,y-5);g.lineTo(x+4,y);g.lineTo(x,y+5);g.lineTo(x-4,y);g.fill();}return tx(c,10,1);}
+function frostingTex(rx,ry){const [c,g]=cvs(256,256);g.fillStyle='#ffd1e8';g.fillRect(0,0,256,256);const cols=['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#ffffff'];
+  for(let i=0;i<260;i++){g.save();g.translate(Math.random()*256,Math.random()*256);g.rotate(Math.random()*6.3);g.fillStyle=cols[i%6];g.fillRect(-5,-1.5,10,3);g.restore();}return tx(c,rx,ry);}
+function swirlTex(a,b){const [c,g]=cvs(128,128);g.fillStyle=a;g.fillRect(0,0,128,128);g.strokeStyle=b;g.lineWidth=10;g.beginPath();for(let t=0;t<30;t+=0.1){const r=t*2.1;g.lineTo(64+Math.cos(t)*r,64+Math.sin(t)*r);}g.stroke();return tx(c);}
+function stripeTex(a,b){const [c,g]=cvs(64,64);g.fillStyle=a;g.fillRect(0,0,64,64);g.fillStyle=b;for(let k=-64;k<64;k+=16){g.beginPath();g.moveTo(k,64);g.lineTo(k+8,64);g.lineTo(k+72,0);g.lineTo(k+64,0);g.fill();}return tx(c,1,4);}
+function keysTex(){const [c,g]=cvs(256,96);g.fillStyle='#d5d8dc';g.fillRect(0,0,256,96);g.fillStyle='#f4f6f7';for(let r=0;r<4;r++)for(let k=0;k<14;k++)g.fillRect(4+k*18,4+r*23,15,19);return tx(c);}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* =============== 7. THE BACKROOMS =============== */
+HS.defineMap({
+  id:'backrooms',name:'The Backrooms',emoji:'🟨',desc:'Endless yellow rooms… is anyone there?',
+  bounds:{x0:-16,x1:16,z0:-16,z1:16},
+  env:{bg:'#cbbd73',sky:false,sun:0.25,sunPos:[4,20,6],hemi:0.6,amb:0.3,shadowExt:20,ceil:3.2,fog:['#cfc27e',8,30],
+       ceilAt:(x,z)=>(Math.abs(x)<4&&Math.abs(z)<4)?9:3.2},
+  spawn:{seek:[-10,-10,0,0],hide:[0,-0.5,0,4],seeker:[10,10,10,14],home:[-3,3.4,0.8,0],dog:[-2,2]},
+  build(B){
+    const Y='#e3cf74',wm=HS.mat(Y,{map:bwallTex()});
+    B.plane(32,32,0,0,0,HS.mat('#ffffff',{map:carpetTex('#b9a76a',10,10)}),{rx:-Math.PI/2,solid:true});
+    B.plane(32,3.2,0,1.6,-16,wm,{solid:true});B.plane(32,3.2,0,1.6,16,wm,{ry:Math.PI,solid:true});B.plane(32,3.2,-16,1.6,0,wm,{ry:Math.PI/2,solid:true});B.plane(32,3.2,16,1.6,0,wm,{ry:-Math.PI/2,solid:true});
+    const ceilM=HS.mat('#efe9d2');
+    [[0,10,32,12],[0,-10,32,12],[-10,0,12,8],[10,0,12,8]].forEach(c=>B.plane(c[2],c[3],c[0],3.2,c[1],ceilM,{rx:Math.PI/2,solid:true}));
+    B.plane(8,8,0,9,0,ceilM,{rx:Math.PI/2,solid:true});
+    [[0,-4,0],[0,4,Math.PI],[-4,0,Math.PI/2],[4,0,-Math.PI/2]].forEach(w=>B.plane(8,5.8,w[0],6.1,w[1],wm,{ry:w[2]}));
+    // humming ceiling lights
+    const lamp=HS.mat('#ffffff',{emissive:'#fff6cf'});
+    for(let x=-14;x<=14;x+=4)for(let z=-14;z<=14;z+=4){if(Math.abs(x)<4&&Math.abs(z)<4)continue;B.box(1.2,0.04,0.6,x,3.18,z,lamp,{col:false,cast:false,edges:false});}
+    for(let x=-2;x<=2;x+=4)for(let z=-2;z<=2;z+=4)B.box(1.2,0.04,0.6,x,8.98,z,lamp,{col:false,cast:false,edges:false});
+    B.light(0xfff2c0,0.35,14,-8,3,-8);B.light(0xfff2c0,0.35,14,8,3,8);B.light(0xfff2c0,0.35,14,8,3,-8);B.light(0xfff2c0,0.35,14,-8,3,8);B.light(0xfff2c0,0.4,16,0,7,0);
+    // the maze of walls (same on every device: seeded)
+    const R=rng(7),seg=(x0,z0,x1,z1)=>{const vert=x0===x1;const len=4,th=0.2;
+      const piece=(a,b)=>{if(vert)B.box(th,3.2,b-a,x0,1.6,(a+b)/2,wm);else B.box(b-a,3.2,th,(a+b)/2,1.6,z0,wm);};
+      const s0=vert?z0:x0;if(R()<0.35)return;piece(s0,s0+1.3);piece(s0+2.7,s0+len);};
+    for(let gx=-12;gx<=12;gx+=4)for(let gz=-16;gz<16;gz+=4){if(Math.abs(gx)<=4&&gz>=-4&&gz<4){R();R();continue;}seg(gx,gz,gx,gz+4);}
+    for(let gz=-12;gz<=12;gz+=4)for(let gx=-16;gx<16;gx+=4){if(Math.abs(gz)<=4&&gx>=-4&&gx<4){R();R();continue;}seg(gx,gz,gx+4,gz);}
+    // pillars, a vending machine, boxes, a lonely chair, damp spots and an EXIT sign
+    [[-10,-6],[10,6],[6,-10],[-6,10]].forEach(p=>B.box(1,3.2,1,p[0],1.6,p[1],wm));
+    B.box(0.9,2,1.2,15.5,1,-10,'#c0392b');B.box(0.05,1.2,0.8,15.04,1.2,-10,HS.mat('#9fd3ff',{emissive:'#335577'}),{col:false});
+    [[-14.4,-14.4,1.2],[-13.2,-14.6,0.9],[-14.5,-13.2,0.8],[-14.3,-14.3,0.7]].forEach((b,i)=>B.box(b[2],b[2],b[2],b[0],i===3?1.55:b[2]/2,b[1],'#c89b5a',{col:i===3?false:undefined}));
+    B.box(0.6,0.08,0.6,9,0.5,-5,'#333',{col:0.9});B.box(0.6,0.6,0.08,9,0.85,-5.3,'#333',{col:false});B.cyl(0.04,0.04,0.45,9,0.25,-5,'#555',{col:false,edges:false});
+    const damp=HS.mat('#8f7f45',{opacity:0.55});[[-5,6],[7,-3],[12,12],[-11,-2]].forEach(p=>B.plane(2.2,1.6,p[0],0.013,p[1],damp,{rx:-Math.PI/2}));
+    B.box(1.0,0.35,0.08,0,2.7,-15.95,HS.mat('#ff4d4d',{emissive:'#cc0000'}),{col:false,edges:false});
+    B.box(1.2,2.2,0.06,0,1.1,-15.96,'#a8956a',{col:false});
+  },
+  spots:[
+    {label:'flat on the yellow wall',pos:[-10,0,15.72],pose:'flat',yaw:Math.PI,look:[-10,14],bg:'#e3cf74',camo:true,camoSay:'Just a yellow wall…'},
+    {label:'flat on another yellow wall',pos:[-15.72,0,6],pose:'flat',yaw:Math.PI/2,look:[-14,6],bg:'#e3cf74',camo:true,camoSay:'Just a yellow wall…'},
+    {label:'under the EXIT sign',pos:[1.4,0,-15.72],pose:'flat',yaw:0,look:[2,-14],bg:'#e3cf74',camo:true,camoSay:'Just a wall…'},
+    {label:'beside the vending machine',pos:[15.55,0,-11.2],pose:'crouch',yaw:-Math.PI/2,look:[13.6,-11.5],bg:'#c0392b'},
+    {label:'behind the boxes',pos:[-15.45,0,-15.45],pose:'crouch',look:[-13,-13],bg:'#c89b5a'},
+    {label:'in a corner',pos:[8.6,0,8.6],pose:'crouch',look:[10,10],bg:'#e3cf74'},
+    {label:'in another corner',pos:[-7.4,0,-8.6],pose:'crouch',look:[-6,-10],bg:'#e3cf74'},
+    {label:'lying on the carpet',pos:[-6,0.02,10.6],pose:'lie',yaw:Math.PI/2,look:[-6,13],bg:'#b9a76a',camo:true,camoSay:'Just old carpet…'},
+    {label:'behind the office chair',pos:[9,0,-5.8],pose:'crouch',yaw:0,look:[10,-7],bg:'#333333'},
+    {label:'behind a pillar',pos:[-10,0,-7.05],pose:'stand',look:[-10,-9],bg:'#e3cf74'},
+    {label:'up on the high ledge',pos:[3.4,5.4,3.4],pose:'crouch',look:[2,-2],bg:'#efe9d2',sky:true},
+    {label:'lying on the high ledge',pos:[0.8,5.4,1.2],pose:'lie',yaw:-Math.PI/2,look:[-1,1],bg:'#efe9d2',sky:true}
+  ],
+  sky(B){
+    [[-2.6,-2.6,0.9],[-1.2,-3.0,1.8],[0.3,-3.0,2.7],[1.7,-2.4,3.6],[2.6,-1.2,4.5]].forEach(p=>stone(B,p[0],p[1],p[2],'#efe9d2',1.1,0.15));
+    island(B,0.5,3.9,0.5,3.9,5.4,'#efe9d2',null,0.3);
+    B.box(0.12,2.2,0.12,1.2,6.5,3.6,'#a8956a',{col:false});B.box(0.12,2.2,0.12,2.4,6.5,3.6,'#a8956a',{col:false});B.box(1.32,0.12,0.12,1.8,7.6,3.6,'#a8956a',{col:false});
+    B.plane(1.1,2.1,1.8,6.45,3.62,HS.mat('#1d1a17'),{ry:Math.PI});
+  }
+});
+
+/* =============== 8. CANDY LAND =============== */
+HS.defineMap({
+  id:'candy',name:'Candy Land',emoji:'🍭',desc:'Lollipops, gumdrops, cupcake houses and a chocolate river',
+  bounds:{x0:-15,x1:15,z0:-12,z1:12},
+  env:{bg:'#ffe3f1',sky:true,sun:0.8,sunPos:[8,18,10],hemi:0.6,amb:0.28,shadowExt:22,fog:['#ffe3f1',35,110]},
+  spawn:{seek:[0,-3,0,4],hide:[0,2,0,6],seeker:[0,-3.5,0,-8],home:[-6,-10.6,0.9,0],dog:[3,0.5]},
+  build(B){
+    B.plane(30,24,0,0,0,HS.mat('#ffffff',{map:frostingTex(8,6)}),{rx:-Math.PI/2,solid:true});
+    B.plane(240,240,0,-0.03,0,'#ffc6e2',{rx:-Math.PI/2});
+    [[-30,-25,10,'#c9f2c7'],[28,-22,11,'#cfe6ff'],[-26,20,9,'#ffe98a'],[30,22,12,'#ffd1e8']].forEach(h=>B.ball(h[2],h[0],-h[2]*0.5,h[1],h[3],{col:false,solid:false,outline:false}));
+    // chocolate river + candy cane bridge
+    B.plane(30,1.8,0,0.02,-0.3,HS.mat('#6b3a1f'),{rx:-Math.PI/2});
+    for(let k=0;k<5;k++)B.box(0.25,0.12,2.4,-6+k*0.3,0.08,-0.3,k%2?'#ffffff':'#e74c3c',{col:false});
+    // lollipops
+    [[-9,-6,'#e74c3c'],[-11,7,'#9b59b6'],[4,-8,'#2ecc71']].forEach(l=>{B.cyl(0.12,0.12,3.5,l[0],1.75,l[1],'#ffffff',{col:false});B.col(l[0]-0.25,l[0]+0.25,l[1]-0.25,l[1]+0.25,3.5);
+      B.cyl(1.3,1.3,0.3,l[0],4.6,l[1],HS.mat('#ffffff',{map:swirlTex('#ffffff',l[2])}),{rx:Math.PI/2,col:false});});
+    // cupcake houses
+    const cup=(x,z,f)=>{B.cyl(1.6,1.3,1.6,x,0.8,z,HS.mat('#ffffff',{map:stripeTex('#ff9ec7','#ffffff')}),{col:2.8});B.ball(1.7,x,1.6,z,f,{sy:0.7});B.ball(0.3,x,2.95,z,'#c0392b');B.plane(0.7,1.0,x,0.5,z+1.47,'#5a3b22');};
+    cup(-8,4,'#fff3c4');cup(2,-6,'#bde0fe');
+    // ice cream cone tower
+    B.cyl(1.4,0.15,3,-3,1.5,-8,'#e0a95e',{col:3.2});B.ball(1.2,-3,3.3,-8,'#ffd1e8');B.ball(1.0,-3,4.3,-8,'#a8e6cf');B.ball(0.8,-3,5.1,-8,'#fff3c4');
+    // candy canes
+    [[12,-5],[-13,-2],[0,9]].forEach(p=>{B.cyl(0.18,0.18,3,p[0],1.5,p[1],HS.mat('#ffffff',{map:stripeTex('#ffffff','#e74c3c')}),{col:3});
+      const h=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.18,8,16,Math.PI),HS.mat('#ffffff',{map:stripeTex('#ffffff','#e74c3c')}));h.position.set(p[0]+0.5,3,p[1]);B.W.group.add(h);});
+    // gumdrops
+    [[-5,7,0.9,'#e74c3c'],[7,-2,0.8,'#f1c40f'],[-12,-9,1.0,'#2ecc71'],[13,9.5,0.9,'#3498db'],[-1,6.5,0.7,'#9b59b6']].forEach(g=>B.ball(g[2],g[0],0,g[1],g[3],{sy:0.8,col:g[2]*0.8}));
+    // donut you can hide inside
+    const dn=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.45,12,28),HS.mat('#d9a066'));dn.rotation.x=Math.PI/2;dn.position.set(3,0.45,4);dn.castShadow=true;B.W.group.add(dn);B.W.solids.push(dn);
+    const ic=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.36,12,28,Math.PI*2),HS.mat('#ff9ec7'));ic.rotation.x=Math.PI/2;ic.position.set(3,0.62,4);ic.scale.z=0.6;B.W.group.add(ic);
+    B.col(1.4,4.6,2.4,3.1,0.9);B.col(1.4,4.6,4.9,5.6,0.9);B.col(1.4,2.1,3.1,4.9,0.9);B.col(3.9,4.6,3.1,4.9,0.9);
+    // gingerbread house
+    B.box(3,2.5,3,-12,1.25,-8.5,'#a0612e');B.box(3.4,0.25,2.2,-12,2.95,-9.3,'#ffffff',{rx:0.6,col:false});B.box(3.4,0.25,2.2,-12,2.95,-7.7,'#ffffff',{rx:-0.6,col:false});
+    B.plane(0.8,1.3,-12,0.65,-6.99,'#5a3b22');[[-12.9,-6.98],[-11.1,-6.98]].forEach(p=>B.plane(0.6,0.6,p[0],1.7,p[1],HS.mat('#fff3c4',{emissive:'#d9a066'})));
+    // marshmallow steps up to the cotton candy clouds
+    [[6,2,0.6],[7.2,2.6,1.2]].forEach(p=>B.box(1.1,p[2],1.1,p[0],p[2]/2,p[1],'#fff7fb'));
+  },
+  spots:[
+    {label:'behind a cupcake house',pos:[-10.0,0,5.0],pose:'crouch',look:[-11.5,3.0],bg:'#ff9ec7'},
+    {label:'behind the blue cupcake',pos:[2.9,0,-8.0],pose:'crouch',look:[4.2,-6.2],bg:'#ff9ec7'},
+    {label:'inside the donut',pos:[3,0,4],pose:'crouch',yaw:Math.PI,look:[3,6.6],bg:'#d9a066'},
+    {label:'behind the ice cream tower',pos:[-3,0,-9.9],pose:'crouch',yaw:Math.PI,look:[-5,-10.4],bg:'#e0a95e'},
+    {label:'behind a candy cane',pos:[12.3,0,-5.5],pose:'stand',look:[13.5,-3.6],bg:'#ffffff'},
+    {label:'lying on the pink frosting',pos:[-6,0.02,-3.5],pose:'lie',yaw:Math.PI/2,look:[-7.5,-2.4],bg:'#ffd1e8',camo:true,camoSay:'Just frosting…'},
+    {label:'lying in the chocolate river',pos:[10,0.03,-0.3],pose:'lie',yaw:Math.PI/2,look:[9,1.6],bg:'#6b3a1f',camo:true,camoSay:'Just chocolate…'},
+    {label:'flat on the gingerbread house',pos:[-10.28,0,-8.5],pose:'flat',yaw:Math.PI/2,look:[-8.4,-8.5],bg:'#a0612e',camo:true,camoSay:'Just gingerbread…'},
+    {label:'behind a gumdrop',pos:[-5,0,8.3],pose:'crouch',yaw:Math.PI,look:[-6.8,9.6],bg:'#e74c3c'},
+    {label:'behind the marshmallows',pos:[7.4,0,1.2],pose:'crouch',look:[8.8,0.9],bg:'#fff7fb'},
+    {label:'on the cotton candy cloud',pos:[11.8,5.6,10.8],pose:'crouch',look:[10,6.4],bg:'#ffc6e2',sky:true},
+    {label:'lying on the cotton candy cloud',pos:[8.3,5.6,9.2],pose:'lie',yaw:-Math.PI/2,look:[8.4,6.4],bg:'#ffc6e2',sky:true}
+  ],
+  sky(B){
+    [[8.6,3.6,2.1,'#bde0fe'],[9.9,4.4,3.0,'#ffc6e2'],[11.0,5.6,3.9,'#bde0fe'],[10.6,7.0,4.8,'#ffc6e2']].forEach(p=>{stone(B,p[0],p[1],p[2],p[3],1.2,0.45);B.ball(0.5,p[0]+0.3,p[2]-0.15,p[1]+0.3,p[3],{col:false,outline:false,cast:false});});
+    island(B,8,12.5,8,11.5,5.6,'#ffc6e2','#ffe3f1');rainbow(B,10.2,5.6,11.3,0,2.0);
+    B.box(0.9,0.7,0.7,11.6,5.95,9.0,'#ff9ec7',{col:false});B.ball(0.25,11.6,6.45,9.0,'#e74c3c',{col:false});
+  }
+});
+
+/* =============== 9. TINY WORLD (you are tiny in a giant bedroom) =============== */
+HS.defineMap({
+  id:'tiny',name:'Tiny World',emoji:'🔍',desc:'You are tiny! A giant bed, a giant desk and giant toys',
+  bounds:{x0:-14,x1:14,z0:-12,z1:12},
+  env:{bg:'#dfeffa',sky:false,sun:0.42,sunPos:[10,30,16],hemi:0.5,amb:0.2,shadowExt:20,ceil:13.5},
+  spawn:{seek:[2,6,0,0],hide:[0,0,0,-4],seeker:[2,8,2,12],home:[-2,10.5,0.9,0],dog:[3,3]},
+  build(B){
+    B.plane(28,24,0,0,0,HS.mat('#ffffff',{map:HS.tex.wood('#d6a96b',2,2)}),{rx:-Math.PI/2,solid:true});
+    const wm=HS.mat('#cfe3f5',{map:HS.tex.wallpaper(2,1)});
+    B.plane(28,14,0,7,-12,wm,{solid:true});B.plane(28,14,0,7,12,wm,{ry:Math.PI,solid:true});B.plane(24,14,-14,7,0,wm,{ry:Math.PI/2,solid:true});B.plane(24,14,14,7,0,wm,{ry:-Math.PI/2,solid:true});
+    B.plane(28,24,0,14,0,'#fbf8f1',{rx:Math.PI/2,solid:true});
+    B.box(28,0.9,0.15,0,0.45,-11.93,'#ffffff');B.box(28,0.9,0.15,0,0.45,11.93,'#ffffff');B.box(0.15,0.9,24,-13.93,0.45,0,'#ffffff');B.box(0.15,0.9,24,13.93,0.45,0,'#ffffff');
+    B.basic(9,7,-2,8.5,-11.97,HS.tex.windowSky(),{});B.box(9.4,0.4,0.3,-2,4.9,-11.85,'#ffffff',{col:false});
+    // giant bed: walk under it, or climb the toy blocks to the top
+    const bx0=-14,bx1=-5,bz0=-3,bz1=11;
+    [[bx0+0.5,bz0+0.5],[bx1-0.5,bz0+0.5],[bx0+0.5,bz1-0.5],[bx1-0.5,bz1-0.5]].forEach(p=>B.box(0.8,2.6,0.8,p[0],1.3,p[1],'#9a6a3f'));
+    B.box(bx1-bx0,1.4,bz1-bz0,(bx0+bx1)/2,3.3,(bz0+bz1)/2,['#6aa9e8','#6aa9e8','#6aa9e8','#4a7fc0','#6aa9e8','#6aa9e8'],{float:true});
+    B.box(bx1-bx0+0.1,1.6,0.1,(bx0+bx1)/2,1.9,bz0-0.02,'#6aa9e8',{col:false});
+    B.box(4,1.2,2.6,-11.5,4.6,9.2,'#ffffff',{col:false});B.box(8,4,0.4,-9.5,6,11.6,'#9a6a3f',{col:false});
+    teddy(B,-8.2,4.0,8.6,'#c58b4e');B.W.cols.push({x0:-8.7,x1:-7.7,z0:8.1,z1:9.1,top:5.4,bot:4.0});
+    const ABC=['#e74c3c','#3498db','#2ecc71','#f1c40f'];
+    [[-3.6,2.0,1.0],[-3.6,3.4,2.0],[-4.4,4.8,3.0]].forEach((b,i)=>{for(let k=0;k<b[2];k++)B.box(1.2,1.0,1.2,b[0],k+0.5,b[1],ABC[(i+k)%4],{col:k===b[2]-1?b[2]:false});});
+    // giant shoe, LEGO brick, trash can
+    B.box(2.2,1.3,5,7,0.65,7,'#e74c3c');B.box(2.2,1.6,1.8,7,1.4,5.4,'#e74c3c',{col:false});B.box(2.3,0.35,5.1,7,0.18,7,'#ffffff',{col:false});
+    B.box(3,1.2,1.6,-1,0.6,8.5,'#3498db');for(let i=0;i<4;i++)for(let j=0;j<2;j++)B.cyl(0.25,0.25,0.25,-2.1+i*0.75,1.32,8.1+j*0.8,'#3498db',{col:false});
+    B.cyl(1.4,1.2,3.4,12,1.7,10,'#7f8c8d',{col:true});
+    // giant desk (you can walk under it) and a book staircase up to the top
+    const dx0=4,dx1=14,dz0=-12,dz1=-3.5;
+    [[dx0+0.4,dz1-0.4],[dx1-0.4,dz1-0.4],[dx0+0.4,dz0+0.4],[dx1-0.4,dz0+0.4]].forEach(p=>B.box(0.8,5.5,0.8,p[0],2.75,p[1],'#b07d4f'));
+    B.box(dx1-dx0,0.5,dz1-dz0,(dx0+dx1)/2,5.75,(dz0+dz1)/2,'#c99a63',{float:true});
+    const bc=['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22'];
+    for(let k=0;k<11;k++){const top=0.55*(k+1),x=-4.4+k*0.75;B.box(0.75,0.55,1.6,x,top-0.275,-4.8,bc[k%6],{col:top});if(k>0)B.box(0.75,top-0.55,1.6,x,(top-0.55)/2,-4.8,bc[(k+3)%6],{col:false});B.box(0.04,0.45,1.5,x+0.38,top-0.275,-4.8,'#ffffff',{col:false,edges:false});}
+    // under the desk: the giant chair (walk under its seat)
+    [[2.2,-9.5],[3.8,-9.5],[2.2,-7.9],[3.8,-7.9]].forEach(p=>B.box(0.3,3.4,0.3,p[0],1.7,p[1],'#555'));
+    B.box(2.0,0.3,2.0,3,3.55,-8.7,'#e74c3c',{float:true});B.box(2.0,2.2,0.3,3,4.8,-9.55,'#e74c3c',{float:true});
+  },
+  spots:[
+    {label:'under the giant bed',pos:[-9,0,4],pose:'lie',yaw:Math.PI/2,look:[-3.8,0],bg:'#3a3340'},
+    {label:'behind the giant shoe',pos:[7,0,10.2],pose:'crouch',yaw:Math.PI,look:[9.5,10.5],bg:'#e74c3c'},
+    {label:'behind the LEGO brick',pos:[-1,0,9.75],pose:'crouch',yaw:Math.PI,look:[1.4,10.4],bg:'#3498db'},
+    {label:'behind the trash can',pos:[13.3,0,11.6],pose:'crouch',look:[9.8,11.3],bg:'#7f8c8d'},
+    {label:'flat on the blue wall',pos:[13.72,0,3],pose:'flat',yaw:-Math.PI/2,look:[11.6,3],bg:'#cfe3f5',camo:true,camoSay:'Just a wall…'},
+    {label:'under the desk',pos:[9,0,-10.8],pose:'crouch',look:[9,-7],bg:'#b07d4f'},
+    {label:'behind the toy blocks',pos:[-2.6,0,1.0],pose:'crouch',look:[-1.0,2.4],bg:'#e74c3c'},
+    {label:'on top of the bed, behind the pillow',pos:[-12.2,4.0,10.6],pose:'crouch',look:[-3.8,6.0],bg:'#ffffff',sky:true},
+    {label:'lying on the blanket',pos:[-7,4.0,0.5],pose:'lie',yaw:-Math.PI/2,look:[-3.8,-1.0],bg:'#6aa9e8',camo:true,camoSay:'Just a blanket…',sky:true},
+    {label:'on the desk, behind the mug',pos:[9.6,6.0,-9.3],pose:'crouch',yaw:Math.PI,look:[8,-1.8],bg:'#f5efe0',sky:true},
+    {label:'lying on the sticky note',pos:[12.7,6.03,-5.0],pose:'lie',yaw:Math.PI/2,look:[11.6,-1.8],bg:'#ffe066',camo:true,camoSay:'Just a sticky note…',sky:true},
+    {label:'behind the desk lamp',pos:[12.8,6.0,-10.9],pose:'crouch',look:[11,-1.8],bg:'#3498db',sky:true}
+  ],
+  sky(B){
+    // things on top of the desk
+    B.box(5,0.25,1.8,8,6.12,-6.0,HS.mat('#ffffff',{map:keysTex()}),{col:false});
+    B.cyl(0.9,0.85,1.8,9.6,6.9,-8.0,'#f5efe0',{col:false});B.col(8.7,10.5,-8.9,-7.1,7.8,6.0);const hd=new THREE.Mesh(new THREE.TorusGeometry(0.45,0.12,8,16),HS.mat('#f5efe0'));hd.position.set(10.55,6.9,-8.0);B.W.group.add(hd);
+    B.box(1.6,0.02,1.6,12.0,6.01,-5.0,'#ffe066',{col:false,edges:false});
+    B.cyl(0.08,0.08,6,6.5,6.25,-10.2,'#f1c40f',{rz:Math.PI/2,col:false});B.cyl(0.0,0.08,0.4,9.7,6.25,-10.2,'#f5cba7',{rz:-Math.PI/2,col:false});
+    B.cyl(0.7,0.8,0.3,12.8,6.15,-9.6,'#3498db',{col:false});B.col(12.0,13.6,-10.4,-8.8,6.3,6.0);B.cyl(0.08,0.08,3,12.8,7.6,-9.6,'#3498db',{col:false});B.cyl(0.2,0.9,0.9,12.4,9.1,-9.2,'#3498db',{rz:0.5,col:false});
+    B.light(0xfff2c0,0.5,10,12.2,8.6,-9.0);
+    B.box(1.6,1.0,2.2,5.2,6.5,-10.6,'#9b59b6',{float:true});
+  }
+});
+
+/* =============== SKY PLACES: floating stepping stones up to a hiding place in the sky =============== */
+// a floating stone/cloud you can walk under and jump onto
+function stone(B,x,z,top,col,s,th){s=s||1.1;th=th||0.35;if(top-th<1.75)return B.box(s,top,s,x,top/2,z,col);return B.box(s,th,s,x,top-th/2,z,col,{float:true});}
+function puffs(B,x0,x1,z0,z1,y,col){const add=(x,z)=>B.ball(0.42+Math.random()*0.12,x,y,z,col,{col:false,cast:false,outline:false});
+  for(let x=x0;x<=x1+0.01;x+=0.8){add(x,z0);add(x,z1);}for(let z=z0+0.8;z<z1-0.01;z+=0.8){add(x0,z);add(x1,z);}}
+function island(B,x0,x1,z0,z1,top,col,cloud,th){th=th||0.45;B.box(x1-x0,th,z1-z0,(x0+x1)/2,top-th/2,(z0+z1)/2,col,{float:true});if(cloud)puffs(B,x0,x1,z0,z1,top-0.18,cloud);}
+function rainbow(B,x,y,z,ry,r){const cols=['#e74c3c','#f39c12','#f1c40f','#2ecc71','#3498db','#9b59b6'];cols.forEach((c,i)=>{const t=new THREE.Mesh(new THREE.TorusGeometry(r-i*0.18,0.09,6,32,Math.PI),HS.mat(c));t.position.set(x,y,z);t.rotation.y=ry||0;B.W.group.add(t);});}
+function teddy(B,x,y,z,col){col=col||'#b07a45';B.ball(0.42,x,y+0.42,z,col,{col:false});B.ball(0.3,x,y+1.05,z,col,{col:false});B.ball(0.11,x-0.2,y+1.3,z,col,{col:false});B.ball(0.11,x+0.2,y+1.3,z,col,{col:false});B.ball(0.08,x,y+1.0,z+0.27,'#3b2a1a',{col:false,outline:false});}
+const HOUSE=HS.maps.house,YARD=HS.maps.yard,CASTLE=HS.maps.castle,SNOW=HS.maps.snow,SHIP=HS.maps.ship,SCHOOL=HS.maps.school;
+const BLK=['#e74c3c','#f1c40f','#3498db','#2ecc71','#9b59b6'];
+HOUSE.sky=function(B){
+  [[-7,-2.5,0.9],[-5.8,-3.4,1.8],[-4.4,-4.1,2.7],[-2.9,-4.6,3.6],[-1.4,-4.6,4.0]].forEach((p,i)=>stone(B,p[0],p[1],p[2],BLK[i]));
+  island(B,0,3.5,-5.4,-3.4,4.8,'#ffffff','#f4f8ff');teddy(B,3.0,4.8,-3.9);
+  B.cyl(0.08,0.12,0.6,0.5,5.1,-5.0,'#d4a017',{col:false});B.ball(0.18,0.5,5.5,-5.0,HS.mat('#fff4c4',{emissive:'#ffdf80'}),{col:false,cast:false});
+};
+HOUSE.spots.push({label:'up on the cloud shelf',pos:[2.8,4.8,-4.95],pose:'crouch',look:[2,-2.4],bg:'#ffffff',sky:true},
+                 {label:'lying on the cloud shelf',pos:[0.5,4.8,-4.4],pose:'lie',yaw:-Math.PI/2,look:[1.2,-2.4],bg:'#ffffff',sky:true});
+YARD.sky=function(B){
+  [[-8,-4.3,3.0],[-6.6,-5.0,3.9],[-5.2,-5.7,4.8]].forEach(p=>stone(B,p[0],p[1],p[2],'#ffffff',1.2,0.45));
+  island(B,-4.3,-0.3,-7.6,-4.6,5.6,'#ffffff','#f4f8ff');rainbow(B,-2.3,5.6,-7.4,0,1.8);
+  B.cyl(0.04,0.04,1.6,-0.8,6.4,-7.2,'#555',{col:false,edges:false});B.box(0.6,0.4,0.03,-0.5,7.0,-7.2,'#e74c3c',{col:false});
+};
+YARD.spots.push({label:'on the cloud (bounce up from the trampoline!)',pos:[-1.0,5.6,-5.2],pose:'crouch',look:[-2.3,-3.6],bg:'#ffffff',sky:true},
+                {label:'lying on the cloud',pos:[-3.9,5.6,-6.9],pose:'lie',yaw:-Math.PI/2,look:[-3.0,-3.6],bg:'#ffffff',sky:true});
+CASTLE.sky=function(B){
+  [[2.0,-8.6,3.8],[3.4,-7.4,4.6],[4.8,-6.2,5.4]].forEach(p=>stone(B,p[0],p[1],p[2],'#9f988e',1.15,0.5));
+  island(B,5.6,9.6,-5.4,-2.2,6.0,'#9f988e',null,0.7);
+  B.cyl(0.7,0.8,1.6,9.0,6.8,-4.6,'#9f988e',{col:false});B.cyl(0.05,0.9,1.0,9.0,8.1,-4.6,'#3a5fa8',{col:false,seg:12});
+  B.cyl(0.03,0.03,1.2,9.0,9.1,-4.6,'#555',{col:false,edges:false});B.box(0.05,0.4,0.7,9.0,9.5,-4.25,'#e74c3c',{col:false});
+  for(let k=0;k<4;k++)B.box(0.5,0.4,0.25,5.9+k*1.1,6.2,-2.3,'#8f8a82',{col:false});
+};
+CASTLE.spots.push({label:'on the floating sky tower',pos:[8.1,6.0,-2.8],pose:'crouch',look:[7.5,-0.5],bg:'#9f988e',sky:true},
+                  {label:'lying on the sky island',pos:[5.9,6.0,-4.6],pose:'lie',yaw:-Math.PI/2,look:[6.5,-0.5],bg:'#9f988e',sky:true});
+SNOW.sky=function(B){
+  [[-1,-7.3,2.1],[0.3,-8.5,3.0],[0.9,-9.9,3.9]].forEach(p=>stone(B,p[0],p[1],p[2],'#dff3ff',1.15,0.45));
+  island(B,1.8,4.8,-11.6,-9.3,4.8,'#dff3ff','#ffffff');
+  B.cyl(0.35,0.4,1.2,4.2,5.4,-10.9,'#cfe9ff',{col:false});B.cyl(0.02,0.45,0.7,4.2,6.35,-10.9,'#9fd3ff',{col:false});
+  B.cyl(0.25,0.3,0.8,3.4,5.2,-11.1,'#cfe9ff',{col:false});B.cyl(0.02,0.32,0.5,3.4,5.85,-11.1,'#9fd3ff',{col:false});
+};
+SNOW.spots.push({label:'on the floating ice cloud',pos:[4.2,4.8,-10.1],pose:'crouch',look:[2.6,-8.0],bg:'#dff3ff',sky:true},
+                {label:'lying on the ice cloud',pos:[2.0,4.8,-9.8],pose:'lie',yaw:-Math.PI/2,look:[1.5,-11.0],bg:'#dff3ff',sky:true});
+SHIP.sky=function(B){
+  [[-2.6,8.2,2.9],[-2.6,6.6,3.8],[-2.6,5.0,4.7]].forEach(p=>stone(B,p[0],p[1],p[2],'#ffffff',1.1,0.4));
+  island(B,-5.0,-1.4,1.9,4.1,5.6,'#ffffff','#f4f8ff');
+  B.cyl(0.02,0.02,4.2,-1.3,7.6,2.9,'#c8a165',{col:false,edges:false,rz:0.35});
+  B.box(1.0,0.7,0.7,-4.3,5.95,2.6,'#8b5a2b',{col:false});B.box(1.05,0.2,0.75,-4.3,6.4,2.6,'#d4a017',{col:false});
+};
+SHIP.spots.push({label:'on the cloud tied to the mast',pos:[-4.3,5.6,3.6],pose:'crouch',look:[-2.6,2.5],bg:'#ffffff',sky:true},
+                {label:'lying on the cloud',pos:[-4.8,5.6,2.4],pose:'lie',yaw:-Math.PI/2,look:[-2.0,1.0],bg:'#ffffff',sky:true});
+SCHOOL.sky=function(B){
+  const bk=['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22'];
+  for(let k=0;k<6;k++){const top=0.5*(k+1),z0=-2.2-0.9*k;B.box(1.2,top,0.9,8.2,top/2,z0-0.45,bk[k]);B.box(1.22,0.06,0.92,8.2,top-0.25,z0-0.45,'#ffffff',{col:false,edges:false});}
+  B.box(10.4,0.3,1.4,6.7,2.85,-8.3,HS.mat('#ffffff',{map:HS.tex.wood('#c99a63',3,1)}),{float:true});
+  B.box(6.1,0.08,0.08,4.55,4.0,-7.6,'#9a6a3f',{col:false});B.col(1.5,7.6,-7.65,-7.55,4.0,3.0);
+  B.box(3.1,0.08,0.08,10.35,4.0,-7.6,'#9a6a3f',{col:false});B.col(8.8,11.9,-7.65,-7.55,4.0,3.0);
+  for(let x=1.6;x<11.9;x+=0.7)if(x<7.6||x>8.8)B.box(0.05,1.0,0.05,x,3.5,-7.6,'#9a6a3f',{col:false,solid:false});
+  B.ball(0.45,10.8,3.55,-8.4,HS.mat('#ffffff',{map:HS.tex.globe()}),{col:false});B.ball(0.6,3.0,3.35,-8.5,'#f1c40f',{sy:0.6,col:false});
+  [[3,4.6,-3],[-3,4.8,2],[6,5.0,4]].forEach(p=>{B.box(0.7,0.04,0.5,p[0],p[1],p[2],'#ffffff',{col:false,ry:0.6});B.cyl(0.005,0.005,1,p[0],p[1]+0.5,p[2],'#999',{col:false,edges:false});});
+};
+SCHOOL.spots.push({label:'up on the balcony',pos:[2.2,3.0,-8.6],pose:'crouch',look:[2.6,-6.2],bg:'#fdf1c7',sky:true},
+                  {label:'behind the globe on the balcony',pos:[11.3,3.0,-8.5],pose:'crouch',yaw:-Math.PI/2,look:[10.4,-6.4],bg:'#fdf1c7',sky:true});
 // paint palette for each map = the colors you can blend into + fun colors
 HS.mapList.forEach(m=>{const s=new Set(m.spots.map(x=>x.bg));m.palette=[...s];});// (games use HS.surfacePalette() after loading a place)
 HS.funColors=['#e74c3c','#3498db','#f1c40f','#e84393','#9b59b6','#2ecc71','#ffffff','#222222'];

@@ -188,7 +188,7 @@ function btn(id,on){$(id).style.display=on?'inline-block':'none';}
 function hudFor(mode){
   $('hud').style.display='block';$('pal').style.display='none';
   const seek=mode==='seek';
-  show('dogBtn',seek);show('cross',seek);btn('paintBtn',!seek);btn('viewBtn',!seek);btn('poseBtn',!seek);$('susp').style.display='none';btn('action',false);btn('shooBtn',false);show('camo',false);
+  show('dogBtn',false);show('cross',seek);btn('paintBtn',!seek);btn('viewBtn',!seek);btn('poseBtn',!seek);$('susp').style.display='none';btn('action',false);btn('shooBtn',false);show('camo',false);
   $('jumpBtn').style.display=HS.isTouch?'block':'none';$('big').style.display='none';
 }
 function renderStatus(){
@@ -365,16 +365,10 @@ function frame(now){
     count-=dt;const n=Math.max(0,Math.ceil(count));$('big').innerHTML=n+'<small>seeker is counting…</small>';$('timer').textContent='🙈 '+n;
     if(n<lastTick){lastTick=n;HS.sfx.tick();if(n<=5&&n>0)HS.say(String(n));}
     $('action').textContent=count>3.1?'I\'m ready! ✋':'Shh…';
-    dogTimer-=dt;if(dogTimer<=0){dogTimer=1.5;if(Math.hypot(dog.x-P.x,dog.z-P.z)>2.5&&!dog.hold)HS.dogGoTo(dog,P.x+HS.rnd(-1,1),P.z+HS.rnd(-1,1),null,4);}
     HS.pose(seekerFig.userData.inner,'cover');
     if(count<=0)startSearch();
   }
   if(state==='search'){searchTime-=dt;$('timer').textContent=HS.fmt(searchTime);if(searchTime<=0){endHide(true);}
-    // the dog might give you away!
-    dogTimer-=dt;
-    if(dogTimer<=0&&!dog.path.length){dogTimer=8;if(Math.random()<0.45){HS.dogGoTo(dog,P.x+0.7,P.z+0.7,()=>{if(state!=='search')return;dog.hold=3;HS.dogBark(dog,2.5);toast('🐶 Uh oh! The dog is barking at you!',2.2);
-      if(Math.hypot(sk.x-P.x,sk.z-P.z)<20&&sk.mode!=='chase'){sk.investigate=[P.x+HS.rnd(-1.2,1.2),P.z+HS.rnd(-1.2,1.2)];susp=Math.min(0.45,susp+0.25);nextWaypoint();}},2.6);}}
-    btn('shooBtn',Math.hypot(dog.x-P.x,dog.z-P.z)<6&&(dog.path.length>0||dog.hold>0));
   }
   if(state==='hideRun'||state==='search'||(state==='end'&&lastMode==='hide'))updateSeeker(dt);
   if(state!=='menu')HS.dogUpdate(dog,dt,P.x,P.z);else HS.dogUpdate(dog,dt);

@@ -328,7 +328,7 @@ function frame(now){
     $('spotBtn').style.display='none';
     const c=$('camo');if(G.phase!=='over'&&R.fig&&(camoT-=dt)<=0){camoT=0.4;const k=HS.camoFrom(new THREE.Vector3(R.x,R.y+1.9,R.z),meFig);c.style.display='block';
       c.innerHTML='👀 From '+esc(friendName())+': '+(k.matched===k.total?'😎 you blend in!':'camouflage '+k.matched+'/'+k.total+' — behind you is <span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+(k.bg||'#fff')+'"></span>');}else if(G.phase==='over')c.style.display='none';
-    $('shooBtn').style.display=G.phase==='seek'&&Math.hypot(dog.x-P.x,dog.z-P.z)<6&&(dog.path.length||dog.hold>0)?'inline-block':'none';
+    $('shooBtn').style.display='none';
   }else{meFig.visible=false;HS.firstPerson();}
   // send my state ~12 times a second
   if(now-NET.lastSend>80){NET.lastSend=now;send(myState());}
@@ -353,9 +353,6 @@ function frame(now){
   if(isHost()){
     if(G.phase==='hide'||G.phase==='seek'){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;send({t:'ph',ph:G.phase,left:Math.max(0,s)});}
       if(G.left<=0){if(G.phase==='hide'){send({t:'ph',ph:'seek',left:SEEK_TIME});beginSeek();lastSec=SEEK_TIME;}else roundOver('hider');}}
-    if(G.phase==='seek'){dogTimer-=dt;if(dogTimer<=0&&!dog.path.length){dogTimer=11;const hp=iAmHider()?{x:P.x,z:P.z}:R.last?{x:+R.last.x,z:+R.last.z}:null;
-      if(hp&&Math.random()<0.5)HS.dogGoTo(dog,hp.x+0.8,hp.z+0.8,()=>{if(G.phase==='seek'){dog.hold=3;HS.dogBark(dog,2.5);}},2.6);}}
-    else if(G.phase==='hide'&&iAmHider()){dogTimer-=dt;if(dogTimer<=0){dogTimer=1.5;if(Math.hypot(dog.x-P.x,dog.z-P.z)>2.5&&!dog.hold)HS.dogGoTo(dog,P.x+HS.rnd(-1,1),P.z+HS.rnd(-1,1),null,4);}}
     HS.dogUpdate(dog,dt,iAmHider()?P.x:R.x,iAmHider()?P.z:R.z);
   }else if(G.phase==='hide'||G.phase==='seek'){G.left=Math.max(0,G.left-rdt);}
   // HUD
