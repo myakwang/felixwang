@@ -115,6 +115,7 @@
     <p class="sub">Pick a place to play:</p>
     <div class="maps" id="maps"></div>
     <div class="chips" id="hideTimeRow">Hiding time: </div>
+    <div class="chips" id="lockRow">Each level: <button class="chip" id="rotChip">🔁 New place</button><button class="chip" id="lockChip">🔒 Lock place</button></div>
     <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
     <div class="row">
       <button class="btn big yellow" id="seekBtn">🔍 I'm the Seeker</button>
@@ -126,7 +127,7 @@
   </div>
 </div>
 <div class="overlay" id="cover">
-  <p style="font-size:30px">🙈 Eyes closed! Counting…</p>
+  <p style="font-size:30px" id="coverTxt">🙈 Eyes closed! Counting…</p>
   <div class="num" id="coverNum">10</div>
   <button class="btn" id="skipCount">Skip ▶</button>
 </div>
@@ -175,6 +176,10 @@ function selectMap(id){
 function surprisePick(){if(!surprise)return;const ids=HS.mapList.map(m=>m.id).filter(x=>x!==W.def.id);loadPlace(ids[(Math.random()*ids.length)|0]);toast('🎲 Surprise! You\'re in the '+W.def.name+' '+W.def.emoji,2.6);}
 HS.mapList.concat([{id:'random',emoji:'🎲',name:'Surprise!'}]).forEach(m=>{const b=document.createElement('button');b.className='mapc';b.dataset.id=m.id;b.innerHTML='<span class="e">'+m.emoji+'</span>'+m.name;b.onclick=()=>{HS.ac();selectMap(m.id);};$('maps').appendChild(b);});
 [30,45,60,90].forEach(s=>{const b=document.createElement('button');b.className='chip';b.textContent=s+'s';b.onclick=()=>{save.hideTime=s;persist();markTime();};b.dataset.s=s;$('hideTimeRow').appendChild(b);});
+function markLock(){$('rotChip').classList.toggle('sel',!save.lockMap);$('lockChip').classList.toggle('sel',!!save.lockMap);}
+$('rotChip').onclick=()=>{save.lockMap=false;persist();markLock();};$('lockChip').onclick=()=>{save.lockMap=true;persist();markLock();};markLock();
+// the place for the next level: a surprise, the same place (locked), or the next place in the list
+function nextPlace(){if(surprise||save.lockMap)return null;const ids=HS.mapList.map(m=>m.id);return ids[(ids.indexOf(W.def.id)+1)%ids.length];}
 function markTime(){document.querySelectorAll('#hideTimeRow .chip').forEach(b=>b.classList.toggle('sel',+b.dataset.s===save.hideTime));}
 markTime();
 function showBest(){if(!W)return;const b=save.best[W.def.id]||1;$('best').textContent=b>1?'Best seeker level here: '+b:'';$('seekBtn').textContent=b>1?'🔍 I\'m the Seeker (level '+b+')':'🔍 I\'m the Seeker';}
@@ -223,6 +228,7 @@ function startSeek(lv){
   homeIdx=0;dogUses=3;dogTarget=null;arrowT=0;timeLeft=Math.max(75,60+n*25-(lv-1)*4);
   const sp=W.def.spawn.seek;HS.resetPlayer(sp[0],sp[1],sp[2],sp[3]);
   state='seekCount';count=10;hudFor('seek');renderStatus();$('dogBtn').textContent='🐶 '+dogUses;$('timer').textContent=HS.fmt(timeLeft);
+  $('coverTxt').textContent='🙈 Level '+lv+' · '+W.def.emoji+' '+W.def.name+' · Eyes closed!';
   $('cover').classList.add('show');$('coverNum').textContent=10;
 }
 function beginSeeking(){$('cover').classList.remove('show');state='seek';HS.sfx.go();HS.say('Ready or not, here I come!');
@@ -247,6 +253,7 @@ function endSeek(win){
   else{$('endStars').textContent='';HS.sfx.lose();HS.say('Time is up!');}
   $('endBody').innerHTML=win?'<p>Level '+level+' done with '+HS.fmt(timeLeft)+' left.</p>':'<p>Still hiding:</p><ul class="list">'+left.map(h=>'<li><b style="color:'+h.color+'">'+h.name+'</b> '+h.spot.label+'</li>').join('')+'</ul>';
   $('endNext').style.display=win?'':'none';$('endAgain').textContent=win?'Replay level':'Try again';
+  {const np=nextPlace();$('endNext').textContent=surprise?'Next level ▶ 🎲':np?'Next level ▶ '+HS.maps[np].emoji+' '+HS.maps[np].name:'Next level ▶ 🔒';}
   left.forEach(h=>{h.wig=99;if(h.camo)HS.paint(h.fig,null);});
   setTimeout(()=>{if(state==='end')$('end').classList.add('show');},win?900:1700);
 }
@@ -327,7 +334,7 @@ function closeOverlays(){['menu','end','cover'].forEach(id=>$(id).classList.remo
 $('seekBtn').onclick=()=>{HS.ac();closeOverlays();surprisePick();startSeek(save.best[W.def.id]||1);};
 $('hideBtn').onclick=()=>{HS.ac();closeOverlays();surprisePick();startHide();};
 $('skipCount').onclick=()=>{count=0;};
-$('endNext').onclick=()=>{closeOverlays();startSeek(level+1);};
+$('endNext').onclick=()=>{closeOverlays();const np=nextPlace();if(surprise)surprisePick();else if(np){loadPlace(np);}startSeek(level+1);};
 $('endAgain').onclick=()=>{closeOverlays();if(lastMode==='seek')startSeek(level);else startHide();};
 function goMenu(){setBrush(false);state='menu';clearHiders();seekerFig.visible=false;bubble.visible=false;me.visible=false;P.hidden=null;$('hud').style.display='none';closeOverlays();showBest();$('menu').classList.add('show');try{speechSynthesis.cancel();}catch(e){}}
 $('endMenu').onclick=goMenu;$('menuBtn').onclick=e=>{e.stopPropagation();goMenu();};
