@@ -132,6 +132,9 @@ input.word{-webkit-user-select:text;user-select:text}
 .touchy .chip{min-height:46px;font-size:16px;padding:8px 14px}
 .touchy #inv{width:60px;gap:8px;padding:8px 0}.touchy #inv b{font-size:32px}.touchy #bpap{font-size:32px}
 .touchy .keys button,.touchy .btn{min-height:56px}
+.trophy{display:flex;justify-content:center;animation:tp2 1.6s ease-in-out infinite alternate}@keyframes tp2{to{transform:translateY(-6px) scale(1.04)}}
+.shelf{display:flex;gap:6px;justify-content:space-around;align-items:flex-end;margin-top:14px;text-align:center}.shelf>div{display:flex;flex-direction:column;align-items:center;flex:1}.shelf small{font-size:12px;color:var(--dim);margin-top:4px}.shelf svg{max-width:100%;height:auto}
+.modes{display:flex;flex-direction:column;gap:10px}.mode{text-align:left;line-height:1.3}.mode small{font-weight:400;opacity:.85;font-size:14px}.mode.cur{outline:3px solid var(--brass)}
 .msg.good{color:var(--good)}
 .sockets{display:flex;gap:14px;justify-content:center}
 .sock{width:64px;height:64px;border-radius:50%;background:#0a0f11;border:3px solid #3a4a52;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -151,6 +154,7 @@ input.word{-webkit-user-select:text;user-select:text}
   <div class="bar">
     <h1><small id="rnum">Room 1 of 45</small><span id="rname">Broom Closet</span></h1>
     <span id="time">0:00</span>
+    <button class="chip" id="bmode">Easy</button>
     <button class="chip" id="bhint">Hint</button>
     <button class="chip" id="brooms">Rooms</button>
     <button class="chip" id="bsnd" aria-label="Sound: music and effects on">🎵</button>
@@ -406,12 +410,34 @@ if(typeof module!=='undefined') module.exports={LV,CL,TOG};
 <script>
 const $=s=>document.querySelector(s);
 const KEY='escapeRoomSave';
-let S={lvl:0,max:0,hints:0,ms:0};
+let S={lvl:0,max:0,hints:0,ms:0,mode:'easy'};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+if(!S.tr) S.tr={};
+if(!S.mx) S.mx={easy:S.max||0,medium:0,hard:0};
+if(!MODES_OK(S.mode)) S.mode='easy';
+function MODES_OK(m){ return m==='easy'||m==='medium'||m==='hard'; }
+const MODES={
+ easy:{name:'Easy',timeK:0,pen:0,hint:0,fakeKeys:0,extra:0,dark:1,papers:1,bossK:1,desc:'Take your time. No clock in normal rooms. Hints are free.'},
+ medium:{name:'Medium',timeK:1,pen:8,hint:20,fakeKeys:1,extra:1,dark:.88,papers:1,bossK:.85,desc:'Every room has a clock. Wrong answers cost 8 seconds and hints cost 20. Fake keys and extra fake gems. A little darker.'},
+ hard:{name:'Hard',timeK:.6,pen:15,hint:-1,fakeKeys:2,extra:2,dark:.62,papers:0,bossK:.65,desc:'Short clocks. Wrong answers cost 15 seconds. No hints. Two fake keys, many fake gems, dark rooms, and paper strips are not saved.'}
+};
+const MD=()=>MODES[S.mode];
+const TROPHY={
+ easy:{c1:'#e0a064',c2:'#8a5428',name:'Bronze Cup',sub:'Easy mode escaped',stars:0},
+ medium:{c1:'#eef2f5',c2:'#8f9aa3',name:'Silver Cup',sub:'Medium mode escaped',stars:1},
+ hard:{c1:'#ffe27a',c2:'#d29a14',name:'Golden Trophy',sub:'Hard mode escaped. The hardest trophy of all',stars:3}};
+function trophySvg(m,lock){ const t=TROPHY[m], g=lock?'#4a5358':null, a=g||t.c1, b=g||t.c2, big=m==='hard', w=big?150:m==='medium'?130:112;
+  const star=(x,y,r)=>`<polygon fill="${lock?'#3a4348':'#fff6c8'}" points="${[0,1,2,3,4,5,6,7,8,9].map(i=>{const R=i%2?r*.45:r,q=-Math.PI/2+i*Math.PI/5;return (x+R*Math.cos(q)).toFixed(1)+','+(y+R*Math.sin(q)).toFixed(1);}).join(' ')}"/>`;
+  return `<svg viewBox="0 0 120 140" width="${w}" role="img" aria-label="${lock?'Locked trophy':t.name}"><defs><linearGradient id="tg${m}" x1="0" x2="1"><stop offset="0" stop-color="${b}"/><stop offset=".4" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
+  <path d="M30 20h60v26c0 22-14 36-30 36S30 68 30 46z" fill="url(#tg${m})" stroke="#0006" stroke-width="2"/>
+  <path d="M30 28H14c0 22 8 34 22 38M90 28h16c0 22-8 34-22 38" fill="none" stroke="${b}" stroke-width="6" stroke-linecap="round"/>
+  <rect x="54" y="80" width="12" height="20" fill="${b}"/><path d="M36 100h48l6 14H30z" fill="url(#tg${m})" stroke="#0006" stroke-width="2"/><rect x="26" y="114" width="68" height="14" rx="3" fill="${b}" stroke="#0006" stroke-width="2"/>
+  ${lock?'<text x="60" y="58" text-anchor="middle" font-size="30" fill="#8a949a">?</text>':star(60,46,14)}
+  ${!lock&&t.stars>=1?star(18,12,7)+star(102,12,7):''}${!lock&&t.stars>=3?star(60,8,8)+star(36,6,5)+star(84,6,5)+`<path d="M44 20 L50 8 L60 18 L70 8 L76 20z" fill="${a}" stroke="#0006" stroke-width="1.5"/>`:''}</svg>`; }
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 let F={}, inv=[], hintAt=0, done=false, room=0;
-const ICON={key:'🗝️',gem1:'🔴',gem2:'🔵',gem3:'🟢',hammer:'🔨',torch:'🔦',card:'💳',dgem1:'🟡',dgem2:'🟣',dgem3:'🟠'};
-const INAME={key:'the key',gem1:'a red gem',gem2:'a blue gem',gem3:'a green gem',hammer:'a hammer',torch:'a torch',card:'a keycard',dgem1:'a yellow gem',dgem2:'a purple gem',dgem3:'an orange gem'};
+const ICON={key:'🗝️',gem1:'🔴',gem2:'🔵',gem3:'🟢',hammer:'🔨',torch:'🔦',card:'💳',dgem1:'🟡',dgem2:'🟣',dgem3:'🟠',dgem4:'🟤',dgem5:'⚪',dkey:'🔑'};
+const INAME={key:'the key',gem1:'a red gem',gem2:'a blue gem',gem3:'a green gem',hammer:'a hammer',torch:'a torch',card:'a keycard',dgem1:'a yellow gem',dgem2:'a purple gem',dgem3:'an orange gem',dgem4:'a brown gem',dgem5:'a white gem',dkey:'an old rusty key'};
 const KNAME={rug:'Rug',crate:'Crate',barrel:'Barrel',vase:'Vase',plant:'Plant',chest:'Chest',safe:'Safe',shelf:'Bookshelf',painting:'Painting',clock:'Clock',mirror:'Mirror',lamp:'Lamp',note:'Note',altar:'Altar',statue:'Statue',bed:'Bed',console:'Computer',locker:'Locker',cannon:'Cannon',porthole:'Porthole'};
 const has=n=>inv.includes(n);
 
@@ -476,7 +502,7 @@ let shake=0, cut=null, doorLight=null, DUST=[];
 function dust(p){ const w=p.G.localToWorld(new T.Vector3(p.pop[0],.25,p.pop[2])); for(let i=0;i<34;i++){ const m=new T.Mesh(BX(.07,.07,.07),new T.MeshBasicMaterial({color:i%3?0xcbb892:0x8a7a5a,transparent:true})); m.position.set(w.x+(Math.random()-.5)*.8,w.y+Math.random()*.3,w.z+(Math.random()-.5)*.8); scene.add(m); DUST.push({m,vx:(Math.random()-.5)*1.6,vy:.8+Math.random()*1.6,vz:(Math.random()-.5)*1.6,t:0}); } }
 let toastT;
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2600); }
-function wrong(el,text){ AU.buzz();  const m=el.querySelector('.msg'); if(m) m.textContent=text||'Nothing happens.'; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+function wrong(el,text){ AU.buzz(); if(tleft!==null&&MD().pen){ tleft-=MD().pen; lastSec=-1; }  const m=el.querySelector('.msg'); if(m) m.textContent=text||'Nothing happens.'; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
 
 /* ---------- lock widgets ---------- */
 function box(el,html){ const w=document.createElement('div'); w.style.cssText='display:flex;flex-direction:column;gap:8px'; w.innerHTML=html; el.appendChild(w); return w; }
@@ -678,8 +704,8 @@ function arch(G,fn,z){
   hit(A,1.5,2.8,.1,0,1.4,z+.03,()=>approach(d.x,d.z,()=>d.open?fn():toggle()));
   if(F[d.key]){ d.open=1; piv.rotation.y=-1.9; } }
 function itemMesh(n){ let m;
-  if(n==='key'){ m=new T.Group(); const gm=mat('#f2c230',{emissive:0x7a5200}); const ring=new T.Mesh(new T.TorusGeometry(.13,.04,8,18),gm); ring.position.y=.22; m.add(ring); m.add(M(CY(.035,.035,.42,8),gm,0,-.05,0)); m.add(M(BX(.12,.05,.04),gm,.07,-.2,0)); m.add(M(BX(.09,.05,.04),gm,.055,-.1,0)); }
-  else if(n.startsWith('gem')||n.startsWith('dgem')){ const c={gem1:0xe2362c,gem2:0x2f6fe0,gem3:0x2fb85a,dgem1:0xe8c22a,dgem2:0x9b5fe0,dgem3:0xf08a2e}[n]; m=new T.Mesh(new T.OctahedronGeometry(.22),mat(c,{emissive:c,emissiveIntensity:.45})); }
+  if(n==='key'||n==='dkey'){ m=new T.Group(); const gm=n==='key'?mat('#f2c230',{emissive:0x7a5200}):mat('#8d8f92',{emissive:0x1a1a1a}); const ring=new T.Mesh(new T.TorusGeometry(.13,.04,8,18),gm); ring.position.y=.22; m.add(ring); m.add(M(CY(.035,.035,.42,8),gm,0,-.05,0)); m.add(M(BX(.12,.05,.04),gm,.07,-.2,0)); m.add(M(BX(.09,.05,.04),gm,.055,-.1,0)); }
+  else if(n.startsWith('gem')||n.startsWith('dgem')){ const c={gem1:0xe2362c,gem2:0x2f6fe0,gem3:0x2fb85a,dgem1:0xe8c22a,dgem2:0x9b5fe0,dgem3:0xf08a2e,dgem4:0x8a5a3a,dgem5:0xf0f0f0}[n]; m=new T.Mesh(new T.OctahedronGeometry(.22),mat(c,{emissive:c,emissiveIntensity:.45})); }
   else { const c=document.createElement('canvas'); c.width=c.height=96; const g=c.getContext('2d'); g.font='72px serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(ICON[n],48,52); m=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),transparent:true})); m.scale.set(.6,.6,.6); }
   return m; }
 
@@ -689,14 +715,14 @@ function buildRoom(){
   const wm=mat('#ffffff',{map:tex(th[0],th[1],5,2.5),side:T.BackSide}), fm=mat('#ffffff',{map:tex(th[2],th[3],5,5),side:T.BackSide}), cm=mat(th[1],{side:T.BackSide});
   cm.color.multiplyScalar(.55);
   const box=new T.Mesh(BX(10,5,10),[wm,wm,cm,fm,wm,wm]); box.position.y=2.5; roomG.add(box);
-  amb.intensity=room?.55:.72; lamp.color.set(room?0xffd28a:0xfff0d0);
+  amb.intensity=(room?.55:.72)*MD().dark; lamp.color.set(room?0xffd28a:0xfff0d0);
   if(!room){ const D=new T.Group(); D.position.set(0,0,-4.98); roomG.add(D);
     D.add(M(BX(2.0,3.3,.1),'#1a1208',0,1.65,0)); D.add(M(BX(1.6,3.1,.02),new T.MeshBasicMaterial({color:0xffe9a8}),0,1.55,.06));
     doorPivot=new T.Group(); doorPivot.position.set(-.8,0,.1); doorPivot.add(M(BX(1.6,3.1,.08),'#8a6238',.8,1.55,0)); doorPivot.add(M(BX(1.2,1.1,.03),'#74502c',.8,2.2,.05)); doorPivot.add(M(BX(1.2,1.1,.03),'#74502c',.8,.85,.05)); doorPivot.add(M(new T.SphereGeometry(.09,12,10),'#e0a73a',1.42,1.5,.1)); D.add(doorPivot);
     doorLight=new T.PointLight(0xffd890,0,14); doorLight.position.set(0,1.7,-3.9); roomG.add(doorLight);
     hit(D,2.0,3.3,.4,0,1.65,.15,()=>approach(0,-5,doorTap));
   } else { const A=new T.Group(); A.position.set(0,0,4.98); A.rotation.y=Math.PI; roomG.add(A); arch(A,()=>enter(0),.03); }
-  (room?L.secret:L.main).forEach((def,i)=>addProp(def,i));
+  (room?L.secret:L.main).forEach((def,i)=>{ const fk=F.fake&&F.fake[room+':'+i]; addProp(fk?[def[0],def[1],{has:fk}]:def,i); });
 }
 function addProp(def,i){
   const kind=def[0], slot=def[1], o=def[2]||{}, s=SL[slot], isM=slot[0]==='m';
@@ -745,7 +771,7 @@ function collect(p){ const st=F[p.id]; if(!st||!st.drop) return; const n=st.drop
   if(p.dropW){ p.dropW.parent.remove(p.dropW); const i=SPIN.indexOf(p.dropW); if(i>=0) SPIN.splice(i,1); p.dropW=null; }
   if(p.dropH){ const i=HIT.indexOf(p.dropH); if(i>=0) HIT.splice(i,1); p.dropH=null; }
   inv.push(n); drawInv(); toast('You found '+INAME[n]+'!'); if(n==='key') AU.key(); else AU.item(); }
-function addPaper(id,title,html){ F.papers=F.papers||[]; if(!F.papers.some(x=>x.id===id)){ F.papers.push({id,title,html}); toast('Paper strip saved. Tap 📜 to read it again.'); } $('#pcount').textContent=F.papers.length||''; }
+function addPaper(id,title,html){ if(!MD().papers) return; F.papers=F.papers||[]; if(!F.papers.some(x=>x.id===id)){ F.papers.push({id,title,html}); toast('Paper strip saved. Tap 📜 to read it again.'); } $('#pcount').textContent=F.papers.length||''; }
 function showClue(p){ addPaper(p.id,KNAME[p.kind],CL[p.o.clue]); sheet(KNAME[p.kind],CL[p.o.clue]); }
 $('#bpap').onclick=()=>{ const P=F.papers||[]; sheet('Paper strips',P.length?P.map(x=>`<div class="strip"><small>${x.title}</small>${x.html}</div>`).join(''):'<p>No paper strips yet. Notes, charts and lock questions you find are saved here so you can read them again quickly.</p>'); };
 const GEMCOL={gem1:0xe2362c,gem2:0x2f6fe0,gem3:0x2fb85a}, GEMS3=['gem1','gem2','gem3'];
@@ -790,33 +816,45 @@ function tapProp(p){
 let moving=false;
 function enter(r){ if(moving) return; moving=true; AU.whoosh(); fade('#000',240,1,()=>{ enterNow(r); fade('#000',340,0); moving=false; }); }
 function enterNow(r){ room=r; buildRoom(); yaw=0; pitch=-.12; yawTo=null; walk=null; px=0; pz=r?3:0; closeSheet(); say(r?'A secret room. The doorway behind you leads back.':LV[S.lvl].i); toast(r?'Secret room':'Back in the main room'); }
-function doorTap(){ if(done) return; if(has('key')) win(); else { AU.thud(); sheet('The door','<p>Locked. You need the key.</p>'); } }
+function doorTap(){ if(done) return; if(has('key')) win(); else if(has('dkey')){ AU.thud(); sheet('The door','<p>You try the rusty key. It does not fit. It is a fake!</p>'); } else { AU.thud(); sheet('The door','<p>Locked. You need the key.</p>'); } }
 
 /* ---------- game loop ---------- */
 function drawInv(){ $('#items').innerHTML=inv.map(n=>`<b title="${INAME[n]}">${ICON[n]}</b>`).join(''); }
 function showTimer(){ const t=$('#timer'); if(tleft===null){ t.style.display='none'; return; } const s=Math.max(0,Math.ceil(tleft)); t.style.display='block'; t.textContent='⏱ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); t.classList.toggle('low',s<=30); }
 function timeUp(){ if(done) return; done=true; tleft=null; lastSec=0; closeSheet(); walk=null; AU.buzz(); shake=.08; showTimer();
   sheet('Time is up!','<p>The boss wins this time. The door locks for good. Try again. You can do it!</p><button class="btn go" id="again">Try the boss again</button>',el=>el.querySelector('#again').onclick=()=>start(S.lvl)); }
-function start(n){ S.lvl=n; F={}; cut=null; shake=0; moving=false; fade('#000',1,0); $('#pcount').textContent=''; inv=[]; hintAt=0; done=false; room=0; save(); closeSheet();
-  const L=LV[n]; tleft=L.time||null; lastSec=0; showTimer(); $('#rnum').textContent=L.time?`Final boss ${n-39} of 5`:`Room ${n+1} of ${LV.length}`; $('#rname').textContent=L.n; say(L.i);
+function planFakes(n){ const L=LV[n], M=MD(), fake={}; if(!M.fakeKeys&&!M.extra) return fake;
+  const pool=[]; [[0,L.main],[1,L.secret||[]]].forEach(a=>a[1].forEach((d,i)=>{ if(!d[2]&&d[0]!=='altar') pool.push(a[0]+':'+i); }));
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const alt=JSON.stringify([L.main,L.secret]).includes('needs:')||[...(L.main||[]),...(L.secret||[])].some(d=>d[0]==='altar');
+  let k=0; for(let i=0;i<M.fakeKeys&&k<pool.length;i++) fake[pool[k++]]='dkey';
+  if(alt) for(let i=0;i<M.extra&&k<pool.length;i++) fake[pool[k++]]='dgem'+(4+i);
+  return fake; }
+function start(n){ S.lvl=n; F={}; F.fake=planFakes(n); cut=null; shake=0; moving=false; fade('#000',1,0); $('#pcount').textContent=''; inv=[]; hintAt=0; done=false; room=0; save(); closeSheet();
+  const L=LV[n]; tleft=L.time?Math.round(L.time*MD().bossK):(MD().timeK?Math.round((110+n*10)*MD().timeK):null); lastSec=0; showTimer(); $('#rnum').textContent=L.time?`Final boss ${n-39} of 5`:`Room ${n+1} of ${LV.length}`; $('#rname').textContent=L.n; say(L.i);
   drawInv(); yaw=0; pitch=-.12; yawTo=null; walk=null; px=0; pz=0; buildRoom(); }
 function win(){ if(done||!doorPivot) return; done=true; closeSheet(); walk=null;
   AU.creak(); tw(doorPivot.rotation,'y',-1.5,1100); if(doorLight) tw(doorLight,'intensity',3,1400); setTimeout(()=>AU.fanfare(),1500);
-  const last=S.lvl===LV.length-1; if(!last) S.max=Math.max(S.max,S.lvl+1); save();
+  const last=S.lvl===LV.length-1; if(!last) S.mx[S.mode]=Math.max(S.mx[S.mode],S.lvl+1); save();
   const finish=()=>{
-    if(last){ const rank=S.hints===0?'Master Escapist':S.hints<=16?'Lock Picker':'Free at Last';
-      sheet('You escaped',`<p>Daylight. All forty-five rooms are behind you, even the five bosses.</p><p class="stat">${rank}</p><p>Time ${fmt(S.ms)} · Hints used ${S.hints}</p><button class="btn go" id="again">Play again from room 1</button>`,
-        el=>el.querySelector('#again').onclick=()=>{S.hints=0;S.ms=0;S.max=LV.length-1;start(0);});
+    if(last){ S.tr[S.mode]=1; save(); const T=TROPHY[S.mode];
+      sheet('You won a trophy!',`<div class="trophy">${trophySvg(S.mode)}</div><p class="stat">${T.name}</p><p>${T.sub}. Daylight! All forty-five rooms are behind you, even the five bosses.</p><p>${MD().name} mode · Time ${fmt(S.ms)} · Hints used ${S.hints}</p><button class="btn go" id="again">Play again from room 1</button>`,
+        el=>el.querySelector('#again').onclick=()=>{S.hints=0;S.ms=0;S.mx[S.mode]=LV.length-1;start(0);});
     } else sheet('Door open',`<p>${LV[S.lvl].n} cleared.</p><button class="btn go" id="next">Go to room ${S.lvl+2}</button>`,el=>el.querySelector('#next').onclick=()=>start(S.lvl+1));
     fade('#fff',900,0);
   };
   cut={t:0,d:2.6,fx:px,fz:pz,fy:yaw,fp:pitch,tx:0,tz:-3.7,ty:0,tp:.04,end:finish};
 }
-$('#bhint').onclick=()=>{ const H=LV[S.lvl].hints;
+$('#bhint').onclick=()=>{ const H=LV[S.lvl].hints, M=MD();
+  if(M.hint<0) return sheet('Hint','<p>There are no hints in Hard mode. You can do it! You can switch to an easier mode with the Mode button.</p>');
+  const pay=()=>{ if(M.hint&&tleft!==null){ tleft-=M.hint; lastSec=-1; toast('Hint used. -'+M.hint+' seconds.'); } };
   const show=i=>sheet(`Hint ${i+1} of ${H.length}`,`<p>${H[i]}</p>`+(i<H.length-1?'<button class="btn" id="more">I need a bigger hint</button>':''),
-    el=>{const m=el.querySelector('#more'); if(m) m.onclick=()=>{ if(hintAt<i+2){hintAt=i+2;S.hints++;save();} show(i+1); };});
-  if(hintAt===0){hintAt=1;S.hints++;save();} show(hintAt-1); };
-$('#brooms').onclick=()=>sheet('Rooms','<div class="rooms">'+LV.map((r,i)=>`<button class="btn" data-i="${i}" ${i>S.max?'disabled':''} aria-label="Room ${i+1}${i>S.max?' locked':''}">${i>S.max?'🔒':i+1}</button>`).join('')+'</div><p style="color:var(--dim)">Clear a room to unlock the next one.</p>',
+    el=>{const m=el.querySelector('#more'); if(m) m.onclick=()=>{ if(hintAt<i+2){hintAt=i+2;S.hints++;save();pay();} show(i+1); };});
+  if(hintAt===0){hintAt=1;S.hints++;save();pay();} show(hintAt-1); };
+function modeLabel(){ $('#bmode').textContent=MD().name; }
+$('#bmode').onclick=()=>sheet('Choose a mode','<div class="modes">'+['easy','medium','hard'].map(m=>`<button class="btn go mode${S.mode===m?' cur':''}" data-m="${m}"><b>${MODES[m].name}${S.mode===m?' (playing)':''}</b><br><small>${MODES[m].desc}</small></button>`).join('')+'</div>'+'<div class="shelf">'+['easy','medium','hard'].map(m=>`<div>${trophySvg(m,!S.tr[m])}<small>${S.tr[m]?TROPHY[m].name:'Finish all 45 rooms in '+MODES[m].name}</small></div>`).join('')+'</div><p style="color:var(--dim)">Each mode keeps its own progress. Easy is the original game.</p>',
+  el=>el.querySelector('.modes').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S.mode=b.dataset.m; modeLabel(); save(); start(Math.min(S.lvl,S.mx[S.mode])); });
+$('#brooms').onclick=()=>sheet('Rooms','<div class="rooms">'+LV.map((r,i)=>`<button class="btn" data-i="${i}" ${i>S.mx[S.mode]?'disabled':''} aria-label="Room ${i+1}${i>S.mx[S.mode]?' locked':''}">${i>S.mx[S.mode]?'🔒':i+1}</button>`).join('')+'</div><p style="color:var(--dim)">Clear a room to unlock the next one.</p>',
   el=>el.querySelector('.rooms').onclick=e=>{const b=e.target.closest('button'); if(b&&!b.disabled) start(+b.dataset.i);});
 const fmt=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 setInterval(()=>{ if(!done&&!document.hidden){S.ms+=1000; $('#time').textContent=fmt(S.ms); if(S.ms%10000===0) save();} },1000);
@@ -826,7 +864,8 @@ document.body.classList.toggle('touchy',TOUCH);
 if(!TOUCH){ $('#joy').style.display='none'; $('#keyhelp').style.display='block'; $('#cv').setAttribute('aria-label','3D room. Walk with W A S D or the arrow keys, move the mouse to look, click things.'); }
 const ON_SITE=/^https?:$/.test(location.protocol)&&!/claude|anthropic/i.test(location.hostname);
 if(ON_SITE){const h=$('#bhome');h.style.display='';h.onclick=()=>{location.href=new URL('../',location.href).href;};}
-try{ init3D(); start(Math.min(S.lvl||0,LV.length-1)); }
+modeLabel();
+try{ init3D(); start(Math.min(S.lvl||0,S.mx[S.mode],LV.length-1)); }
 catch(e){ say('This device could not start the 3D view. Try another browser.',60000); }
 </script>
 <script>
