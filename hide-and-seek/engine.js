@@ -20,6 +20,7 @@ HS.sfx={
   miss(){tone(220,0.12,'triangle',0.08,0,160);},
   bark(){tone(420,0.11,'sawtooth',0.12,0,200);tone(460,0.13,'sawtooth',0.12,0.2,210);},
   paint(){tone(500,0.15,'sine',0.1,0,900);},
+  creak(){tone(140,0.32,'sawtooth',0.045,0,240);tone(240,0.18,'triangle',0.07,0.22,170);},
   jump(){tone(260,0.18,'sine',0.08,0,520);},
   brush(){tone(rnd(700,900),0.07,'triangle',0.06,0,rnd(350,450));}
 };
@@ -116,6 +117,22 @@ function builder(W){
   B.figure=(o,spot)=>{const f=HS.makeFigure(o);HS.placeFigure(f,spot);B.addFx(f);return f;};
   // things that must keep their shape (figures): placed with map coords, not stretched by the map scale
   B.addFx=(o)=>{o.position.x*=W.k;o.position.z*=W.k;W.fx.add(o);return o;};
+  // things you can open (chests, cupboards, wardrobes): someone might be hiding inside!
+  // o: {kind:'chest'|'closet', x, z, y, w, h, d, ry (front faces +z turned by ry), color, lid, label}
+  B.openable=(o)=>{const i=W.opens.length,kind=o.kind||'chest',ch=kind==='chest';const w=o.w||(ch?2.0:1.3),h=o.h||(ch?0.75:2.3),d=o.d||0.95,y0=o.y||0,ry=o.ry||0,c=o.color||(ch?'#b9773e':'#c58b4e'),lc=o.lid||c,t=0.08;
+    const g=new THREE.Group();g.position.set(o.x,y0,o.z);g.rotation.y=ry;W.group.add(g);const meshes=[];
+    const mk=(w_,h_,d_,x,y,z,col,par)=>{const m=B.box(w_,h_,d_,x,y,z,col,{parent:par||g});m.userData.openI=i;meshes.push(m);return m;};
+    const pivot=new THREE.Group();g.add(pivot);
+    if(ch){mk(w,t,d,0,t/2,0,c);mk(w,h,t,0,h/2,d/2-t/2,c);mk(w,h,t,0,h/2,-d/2+t/2,c);mk(t,h,d,-w/2+t/2,h/2,0,c);mk(t,h,d,w/2-t/2,h/2,0,c);
+      mk(0.12,h+0.02,d+0.02,-w/2+0.3,h/2,0,'#d4a017');mk(0.12,h+0.02,d+0.02,w/2-0.3,h/2,0,'#d4a017');
+      pivot.position.set(0,h,-d/2);mk(w+0.06,0.14,d+0.06,0,0.07,d/2,lc,pivot);mk(0.2,0.24,0.06,0,-0.05,d+0.05,'#d4a017',pivot);}
+    else{mk(w,h,t,0,h/2,-d/2+t/2,c);mk(t,h,d,-w/2+t/2,h/2,0,c);mk(t,h,d,w/2-t/2,h/2,0,c);mk(w,t,d,0,h-t/2,0,c);mk(w,t,d,0,t/2,0,c);
+      mk(w-0.2,0.04,0.04,0,h-0.35,0,'#9aa3ad');pivot.position.set(-w/2,0,d/2);mk(w,h,t,w/2,h/2,t/2,lc,pivot);mk(0.08,0.3,0.08,w-0.15,h*0.5,t+0.05,'#d4a017',pivot);}
+    const k=W.k,sw=Math.abs(Math.sin(ry))>0.5,fw=sw?d:w,fd=sw?w:d;B.col(o.x-fw/2,o.x+fw/2,o.z-fd/2,o.z+fd/2,y0+h,o.bot||0);
+    const X=o.x*k,Z=o.z*k;
+    W.opens.push({i,kind,g,pivot,meshes,open:false,a:0,x:X,z:Z,y:y0,h,w,d,ry,half:Math.max(fw*k,fd)/2,front:[X+Math.sin(ry)*(d/2+0.9),Z+Math.cos(ry)*(d/2+0.9)],
+      label:o.label||(ch?'inside the chest':'inside the cupboard'),bg:c,spot:o.spot!==false});
+    return W.opens[i];};
   return B;
 }
 // a map with scale k is spread out sideways k times (heights stay the same, so stairs and jumps still work)
@@ -128,7 +145,7 @@ function scaleDef(d,k){const s2=a=>a&&[a[0]*k,a[1]*k].concat(a.slice(2)),s4=a=>a
 HS.loadMap=function(id){
   if(W){scene.remove(W.group);disposeGroup(W.group);scene.remove(W.fx);disposeGroup(W.fx);}
   const raw=HS.maps[id];const k=raw.scale||1;const g=new THREE.Group();g.scale.set(k,1,k);scene.add(g);const fx=new THREE.Group();scene.add(fx);
-  W=HS.world={def:raw,group:g,fx,k,cols:[],solids:[]};
+  W=HS.world={def:raw,group:g,fx,k,cols:[],solids:[],opens:[]};
   const BB=builder(W);raw.build(BB);if(raw.sky)raw.sky(BB);
   W.cols.forEach(c=>{c.x0*=k;c.x1*=k;c.z0*=k;c.z1*=k;});
   const def=W.def=k===1?raw:scaleDef(raw,k);
@@ -140,9 +157,18 @@ HS.loadMap=function(id){
   sun.intensity=e.sun==null?0.75:e.sun;sun.position.set(...(e.sunPos||[8,16,10]));sun.target.position.set(0,0,0);
   const sc=sun.shadow.camera,ext=e.shadowExt||18;sc.left=-ext;sc.right=ext;sc.top=ext;sc.bottom=-ext;sc.near=1;sc.far=80;sc.updateProjectionMatrix();
   buildGrid();
-  W.spots=def.spots.map((s,i)=>{const sp=Object.assign({},s,{i});const f=HS.makeFigure({});HS.placeFigure(f,sp);f.updateMatrixWorld(true);const v=new THREE.Vector3();f.userData.inner.userData.head.getWorldPosition(v);sp.eye=v.add(new THREE.Vector3(0,0.05,0));sp.lookY=HS.floorAt(s.look[0],s.look[1]);sp.top=v.y+0.45;return sp;});
+  W.spots=def.spots.concat(W.opens.filter(o=>o.spot).map(o=>Object.assign(HS.openSpot(o),{label:o.label,look:o.front,bg:o.bg,inside:o.i}))).map((s,i)=>{const sp=Object.assign({},s,{i});const f=HS.makeFigure({});HS.placeFigure(f,sp);f.updateMatrixWorld(true);const v=new THREE.Vector3();f.userData.inner.userData.head.getWorldPosition(v);sp.eye=v.add(new THREE.Vector3(0,0.05,0));sp.lookY=HS.floorAt(s.look[0],s.look[1]);sp.top=v.y+0.45;return sp;});
   return W;
 };
+/* ---------- chests & cupboards ---------- */
+function applyOpen(o){if(o.kind==='chest')o.pivot.rotation.x=-o.a*1.9;else o.pivot.rotation.y=-o.a*1.9;}
+HS.openSpot=function(o){const y=o.ry+Math.PI/2;return o.kind==='chest'?{pos:[o.x+Math.sin(y)*0.82,o.y+0.08,o.z+Math.cos(y)*0.82],pose:'lie',yaw:y}:{pos:[o.x,o.y+0.08,o.z],pose:'stand',yaw:o.ry};};
+HS.setOpen=function(i,v,quiet){const o=W&&W.opens[i];if(!o||o.open===!!v)return false;o.open=!!v;if(quiet){o.a=o.open?1:0;applyOpen(o);}else HS.sfx.creak();return true;};
+HS.closeAll=function(){if(W)W.opens.forEach(o=>{o.open=false;o.a=0;applyOpen(o);});};
+HS.tickOpens=function(dt){if(W)W.opens.forEach(o=>{const tg=o.open?1:0;if(o.a!==tg){o.a+=Math.sign(tg-o.a)*Math.min(Math.abs(tg-o.a),dt*3.2);applyOpen(o);}});};
+// which chest/cupboard did I tap? (must be close)
+HS.pickOpen=function(cx_,cy_,far){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=far||3.6;const h=ray.intersectObjects(W.solids,false);return h.length&&h[0].object.userData.openI!=null?h[0].object.userData.openI:-1;};
+HS.nearOpen=function(x,z,r){let best=-1,bd=1e9;W.opens.forEach(o=>{const dd=Math.hypot(o.x-x,o.z-z)-o.half;if(dd<r&&dd<bd){bd=dd;best=o.i;}});return best;};
 // ground-level view (seeker, dog, paths): floating things high overhead don't count
 HS.floorAt=function(x,z,r){if(r===undefined)r=0.3;let h=0;for(const c of W.cols){if(c.bot>=1.75)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top>h)h=c.top;}return h;};
 // for a player whose feet are at 'feet': what can I stand on, what blocks me, what is over my head?

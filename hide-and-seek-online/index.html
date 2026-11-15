@@ -88,6 +88,7 @@
     <button class="btn pink" id="paintBtn">🖌 Paintbrush</button>
     <button class="btn" id="poseBtn">🧎 Crouch</button>
     <button class="btn" id="viewBtn">👁 My eyes</button>
+    <button class="btn yellow" id="boxBtn">📦 Hide inside</button>
   </div>
   <button class="btn" id="jumpBtn">Jump</button>
   <div class="pill" id="spec">👀 A round is going on. You'll play in the next round!</div>
@@ -209,6 +210,7 @@ function onMsg(m){const f=m.f|0;switch(m.t){
   case 'g':if(f>0&&f===NET.host&&!isHost())applyG(m.g);break;
   case 'p':if(f>0){const p=pl(f);p.last=m;if(okNick(m.n))p.nick=[m.n[0]|0,m.n[1]|0];}break;
   case 'tag':if(isHost())hostTag(f,m.v|0);break;
+  case 'o':if(state==='play'&&f>0&&W.opens[m.i|0])HS.setOpen(m.i|0,!!m.v);break;
   case 'sp':if(state==='play'&&okVec(m.p)&&okVec(m.n)&&typeof m.c==='string')HS.splat(m.p,m.n,m.c,+m.r||0.28);break;
   case 'spx':if(state==='play'&&okVec(m.p)){HS.eraseSplats(m.p,0.5);HS.eraseDots(m.p,0.5);}break;
   case 'ln':if(state==='play'&&okVec(m.a)&&okVec(m.b)&&okVec(m.n)&&typeof m.c==='string')HS.dotLine(m.a,m.b,m.n,m.c);break;
@@ -305,7 +307,7 @@ loadMap('house');
 function spawnFor(id,role){const sp=role==='seek'?W.def.spawn.seeker:W.def.spawn.hide;const k=Math.max(0,G.players.indexOf(id));
   if(role==='seek')return [sp[0],sp[1],sp[2],sp[3]];const dx=((k%3)-1)*1.2,dz=((k/3)|0)*1.2;const c=HS.clampXZ(sp[0]+dx,sp[1]+dz);return [c[0],c[1],sp[2],sp[3]];}
 function startRound(){
-  loadMap(G.real);resetWorld();setBrush(false);splatsSent=0;linesSent=0;myPoseSel='stand';$('poseBtn').textContent=POSE_LBL.stand;$('pal').style.display='none';
+  loadMap(G.real);resetWorld();setBrush(false);HS.closeAll();P.inside=-1;boxT=0;splatsSent=0;linesSent=0;myPoseSel='stand';$('poseBtn').textContent=POSE_LBL.stand;$('pal').style.display='none';
   myRoleNow=myRole();const s=spawnFor(NET.id,myRoleNow);HS.resetPlayer(s[0],s[1],s[2],s[3]);
   HS.clearBodyDots(meFig);HS.paint(meFig,null);third=myRoleNow==='hide';
   PL.forEach(p=>{p.last=null;});syncRoles(true);
@@ -338,7 +340,7 @@ function roundOver(){setBrush(false);const r=myRole();
 /* ---------- hider tools ---------- */
 function setButtons(){const r=myRole(),play=state==='play'&&(G.ph==='hide'||G.ph==='seek');const hid=r==='hide'&&play;
   const b=(id,on)=>{$(id).style.display=on?'inline-block':'none';};
-  b('paintBtn',hid&&G.ph==='hide');b('poseBtn',hid);b('viewBtn',hid);
+  b('paintBtn',hid&&G.ph==='hide');if(!hid)b('boxBtn',false);b('poseBtn',hid);b('viewBtn',hid);
   $('cross').style.display=(r==='seek'&&G.ph==='seek')?'':'none';
   $('jumpBtn').style.display=HS.isTouch&&play&&r!=='spec'?'block':'none';if(!hid)$('camo').style.display='none';}
 const POSES=['stand','crouch','lie'],POSE_LBL={stand:'🧎 Crouch',crouch:'🛌 Lie down',lie:'🧍 Stand'};let myPoseSel='stand';
@@ -360,10 +362,23 @@ let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.
 function updateStatus(){const r=myRole();$('status').textContent=(r==='hide'?'🙈 You hide':r==='seek'?'🔍 You seek':'👀 Watching')+' · 👥 '+allIds().length+' · R'+G.round;}
 
 /* ---------- input ---------- */
-const canMove=()=>!brushing&&state==='play'&&(myRole()==='hide'?(G.ph==='hide'||G.ph==='seek'):myRole()==='seek'&&G.ph==='seek');
+const canMove=()=>!brushing&&!(P.inside>=0)&&state==='play'&&(myRole()==='hide'?(G.ph==='hide'||G.ph==='seek'):myRole()==='seek'&&G.ph==='seek');
 function sendTag(v){const p=PL.get(v);if(!p||performance.now()-p.tagT<1000)return;p.tagT=performance.now();if(isHost())hostTag(NET.id,v);else send({t:'tag',v});}
-function tapAt(x,y){if(state!=='play'||G.ph!=='seek'||myRole()!=='seek')return;const hs=[];PL.forEach(p=>{if(p.fig&&p.role==='hide')hs.push(p.fig.userData.hit);});
-  const r=HS.pick(x,y,hs);if(r.obj){PL.forEach(p=>{if(p.fig&&p.fig.userData.hit===r.obj)sendTag(p.id);});}else{HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}}
+// someone hiding in a closed chest or cupboard can't be found until it is opened
+const shut=p=>{const b=p.last?(p.last.b|0):-1;return b>=0&&W.opens[b]&&!W.opens[b].open;};
+function toggleOpen(i){const v=!W.opens[i].open;HS.setOpen(i,v);send({t:'o',i,v:v?1:0});}
+function tapAt(x,y){if(state!=='play')return;const r0=myRole();
+  if(r0==='hide'&&G.ph==='hide'&&!(P.inside>=0)){const oi=HS.pickOpen(x,y);if(oi>=0)toggleOpen(oi);return;}
+  if(G.ph!=='seek'||r0!=='seek')return;const hs=[];PL.forEach(p=>{if(p.fig&&p.role==='hide'&&!shut(p))hs.push(p.fig.userData.hit);});
+  const r=HS.pick(x,y,hs);if(r.obj){PL.forEach(p=>{if(p.fig&&p.fig.userData.hit===r.obj)sendTag(p.id);});return;}
+  const oi=HS.pickOpen(x,y);if(oi>=0){toggleOpen(oi);return;}
+  HS.sfx.miss();if(r.blocked)toast('Hmm… nobody there',1);}
+let boxT=0;
+$('boxBtn').onclick=e=>{e.stopPropagation();HS.ac();if(state!=='play'||myRole()!=='hide')return;boxT=0;
+  if(P.inside>=0){const o=W.opens[P.inside];P.inside=-1;if(!o.open)toggleOpen(o.i);P.x=o.front[0];P.z=o.front[1];P.feet=HS.floorAt(P.x,P.z);P.vy=0;myPoseSel='stand';$('poseBtn').textContent=POSE_LBL.stand;return;}
+  if(G.ph!=='hide')return;const i=HS.nearOpen(P.x,P.z,1.0);if(i<0)return;const o=W.opens[i],sp=HS.openSpot(o);
+  P.inside=i;P.x=sp.pos[0];P.z=sp.pos[2];P.feet=sp.pos[1];P.vy=0;P.yaw=sp.yaw-Math.PI;setBrush(false);if(o.open)toggleOpen(i);
+  toast(o.kind==='chest'?'🤫 You closed the lid!':'🤫 You closed the door!',1.8);};
 HS.bindInput($('c'),{canMove,onTap:tapAt,onJump:()=>{if(canMove())HS.jump();},brushing:()=>brushing,onBrush:(x,y,st)=>HS.brushAt(x,y,st,meFig,brushUI.color,brushCb,brushUI.mode)});
 $('jumpBtn').addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(canMove())HS.jump();},{passive:false});
 $('jumpBtn').onclick=e=>{e.stopPropagation();if(canMove())HS.jump();};
@@ -372,7 +387,7 @@ if(ON_SITE)document.querySelectorAll('.homeBtn').forEach(b=>{b.style.display='';
 
 /* ---------- loop ---------- */
 let last=performance.now(),myPose='stand';const head=new THREE.Vector3(),tv=new THREE.Vector3();
-function myState(){const s={t:'p',n:myNick,x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:HS.getPaint(meFig)};
+function myState(){const s={t:'p',n:myNick,x:+P.x.toFixed(2),y:+P.feet.toFixed(2),z:+P.z.toFixed(2),r:+P.yaw.toFixed(2),o:myPose,c:HS.getPaint(meFig),b:P.inside>=0?P.inside:-1};
   if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.hold>0?3:0];return s;}
 function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
@@ -384,8 +399,11 @@ function frame(now){
   const role=myRole();
   // me
   let moving=false;
-  if(canMove()){const m=HS.moveVec(dt,role==='hide'&&myPoseSel!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else HS.movePlayer(0,0,dt);
+  HS.tickOpens(dt);
+  if(canMove()){const m=HS.moveVec(dt,role==='hide'&&myPoseSel!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else if(!(P.inside>=0))HS.movePlayer(0,0,dt);
   myPose=(moving||!P.ground)?'walk':(role==='hide'?myPoseSel:'stand');
+  if(P.inside>=0)myPose=HS.openSpot(W.opens[P.inside]).pose;
+  if(role==='hide'&&(G.ph==='hide'||G.ph==='seek')&&(boxT-=dt)<=0){boxT=0.25;const near=P.inside>=0?P.inside:(G.ph==='hide'?HS.nearOpen(P.x,P.z,1.0):-1);const bb=$('boxBtn');bb.style.display=near>=0?'inline-block':'none';bb.textContent=P.inside>=0?'🚪 Get out':'📦 Hide inside';}
   if(role==='seek'&&G.ph==='hide')myPose='cover';
   if(role==='hide'){
     HS.setLie(meFig,myPose==='lie');meFig.position.set(P.x,P.feet,P.z);meFig.rotation.set(0,P.yaw+Math.PI,0);HS.pose(meFig.userData.inner,myPose,T);HS.tickPaint(meFig,dt);
@@ -405,7 +423,7 @@ function frame(now){
     // names over seekers for everyone; names over hiders only for other hiders
     const showName=p.role==='seek'||role==='hide'||role==='spec'||G.ph==='over';if(p.tagS){p.tagS.visible=showName;p.tagS.position.set(p.x,p.y+2.45,p.z);if(p.tagName!==nameOf(p.id)){p.tagName=nameOf(p.id);HS.spriteText(p.tagS,p.tagName);}}
     // a seeker finds a hider by walking right up to them
-    if(role==='seek'&&G.ph==='seek'&&p.role==='hide'){p.fig.userData.hit.getWorldPosition(tv);const cp=HS.camera.position;if(Math.hypot(tv.x-cp.x,tv.z-cp.z)<1.6&&Math.abs(tv.y-cp.y)<1.9)sendTag(p.id);}});
+    if(role==='seek'&&G.ph==='seek'&&p.role==='hide'&&!shut(p)){p.fig.userData.hit.getWorldPosition(tv);const cp=HS.camera.position;if(Math.hypot(tv.x-cp.x,tv.z-cp.z)<1.6&&Math.abs(tv.y-cp.y)<1.9)sendTag(p.id);}});
   if(isHost())HS.dogUpdate(dog,dt);
   // HUD
   const s=Math.ceil(G.left);
