@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Felix's Lucky Button Room</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101522">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Button Room">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#101522;font-family:"Trebuchet MS",Verdana,sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;font-size:18px;font-weight:bold}
+#hud span{background:rgba(10,14,30,.72);padding:6px 10px;border-radius:12px;white-space:nowrap}
+#hint{position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:13px;opacity:.75;pointer-events:none;padding:0 130px}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#ffd60a;color:#222;font-weight:bold;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
+#toast.on{opacity:1}
+#ov{position:fixed;inset:0;background:rgba(5,8,20,.62);display:flex;align-items:center;justify-content:center;padding:14px;z-index:5}
+#ov.hidden{display:none}
+#ov.win{background:transparent;align-items:flex-end}
+#card{background:#1d2540;border:3px solid #ffd60a;border-radius:20px;padding:18px;width:100%;max-width:400px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5);max-height:96vh;overflow:auto}
+#card h2{margin:6px 0;font-size:24px;color:#ffd60a}
+#card p{margin:8px 0;font-size:16px;line-height:1.4}
+#card .big{font-size:60px;line-height:1.1}
+#card ul{text-align:left;font-size:15px;line-height:1.5;padding-left:20px;margin:8px 0}
+button{font-family:inherit;font-weight:bold;cursor:pointer;border:0;border-radius:14px;color:#fff;touch-action:manipulation}
+.go{background:#06d6a0;color:#04221a;font-size:20px;padding:12px 28px;margin-top:10px}
+.alt{background:#44506e;font-size:16px;padding:10px 18px;margin:10px 0 0 8px}
+.tbar{height:10px;background:#0c1124;border-radius:6px;overflow:hidden;margin-top:8px}
+.tbar i{display:block;height:100%;width:100%;background:#ff9f1c}
+#stage{position:relative;height:230px;margin-top:12px}
+.track{position:absolute;left:0;right:0;top:60px;height:44px;background:#0c1124;border-radius:10px;overflow:hidden}
+.zone{position:absolute;top:0;bottom:0;background:#06d6a0}
+.mark{position:absolute;top:-4px;bottom:-4px;width:8px;margin-left:-4px;background:#fff;border-radius:4px}
+.stopb{position:absolute;left:50%;transform:translateX(-50%);bottom:10px;background:#ff4d6d;font-size:24px;padding:14px 40px}
+.q{font-size:40px;font-weight:bold;margin:14px 0}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opts button{background:#3a86ff;font-size:26px;padding:16px 0}
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%}
+.pads button{opacity:.45;border-radius:18px}
+.pads button.lit{opacity:1;box-shadow:0 0 24px #fff}
+.tgt{position:absolute;width:48px;height:48px;border-radius:50%;background:radial-gradient(#fff 0 22%,#ff4d6d 24% 55%,#fff 57% 72%,#ff4d6d 74%);padding:0}
+.rpad{width:100%;height:100%;font-size:34px;background:#d62839;border-radius:20px}
+.rpad.g{background:#06d6a0;color:#04221a}
+.grid5{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;height:100%}
+.grid5 button{background:#2a3355;font-size:20px;padding:0}
+.paper{background:#fffbe6;color:#222;font-family:"Courier New",monospace;font-size:42px;font-weight:bold;letter-spacing:10px;padding:20px 10px;margin:12px auto;transform:rotate(-3deg);box-shadow:0 4px 12px rgba(0,0,0,.45);border-radius:4px;max-width:260px}
+.slots{font-size:38px;letter-spacing:10px;font-weight:bold;background:#0c1124;border-radius:12px;padding:8px;margin:8px 0}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.keys button{background:#3a86ff;font-size:24px;padding:12px 0}
+.keys .x{background:#44506e}.keys .e{background:#06d6a0;color:#04221a}
+#joy{position:fixed;left:14px;bottom:14px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.35);touch-action:none;display:none;z-index:2}
+#joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;background:rgba(255,255,255,.6)}
+.conf{position:fixed;top:-30px;font-size:24px;animation:fall linear forwards;pointer-events:none;z-index:4}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><span id="hHome" style="display:none;pointer-events:auto;cursor:pointer" role="button" aria-label="All games">🏠</span><span id="hLives"></span><span id="hStars"></span><span id="hKey"></span><span id="hCode"></span><span id="hTro"></span><span id="hMus" style="pointer-events:auto;cursor:pointer">🎵 On</span></div>
+<div id="hint"></div>
+<div id="toast"></div>
+<div id="joy"><i></i></div>
+<div id="ov" class="hidden"><div id="card"></div></div>
+<script src="three.min.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const ov=$('#ov'),card=$('#card');
+if(!window.THREE){ov.className='';card.innerHTML='<h2>Could not load the 3D engine</h2><p>Please reload the page.</p>';return;}
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
+const R=6,H=5,KEY_COST=8,CODE_LEN=4;
+const COLS=[-4.8,-2.4,0,2.4,4.8],ROWS=[1.3,2.5,3.7];
+
+/* ---------- sound ---------- */
+let actx=null;
+function tone(f,d,type,v,when){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime+(when||0);const o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.15,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+d);}catch(e){}}
+const sfx={press:()=>tone(320,.1,'square',.08),good:()=>{tone(660,.12);tone(880,.2,'sine',.15,.1);},bad:()=>tone(160,.35,'sawtooth',.1),
+ chal:()=>{tone(440,.1,'square',.08);tone(440,.1,'square',.08,.15);tone(660,.2,'square',.08,.3);},life:()=>{tone(220,.2,'sawtooth',.12);tone(140,.4,'sawtooth',.12,.2);},
+ win:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'triangle',.15,i*.13)),tick:()=>tone(900,.05,'sine',.08)};
+
+/* ---------- music: "Lucky Button Bounce" ---------- */
+const MEL=[72,0,76,79,76,0,72,0, 69,0,72,76,72,0,69,0, 65,69,72,69,77,0,76,74, 74,0,71,67,74,0,0,0,
+           72,76,79,84,79,76,72,0, 69,72,76,81,76,72,69,0, 77,0,76,74,72,0,74,76, 79,0,74,71,72,0,0,0];
+const ROOT=[48,45,41,43,48,45,41,43],BASS=[0,-1,12,-1,0,-1,7,12];
+let musicOn=true,musG=null,musId=null,mStep=0,mNext=0;
+const hz=m=>440*Math.pow(2,(m-69)/12);
+function mnote(f,t,d,type,v){const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(musG);o.start(t);o.stop(t+d+.02);}
+function mkick(t){const o=actx.createOscillator(),g=actx.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.14);o.connect(g);g.connect(musG);o.start(t);o.stop(t+.16);}
+function musTick(){
+ if(!actx||!musicOn)return;
+ while(mNext<actx.currentTime+.2){
+  const dur=(typeof lives!=='undefined'&&lives===1)?.155:.19,t=mNext,bar=Math.floor(mStep/8),i=mStep%8;
+  const m=MEL[mStep];if(m)mnote(hz(m),t,dur*1.6,'square',.11);
+  const b=BASS[i];if(b>=0)mnote(hz(ROOT[bar]+b),t,dur*1.3,'triangle',.3);
+  if(i===0||i===4)mkick(t);
+  if(i%2===1)mnote(6000,t,.03,'square',.025);
+  if(bar>=4&&m&&i%2===0)mnote(hz(m+12),t,dur*.8,'sine',.05);
+  mNext+=dur;mStep=(mStep+1)%64;
+ }
+}
+function startMusic(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+ if(!musG){musG=actx.createGain();musG.gain.value=.5;musG.connect(actx.destination);}
+ if(!musId){mNext=actx.currentTime+.1;mStep=0;musId=setInterval(musTick,60);}}catch(e){}}
+function stopMusic(){clearInterval(musId);musId=null;}
+$('#hMus').addEventListener('click',()=>{musicOn=!musicOn;$('#hMus').textContent=musicOn?'🎵 On':'🔇 Off';if(musicOn)startMusic();else stopMusic();});
+document.addEventListener('visibilitychange',()=>{if(!actx)return;try{if(document.hidden)actx.suspend();else actx.resume();}catch(e){}});
+
+/* ---------- scene ---------- */
+const renderer=new THREE.WebGLRenderer({canvas:$('#c'),antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x101522);
+const camera=new THREE.PerspectiveCamera(75,1,.05,60);camera.rotation.order='YXZ';camera.position.set(0,1.6,0);
+function resize(){const w=window.innerWidth,h=window.innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?90:72;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+const amb=new THREE.AmbientLight(0xffffff,.65);scene.add(amb);
+const lamp=new THREE.PointLight(0xfff2d0,.75,30);lamp.position.set(0,H-.4,0);scene.add(lamp);
+const M=o=>new THREE.MeshStandardMaterial(o);
+
+// floor + ceiling
+(function(){const cv=document.createElement('canvas');cv.width=cv.height=128;const x=cv.getContext('2d');
+ x.fillStyle='#39456b';x.fillRect(0,0,128,128);x.fillStyle='#2b3557';x.fillRect(0,0,64,64);x.fillRect(64,64,64,64);
+ const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,6);
+ const f=new THREE.Mesh(new THREE.PlaneGeometry(2*R,2*R),M({map:t,roughness:.8}));f.rotation.x=-Math.PI/2;scene.add(f);
+ const c=new THREE.Mesh(new THREE.PlaneGeometry(2*R,2*R),M({color:0xe8ecff}));c.rotation.x=Math.PI/2;c.position.y=H;scene.add(c);})();
+
+const WALLS=[{p:[0,0,-R],ry:0,c:0x8ecae6},{p:[R,0,0],ry:-Math.PI/2,c:0xffc8dd},{p:[0,0,R],ry:Math.PI,c:0xb9fbc0},{p:[-R,0,0],ry:Math.PI/2,c:0xfde4a8}];
+const wallG=[],buttons=[],clickables=[];
+const BCOL=[0xff4d6d,0xff9f1c,0xffd60a,0x2ec4b6,0x3a86ff,0x8338ec,0xff70a6,0x06d6a0];
+const baseGeo=new THREE.CylinderGeometry(.25,.27,.06,20),capGeo=new THREE.CylinderGeometry(.18,.2,.1,20);
+WALLS.forEach((w,wi)=>{
+ const g=new THREE.Group();g.position.set(w.p[0],w.p[1],w.p[2]);g.rotation.y=w.ry;scene.add(g);wallG.push(g);
+ const pl=new THREE.Mesh(new THREE.PlaneGeometry(2*R,H),M({color:w.c,roughness:.9}));pl.position.y=H/2;g.add(pl);
+ const st=new THREE.Mesh(new THREE.PlaneGeometry(2*R,.35),M({color:0x39456b}));st.position.set(0,.175,.01);g.add(st);
+ ROWS.forEach(y=>COLS.forEach(x=>{
+  const bg=new THREE.Group();bg.position.set(x,y,0);g.add(bg);
+  const base=new THREE.Mesh(baseGeo,M({color:0x333a44}));base.rotation.x=Math.PI/2;base.position.z=.03;bg.add(base);
+  const cap=new THREE.Mesh(capGeo,M({color:0xffffff,emissive:0x000000,emissiveIntensity:.3}));cap.rotation.x=Math.PI/2;cap.position.z=.1;bg.add(cap);
+  const b={base,cap,wall:wi,type:'good',used:false,z:.1,tz:.1};
+  base.userData={kind:'btn',b};cap.userData={kind:'btn',b};buttons.push(b);clickables.push(base,cap);
+ }));
+});
+
+// door (hidden until its button is found)
+const door=new THREE.Group();door.visible=false;door.position.set(1.2,0,0);
+const glow=new THREE.Mesh(new THREE.PlaneGeometry(1.4,2.4),new THREE.MeshBasicMaterial({color:0xfff6c2}));glow.position.set(0,1.2,.02);door.add(glow);
+const dframe=new THREE.Mesh(new THREE.PlaneGeometry(1.7,2.55),M({color:0x4a2c12}));dframe.position.set(0,1.275,.015);door.add(dframe);
+const hinge=new THREE.Group();hinge.position.set(-.7,0,.06);door.add(hinge);
+const panel=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.4,.1),M({color:0x9c5a23,roughness:.7}));panel.position.set(.7,1.2,0);hinge.add(panel);
+const knob=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),M({color:0xffd60a,metalness:.6,roughness:.3}));knob.position.set(1.2,1.15,.1);hinge.add(knob);
+const pad=new THREE.Mesh(new THREE.BoxGeometry(.3,.4,.06),M({color:0x222831,emissive:0x00ff88,emissiveIntensity:.25}));pad.position.set(1.05,1.6,.08);hinge.add(pad);
+[panel,knob,pad].forEach(m=>{m.userData={kind:'door'};clickables.push(m);});
+
+// treasure chest (hidden until its button is found)
+const chest=new THREE.Group();chest.visible=false;scene.add(chest);
+const cbody=new THREE.Mesh(new THREE.BoxGeometry(1,.5,.65),M({color:0x8a4b1c}));cbody.position.y=.25;chest.add(cbody);
+const band=new THREE.Mesh(new THREE.BoxGeometry(1.04,.12,.69),M({color:0xffd60a,metalness:.6,roughness:.3}));band.position.y=.44;chest.add(band);
+const lidP=new THREE.Group();lidP.position.set(0,.5,-.325);chest.add(lidP);
+const lid=new THREE.Mesh(new THREE.BoxGeometry(1,.22,.65),M({color:0xa85d24}));lid.position.set(0,.11,.325);lidP.add(lid);
+const lock=new THREE.Mesh(new THREE.BoxGeometry(.16,.2,.06),M({color:0xffd60a,metalness:.6,roughness:.3}));lock.position.set(0,.42,.35);chest.add(lock);
+[cbody,band,lid,lock].forEach(m=>{m.userData={kind:'chest'};clickables.push(m);});
+
+// trophy
+const trophy=new THREE.Group();trophy.visible=false;scene.add(trophy);
+(function(){const gold=M({color:0xffc933,metalness:.75,roughness:.25,emissive:0x664400,emissiveIntensity:.6});
+ const pts=[[0,0],[.36,0],[.36,.08],[.12,.14],[.08,.5],[.2,.62],[.42,.9],[.48,1.3],[.43,1.3],[.37,.95],[0,.72]].map(p=>new THREE.Vector2(p[0],p[1]));
+ trophy.add(new THREE.Mesh(new THREE.LatheGeometry(pts,28),gold));
+ [-1,1].forEach(s=>{const h=new THREE.Mesh(new THREE.TorusGeometry(.18,.04,8,18),gold);h.position.set(s*.52,1.05,0);trophy.add(h);});
+ const l=new THREE.PointLight(0xffe08a,.9,6);l.position.set(0,1.6,.8);trophy.add(l);})();
+
+/* ---------- state ---------- */
+let lives,stars,hasKey,hasCode,shield,curse,code,doorFound,chestFound,doorOpen,busy=false,won=false,darkT=0,trophies=0;
+try{trophies=parseInt(localStorage.getItem('buttonRoomTrophies'))||0;}catch(e){}
+function hud(){
+ $('#hLives').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives)+(shield?' 🛡':'');
+ $('#hStars').textContent='⭐ '+stars;
+ $('#hKey').textContent=hasKey?'🗝 Key!':'🗝 —';
+ $('#hCode').textContent='🔢 '+(hasCode?code.join(' '):code.map(()=>'?').join(' '));
+ $('#hTro').textContent='🏆 '+trophies;
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600);}
+function fillButtons(first){
+ let types=first?['door','chest','paper']:[];
+ const n=buttons.length-types.length,ng=Math.round(n*.27),nb=Math.round(n*.28);
+ for(let i=0;i<n;i++)types.push(i<ng?'good':i<ng+nb?'bad':'chal');
+ shuffle(types);
+ buttons.forEach((b,i)=>{b.type=types[i];b.used=false;b.tz=.1;const c=BCOL[rnd(BCOL.length)];b.cap.material.color.set(c);b.cap.material.emissive.set(c);b.base.material.color.set(0x333a44);
+  if(b.type==='door'){wallG[b.wall].add(door);}});
+}
+function setLights(on){amb.intensity=on?.65:.07;lamp.intensity=on?.75:.12;}
+function reset(){
+ lives=3;stars=0;hasKey=false;hasCode=false;shield=false;curse=false;doorFound=chestFound=doorOpen=won=false;
+ code=[];for(let i=0;i<CODE_LEN;i++)code.push(rnd(10));
+ door.visible=false;hinge.rotation.y=0;chest.visible=false;lidP.rotation.x=0;trophy.visible=false;
+ clearTimeout(darkT);setLights(true);
+ document.querySelectorAll('.conf').forEach(e=>e.remove());
+ fillButtons(true);
+ const a=Math.random()*Math.PI*2;chest.position.set(Math.sin(a)*2.6,0,Math.cos(a)*2.6);chest.rotation.y=a+Math.PI;
+ camera.position.set(0,1.6,0);yaw=0;pitch=0;hud();
+}
+
+/* ---------- cards ---------- */
+function show(html,cls){card.innerHTML=html;ov.className=cls||'';busy=true;}
+function hide(){ov.className='hidden';busy=false;}
+function info(emoji,title,text,cb,btn){show('<div class="big">'+emoji+'</div><h2>'+title+'</h2><p>'+text+'</p><button class="go">'+(btn||'OK')+'</button>');
+ card.querySelector('.go').onclick=()=>{hide();if(cb)cb();};}
+function loseLife(){if(shield){shield=false;hud();return '🛡 Your shield saved your life!';}lives--;sfx.life();hud();return 'You lost a life 💔';}
+function afterTurn(){
+ if(lives<=0){info('💔','Out of lives!','You lost all 3 lives. The room resets — try again!',()=>{reset();},'Restart');return;}
+ if(buttons.every(b=>b.used)){fillButtons(false);toast('✨ All new buttons appeared!');}
+}
+function addStars(n){stars=Math.max(0,stars+n);hud();}
+
+/* ---------- buttons ---------- */
+function press(b){
+ if(b.used||busy)return;b.used=true;b.tz=.05;b.cap.material.color.set(0x59606b);b.cap.material.emissive.set(0x000000);b.base.material.color.set(0x333a44);
+ sfx.press();busy=true;setTimeout(()=>resolve(b),380);
+}
+function peekSome(){const left=shuffle(buttons.filter(b=>!b.used)).slice(0,3);const col={good:0x06d6a0,bad:0xff2244,chal:0xffd60a,door:0x3a86ff,chest:0x3a86ff,paper:0x3a86ff};left.forEach(b=>b.base.material.color.set(col[b.type]));return left.length;}
+function resolve(b){
+ const t=b.type;
+ if(t==='door'){doorFound=true;door.visible=true;door.scale.y=.01;sfx.good();
+  info('🚪','A secret door!','This button opened up a door in the wall. To escape you need the <b>key 🗝</b> and the <b>'+CODE_LEN+'-digit passcode 🔢</b>.',afterTurn);return;}
+ if(t==='paper'){hasCode=true;hud();sfx.good();
+  show('<h2>📄 A piece of paper popped out!</h2><div class="paper">'+code.join('')+'</div><p>That is the door passcode! It is saved at the top of the screen.</p><button class="go">OK</button>');card.querySelector('.go').onclick=()=>{hide();afterTurn();};return;}
+ if(t==='chest'){chestFound=true;chest.visible=true;chest.scale.set(.01,.01,.01);sfx.good();
+  info('🧰','A treasure chest!','A chest dropped into the room. The door key is inside — it costs <b>'+KEY_COST+' ⭐</b> to open. Click the chest when you have enough.',afterTurn);return;}
+ if(t==='good'){sfx.good();const r=Math.random();
+  if(r<.45){addStars(1);info('⭐','Lucky!','You got 1 star.',afterTurn);}
+  else if(r<.63){addStars(2);info('🌟','Very lucky!','You got 2 stars.',afterTurn);}
+  else if(r<.68){addStars(3);info('💫','JACKPOT!','You got 3 stars!',afterTurn);}
+  else if(r<.77){if(lives<3){lives++;hud();info('❤️','Extra life!','One life came back.',afterTurn);}else{addStars(1);info('⭐','Lucky!','Your lives are full, so you got a star instead.',afterTurn);}}
+  else if(r<.87){shield=true;hud();info('🛡','Shield!','It will block the next bad thing or failed challenge.',afterTurn);}
+  else{const n=peekSome();info('👀','X-ray glasses!',n+' buttons now show a colored rim:<br>🟢 good · 🔴 bad · 🟡 challenge · 🔵 door, chest or paper',afterTurn);}
+  return;}
+ if(t==='bad'){
+  if(shield){shield=false;hud();sfx.good();info('🛡','Blocked!','That was a bad button, but your shield blocked it.',afterTurn);return;}
+  sfx.bad();const r=Math.random();
+  if(r<.32){if(stars>0){addStars(-1);info('🦝','A thief!','A raccoon stole 1 star.',afterTurn);}else info('🦝','A thief!','A raccoon came to steal a star… but you have none. Ha!',afterTurn);}
+  else if(r<.5){if(stars>0){const n=Math.min(2,stars);addStars(-n);info('🕳','Hole in your pocket!','You dropped '+n+' star'+(n>1?'s':'')+'.',afterTurn);}else info('🕳','Hole in your pocket!','Good thing your pockets were empty.',afterTurn);}
+  else if(r<.72){setLights(false);clearTimeout(darkT);darkT=setTimeout(()=>setLights(true),14000);info('🌑','Lights out!','The room goes dark for a while.',afterTurn);}
+  else if(r<.9){curse=true;info('😈','Cursed!','Your next challenge will be harder.',afterTurn);}
+  else info('🧦','Stinky sock!','Yuck. Nothing else happened.',afterTurn);
+  return;}
+ startChallenge();
+}
+
+/* ---------- door / chest ---------- */
+function clickChest(){
+ if(hasKey){toast('The chest is empty now.');return;}
+ if(stars>=KEY_COST){addStars(-KEY_COST);hasKey=true;hud();sfx.win();info('🗝','You got the key!','The chest opened and the door key was inside.'+(doorFound?'':' Now find the door!'));}
+ else{sfx.bad();info('🧰','Locked chest','It needs <b>'+KEY_COST+' ⭐</b> to open. You have '+stars+'.');}
+}
+function clickDoor(){
+ if(doorOpen)return;
+ if(!hasKey){sfx.bad();info('🔒','The door is locked','You need the key 🗝 first.'+(chestFound?' It is in the treasure chest.':' One of the buttons drops a treasure chest with the key inside.'));return;}
+ let entry=[];
+ const draw=()=>{card.querySelector('.slots').textContent=Array.from({length:CODE_LEN},(_,i)=>entry[i]!==undefined?entry[i]:'•').join('');};
+ let k='';[1,2,3,4,5,6,7,8,9].forEach(n=>k+='<button data-n="'+n+'">'+n+'</button>');
+ k+='<button class="x" data-n="del">⌫</button><button data-n="0">0</button><button class="e" data-n="ok">OK</button>';
+ show('<h2>🔢 Enter the passcode</h2><p>'+(hasCode?'Your paper says: <b>'+code.join(' ')+'</b>':'You have not found the paper with the code yet.')+'<br><small>A wrong code costs a life!</small></p><div class="slots"></div><div class="keys">'+k+'</div><button class="alt">Cancel</button>');
+ draw();
+ card.querySelector('.alt').onclick=hide;
+ card.querySelectorAll('.keys button').forEach(bt=>bt.onclick=()=>{const n=bt.dataset.n;sfx.tick();
+  if(n==='del')entry.pop();
+  else if(n==='ok'){if(entry.length<CODE_LEN)return;
+   if(entry.join('')===code.join('')){win();}
+   else{const m=loseLife();info('❌','Wrong code!',m,afterTurn);}
+   return;}
+  else if(entry.length<CODE_LEN)entry.push(n);
+  draw();});
+}
+function win(){
+ hide();busy=true;won=true;doorOpen=true;trophies++;try{localStorage.setItem('buttonRoomTrophies',trophies);}catch(e){}
+ hud();sfx.win();setLights(true);
+ const p=door.localToWorld(new THREE.Vector3(0,0,1.7));trophy.position.set(p.x,.5,p.z);trophy.visible=true;trophy.scale.set(.01,.01,.01);
+ const c=door.localToWorld(new THREE.Vector3(0,0,4.6));camera.position.set(Math.max(-4.8,Math.min(4.8,c.x)),1.6,Math.max(-4.8,Math.min(4.8,c.z)));
+ yaw=Math.atan2(-(p.x-camera.position.x),-(p.z-camera.position.z));pitch=-.12;
+ const em=['🎉','⭐','🎊','✨','🏆'];for(let i=0;i<40;i++){const s=document.createElement('span');s.className='conf';s.textContent=em[rnd(em.length)];s.style.left=rnd(100)+'vw';s.style.animationDuration=(2+Math.random()*3)+'s';s.style.animationDelay=(Math.random()*1.5)+'s';document.body.appendChild(s);}
+ setTimeout(()=>{show('<h2>🏆 YOU ESCAPED!</h2><p>The door is open and the trophy is yours. Trophies won: <b>'+trophies+'</b></p><button class="go">Play again</button>','win');
+  card.querySelector('.go').onclick=()=>{hide();reset();};},1600);
+}
+
+/* ---------- challenges ---------- */
+let cleanups=[];
+const later=(f,ms)=>{const id=setTimeout(f,ms);cleanups.push(()=>clearTimeout(id));};
+function timer(sec,onEnd){const t0=performance.now(),el=card.querySelector('.tbar i');const id=setInterval(()=>{const p=(performance.now()-t0)/(sec*1000);if(el)el.style.width=Math.max(0,100-p*100)+'%';if(p>=1)onEnd();},50);cleanups.push(()=>clearInterval(id));}
+const CH=[
+{name:'Stop the Line',how:'Press STOP when the white line is inside the green zone.',run(st,done,hard){
+  const zw=hard?.1:.16,zl=.1+Math.random()*(.8-zw);
+  st.innerHTML='<div class="track"><div class="zone" style="left:'+zl*100+'%;width:'+zw*100+'%"></div><div class="mark"></div></div><button class="stopb">STOP</button>';
+  const mk=st.querySelector('.mark');let p=0,dir=1,last=performance.now(),raf;
+  const sp=hard?1.7:1.25;
+  (function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;p+=dir*sp*dt;if(p>1){p=1;dir=-1;}if(p<0){p=0;dir=1;}mk.style.left=p*100+'%';raf=requestAnimationFrame(loop);})(last);
+  cleanups.push(()=>cancelAnimationFrame(raf));
+  st.querySelector('.stopb').onpointerdown=()=>done(p>=zl&&p<=zl+zw);
+  timer(7,()=>done(false));}},
+{name:'Quick Math',how:'Pick the right answer before time runs out.',run(st,done,hard){
+  let a,b,ans,q;const k=rnd(3);
+  if(k===0){a=15+rnd(70);b=12+rnd(60);ans=a+b;q=a+' + '+b;}
+  else if(k===1){a=40+rnd(60);b=11+rnd(28);ans=a-b;q=a+' − '+b;}
+  else{a=3+rnd(10);b=3+rnd(10);ans=a*b;q=a+' × '+b;}
+  const opts=[ans];while(opts.length<4){const w=ans+(rnd(2)?1:-1)*(1+rnd(k===2?a:6));if(w>=0&&opts.indexOf(w)<0)opts.push(w);}
+  shuffle(opts);
+  st.innerHTML='<div class="q">'+q+' = ?</div><div class="opts">'+opts.map(o=>'<button data-v="'+o+'">'+o+'</button>').join('')+'</div>';
+  st.querySelectorAll('button').forEach(bt=>bt.onclick=()=>done(+bt.dataset.v===ans));
+  timer(hard?5:7,()=>done(false));}},
+{name:'Copy Cat',how:'Watch the colors light up, then tap them in the same order.',run(st,done,hard){
+  const cols=['#ff4d6d','#3a86ff','#ffd60a','#06d6a0'],fr=[330,440,550,660],n=hard?7:6,seq=[];for(let i=0;i<n;i++)seq.push(rnd(4));
+  st.innerHTML='<div class="pads">'+cols.map((c,i)=>'<button data-i="'+i+'" style="background:'+c+'"></button>').join('')+'</div>';
+  const pads=st.querySelectorAll('button');let ok=false,idx=0;
+  const flash=i=>{pads[i].classList.add('lit');tone(fr[i],.25);later(()=>pads[i].classList.remove('lit'),220);};
+  seq.forEach((s,i)=>later(()=>flash(s),600+i*430));
+  later(()=>{ok=true;timer(hard?7:9,()=>done(false));},600+n*430);
+  pads.forEach(p=>p.onpointerdown=()=>{if(!ok)return;const i=+p.dataset.i;flash(i);if(i!==seq[idx]){done(false);return;}idx++;if(idx>=n)done(true);});}},
+{name:'Target Tapper',how:'Tap all the targets before time runs out.',run(st,done,hard){
+  const need=hard?12:10;let got=0;
+  st.innerHTML='<div class="cnt" style="position:absolute;right:4px;top:0;font-weight:bold"></div><button class="tgt"></button>';
+  const t=st.querySelector('.tgt'),c=st.querySelector('.cnt');
+  const mv=()=>{t.style.left=rnd(78)+'%';t.style.top=(8+rnd(62))+'%';c.textContent=got+' / '+need;};mv();
+  t.onpointerdown=e=>{e.preventDefault();got++;sfx.tick();if(got>=need)done(true);else mv();};
+  timer(hard?6.5:7.5,()=>done(false));}},
+{name:'Lightning Hands',how:'Wait for GREEN, then tap as fast as you can. Do not tap early!',run(st,done,hard){
+  st.innerHTML='<button class="rpad">WAIT…</button>';const p=st.querySelector('.rpad');let go=false;
+  later(()=>{go=true;p.classList.add('g');p.textContent='TAP!';tone(880,.1);later(()=>done(false),hard?380:500);},1500+Math.random()*3500);
+  p.onpointerdown=()=>{if(!go)p.textContent='Too early!';done(go);};}},
+{name:'Odd One Out',how:'One picture is different. Find it and tap it!',run(st,done,hard){
+  const P=[['🙂','🙃'],['🐱','🐯'],['🍎','🍅'],['⚽','🏐'],['🌕','🌝'],['🐸','🐢'],['🍋','🍌'],['🚗','🚕']],pr=P[rnd(P.length)],odd=rnd(36);
+  let h='';for(let i=0;i<36;i++)h+='<button data-i="'+i+'">'+(i===odd?pr[1]:pr[0])+'</button>';
+  st.innerHTML='<div class="grid5">'+h+'</div>';
+  st.querySelectorAll('button').forEach(bt=>bt.onclick=()=>done(+bt.dataset.i===odd));
+  timer(hard?4:6,()=>done(false));}}
+];
+function startChallenge(){
+ const ch=CH[rnd(CH.length)],hard=curse;curse=false;sfx.chal();
+ show('<div class="big">⚡</div><h2>CHALLENGE: '+ch.name+'</h2><p>'+ch.how+'</p><p>Win and you <i>might</i> get a prize. Fail and you lose a life!'+(hard?'<br>😈 <b>Cursed: this one is harder!</b>':'')+'</p><button class="go">Start</button>');
+ card.querySelector('.go').onclick=()=>{
+  card.innerHTML='<h2>'+ch.name+'</h2><div class="tbar"><i></i></div><div id="stage"></div>';
+  let ended=false;
+  const done=ok=>{if(ended)return;ended=true;cleanups.forEach(f=>f());cleanups=[];setTimeout(()=>challengeResult(ok),500);};
+  ch.run(card.querySelector('#stage'),done,hard);
+ };
+}
+function challengeResult(ok){
+ if(!ok){const m=loseLife();info('💥','Challenge failed!',m,afterTurn);return;}
+ sfx.good();const r=Math.random();
+ if(r<.38){info('😅','You survived!','You won the challenge… but this one had no prize. At least you kept your life!',afterTurn);}
+ else{const n=r>.9?2:1;addStars(n);info('⭐','Challenge won!','Prize: '+n+' star'+(n>1?'s':'')+'!',afterTurn);}
+}
+
+/* ---------- controls ---------- */
+let yaw=0,pitch=0;const keys={};
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.indexOf('Arrow')===0)e.preventDefault();});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(x,y){ndc.set(x/window.innerWidth*2-1,-(y/window.innerHeight)*2+1);ray.setFromCamera(ndc,camera);
+ const hits=ray.intersectObjects(clickables,false);
+ for(const h of hits){const u=h.object.userData;if(u.kind==='door'&&!door.visible)continue;if(u.kind==='chest'&&!chest.visible)continue;if(u.kind==='btn'&&u.b.used)continue;return u;}
+ return null;}
+const cv=$('#c');let drag=null;
+cv.addEventListener('pointerdown',e=>{try{cv.setPointerCapture(e.pointerId);}catch(_){ }drag={id:e.pointerId,x:e.clientX,y:e.clientY,m:0};});
+cv.addEventListener('pointermove',e=>{
+ if(drag&&drag.id===e.pointerId){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);
+  yaw+=dx*.005;pitch=Math.max(-1.1,Math.min(1.1,pitch+dy*.005));}
+ else if(e.pointerType==='mouse'&&!busy)cv.style.cursor=pick(e.clientX,e.clientY)?'pointer':'grab';});
+const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;const m=drag.m;drag=null;if(e.type==='pointerup'&&m<12&&!busy&&!won){const u=pick(e.clientX,e.clientY);if(!u)return;
+ if(u.kind==='btn')press(u.b);else if(u.kind==='door')clickDoor();else clickChest();}};
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+// joystick for touch screens
+let jx=0,jy=0;const joy=$('#joy'),jk=joy.querySelector('i');
+const touch=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
+if(touch)joy.style.display='block';
+$('#hint').textContent=touch?'Drag to look · tap a button · joystick to walk':'Drag to look · click a button · WASD / arrows to walk';
+const jmove=e=>{const r=joy.getBoundingClientRect();let x=(e.clientX-r.left-55)/40,y=(e.clientY-r.top-55)/40;const l=Math.hypot(x,y);if(l>1){x/=l;y/=l;}jx=x;jy=y;jk.style.transform='translate('+x*32+'px,'+y*32+'px)';};
+joy.addEventListener('pointerdown',e=>{try{joy.setPointerCapture(e.pointerId);}catch(_){ }jmove(e);});
+joy.addEventListener('pointermove',e=>{if(e.buttons||e.pointerType==='touch')jmove(e);});
+const jend=()=>{jx=jy=0;jk.style.transform='';};joy.addEventListener('pointerup',jend);joy.addEventListener('pointercancel',jend);
+
+// Home button: only on the website, hidden in app builds
+if(location.protocol==='http:'||location.protocol==='https:'){const h=$('#hHome');h.style.display='';h.onclick=()=>{location.href=new URL('../',location.href).href;};}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ if(!busy){
+  if(keys['arrowleft']||keys['q'])yaw+=1.8*dt;if(keys['arrowright']||keys['e'])yaw-=1.8*dt;
+  const f=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0)-jy,s=(keys['d']?1:0)-(keys['a']?1:0)+jx;
+  if(f||s){const sp=3.2*dt;camera.position.x+=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*sp;camera.position.z+=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*sp;
+   camera.position.x=Math.max(-4.8,Math.min(4.8,camera.position.x));camera.position.z=Math.max(-4.8,Math.min(4.8,camera.position.z));}
+ }
+ camera.rotation.y=yaw;camera.rotation.x=pitch;
+ for(const b of buttons){if(Math.abs(b.tz-b.z)>.001){b.z+=(b.tz-b.z)*.3;b.cap.position.z=b.z;}}
+ if(door.visible&&door.scale.y<1)door.scale.y=Math.min(1,door.scale.y+dt*2);
+ if(chest.visible&&chest.scale.x<1){const s=Math.min(1,chest.scale.x+dt*2.5);chest.scale.set(s,s,s);}
+ lidP.rotation.x+=((hasKey?-1.2:0)-lidP.rotation.x)*.1;
+ hinge.rotation.y+=((doorOpen?-1.9:0)-hinge.rotation.y)*.06;
+ if(trophy.visible){const s=Math.min(1,trophy.scale.x+dt*1.2);trophy.scale.set(s,s,s);trophy.rotation.y+=dt*1.6;trophy.position.y=.55+Math.sin(now/400)*.08;}
+ renderer.render(scene,camera);requestAnimationFrame(frame);
+}
+reset();requestAnimationFrame(frame);
+show('<div class="big">🔴🟡🔵</div><h2>Felix&#39;s Lucky Button Room</h2><ul><li>Press the buttons on the walls. Each one is <b>good</b>, <b>bad</b>, or a <b>challenge</b>.</li><li>Fail a challenge and you lose a life. You have <b>3 ❤️</b>.</li><li>One button reveals the <b>door 🚪</b>. Another drops a <b>chest 🧰</b> — pay '+KEY_COST+' ⭐ to get the <b>key 🗝</b>.</li><li>One button pops out a <b>paper 📄</b> with the <b>'+CODE_LEN+'-digit passcode 🔢</b>.</li><li>Unlock the door to escape and win the <b>trophy 🏆</b>!</li></ul><button class="go">Play</button>');
+card.querySelector('.go').onclick=()=>{hide();sfx.good();if(musicOn)startMusic();};
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

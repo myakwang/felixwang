@@ -17,6 +17,7 @@ _headers              Cloudflare headers: service workers are never cached
 star-army/            Star Army vs. The Bugs
 paper-adventure/      Felix's Paper Adventure: 30-level platformer from Felix's paper drawings (boss every 5 levels)
 star-army-online/     Star Army Online: two players on two devices (uses the room relay)
+button-room/          Felix's Lucky Button Room: 3D room of 60 mystery buttons (good, bad or a challenge), 3 lives, find the door, key and passcode paper to win the trophy; music made in the browser (bundles three.min.js locally, no server)
 escape-room-online/   Felix's Escape Rooms Online: two devices, Together or Race (generated from escape-room/ by tools/make-escape-room-online.py; re-run it after changing escape-room/)
 escape-room/          Felix's Escape Rooms: 3D escape room, 45 levels (the last five are timed bosses) with music and sounds made in the browser (bundles three.min.js + font locally, no server)
 hide-and-seek/        Felix's Hide & Seek: 3D hide-and-seek (house from Felix's drawings, backyard, castle); bundles three.min.js + font locally
