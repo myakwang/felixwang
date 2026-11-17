@@ -283,15 +283,18 @@ const leave=()=>{closeNet();resetWorld();toMenu();$('netMsg').innerHTML='&nbsp;'
 $('lobbyLeave').onclick=leave;$('leaveBtn').onclick=e=>{e.stopPropagation();leave();};
 // the public server list
 let listTimer=0;
-async function loadList(){const el=$('slist');$('slistMsg').textContent='Looking for servers…';
+let listHtml='';
+async function loadList(){const el=$('slist');if(!listHtml)$('slistMsg').textContent='Looking for servers…';
   try{const r=await fetch(base()+'/api/servers',{cache:'no-store'});const arr=await r.json();if(!$('list').classList.contains('show'))return;
     const ok=(Array.isArray(arr)?arr:[]).filter(s=>s&&typeof s.c==='string'&&/^[A-Z]{4}$/.test(s.c));
-    el.innerHTML=ok.map(s=>{const m=HS.maps[s.m];const place=s.m==='random'?'🎲 Surprise!':m?m.emoji+' '+m.name:'';
+    const nh=ok.map(s=>{const m=HS.maps[s.m];const place=s.m==='random'?'🎲 Surprise!':m?m.emoji+' '+m.name:'';
       return '<div class="prow"><span class="nm">'+esc(nickText(Array.isArray(s.h)?[s.h[0]|0,s.h[1]|0]:null))+'\'s server<br><span class="sub">'+esc(place)+(s.ph==='play'?' · playing a round':' · waiting')+'</span></span><span>👥 '+(s.n|0)+'/'+MAXP+'</span><button class="btn green kick" data-j="'+s.c+'">Join</button></div>';}).join('');
-    el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{clearInterval(listTimer);joinCode(b.dataset.j);});
+    // only touch the list when something changed, so a tap on Join is never lost while the list refreshes
+    if(nh!==listHtml){listHtml=nh;el.innerHTML=nh;}
     $('slistMsg').textContent=ok.length?'Tap Join to play!':'No public servers right now. Go back and make one!';}
   catch(e){$('slistMsg').textContent='Could not load the server list. Check the internet.';}}
-$('listBtn').onclick=()=>{HS.ac();showOnly('list');$('slist').innerHTML='';loadList();clearInterval(listTimer);listTimer=setInterval(()=>{if($('list').classList.contains('show')&&!document.hidden)loadList();},5000);};
+$('slist').addEventListener('click',e=>{const b=e.target.closest('[data-j]');if(!b)return;clearInterval(listTimer);joinCode(b.dataset.j);});
+$('listBtn').onclick=()=>{HS.ac();showOnly('list');$('slist').innerHTML='';listHtml='';loadList();clearInterval(listTimer);listTimer=setInterval(()=>{if($('list').classList.contains('show')&&!document.hidden)loadList();},5000);};
 $('slRefresh').onclick=loadList;$('slBack').onclick=()=>{clearInterval(listTimer);toMenu();};
 // end of a round
 $('againBtn').onclick=()=>{if(isHost())hostStartRound();};
@@ -358,11 +361,13 @@ const r2=v=>Math.round(v*100)/100,r3=v=>Math.round(v*1000)/1000;
 const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)}),
   line:(a,b,n,c)=>{if(linesSent<5000){linesSent++;send({t:'ln',a:a.map(r2),b:b.map(r2),n:n.map(r2),c});}},lineErase:p=>send({t:'lx',p:p.map(r2)}),
   bodyLine:(b,a,z,n,c,pt)=>{if(linesSent<5000){linesSent++;send({t:'bl',b,a:a.map(r3),z:z.map(r3),n:n.map(r3),c,pt});}},bodyErase:(b,lp)=>send({t:'bx',b,p:lp.toArray().map(r3)}),part:(pt)=>send({t:'bpc',pt})};
-$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music.refresh();};
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music&&HS.music.refresh();};
 // 🎵 the Hide & Seek song: one button in the menu and one while playing
+if(HS.music){
 function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}
 $('musBtn').onclick=$('musChip').onclick=e=>{e.stopPropagation();HS.ac();HS.music.toggle();musLbl();};musLbl();
 addEventListener('pointerdown',()=>HS.ac(),{capture:true});
+}
 
 let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
 function updateStatus(){const r=myRole();$('status').textContent=(r==='hide'?'🙈 You hide':r==='seek'?'🔍 You seek':'👀 Watching')+' · 👥 '+allIds().length+' · R'+G.round;}
@@ -397,7 +402,7 @@ function myState(){const s={t:'p',n:myNick,x:+P.x.toFixed(2),y:+P.feet.toFixed(2
   if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.hold>0?3:0];return s;}
 function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
-  HS.music.play(state==='play'?(G.ph==='hide'?'hide':G.ph==='seek'?'seek':null):state==='over'?null:'menu');
+  if(HS.music)HS.music.play(state==='play'?(G.ph==='hide'?'hide':G.ph==='seek'?'seek':null):state==='over'?null:'menu');
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
   if(NET.state==='in'&&now-NET.lastSend>110){NET.lastSend=now;send(myState());}
   if(isHost()&&(G.ph==='hide'||G.ph==='seek')){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;if(G.left<=0){if(G.ph==='hide'){G.ph='seek';G.left=Math.round(SEEK_TIME*(W.def.time||1));lastSec=G.left;pushG();}else hostOver('hiders');}else pushG();}}

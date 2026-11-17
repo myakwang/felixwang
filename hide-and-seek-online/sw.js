@@ -11,14 +11,17 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION && k.slice(0, k.lastIndexOf('-')) === VERSION.slice(0, VERSION.lastIndexOf('-'))).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
-// Network first for the page (so updates show up), cache first for everything else.
+// Network first for everything (the page AND its scripts), so they always come from the same version and an update
+// can never mix a new page with old scripts. The saved copies are used when there is no internet.
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return r; })
-      .catch(() => caches.match('./index.html')));
-    return;
-  }
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
+  const url = new URL(req.url);
+  if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  const nav = req.mode === 'navigate';
+  e.respondWith(fetch(req, nav ? undefined : { cache: 'no-cache' }).then(r => {
+    if (r.ok) { const copy = r.clone(); caches.open(VERSION).then(c => c.put(nav ? './index.html' : req, copy)); }
+    return r;
+  }).catch(() => caches.open(VERSION).then(c => c.match(nav ? './index.html' : req, { ignoreSearch: true }))
+    .then(hit => hit || caches.match(nav ? './index.html' : req, { ignoreSearch: true }))));
 });

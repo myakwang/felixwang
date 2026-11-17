@@ -203,11 +203,13 @@ function renderStatus(){
   if(lastMode==='seek')e.innerHTML=hiders.map(h=>'<span class="cap'+(h.found?'':' no')+'" style="background:'+h.color+'">'+(h.found?'✓':'')+'</span>').join('')+'<span style="margin-left:3px">'+hiders.filter(h=>h.found).length+'/'+hiders.length+'</span>';
   else e.innerHTML='🙈 You hide!';
 }
-$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music.refresh();try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music&&HS.music.refresh();try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
 // 🎵 the Hide & Seek song: one button in the menu and one while playing
+if(HS.music){
 function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}
 $('musBtn').onclick=$('musChip').onclick=e=>{e.stopPropagation();HS.ac();HS.music.toggle();musLbl();};musLbl();
 addEventListener('pointerdown',()=>HS.ac(),{capture:true});
+}
 
 
 /* ---------- seek mode ---------- */
@@ -378,7 +380,7 @@ selectMap(HS.maps[save.map]||save.map==='random'?save.map:'house');
 let last=performance.now();const tv=new THREE.Vector3(),head=new THREE.Vector3();
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
-  HS.music.play(state==='menu'?'menu':(state==='seekCount'||state==='hideRun')?'hide':(state==='seek'||state==='search')?'seek':null);
+  if(HS.music)HS.music.play(state==='menu'?'menu':(state==='seekCount'||state==='hideRun')?'hide':(state==='seek'||state==='search')?'seek':null);
   HS.tickPaint(me,dt);moving=false;
   HS.tickOpens(dt);
   if(canMove()){const m=HS.moveVec(dt,lastMode==='hide'&&myPose!=='stand'?2.2:4.3);moving=m[2]||!P.ground;HS.movePlayer(m[0],m[1],dt);}else if(!(P.inside>=0))HS.movePlayer(0,0,dt);
