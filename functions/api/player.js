@@ -1,7 +1,7 @@
-// POST /api/player {"g": "sa"|"sao"|"pa"|"pao"|"hs"|"hso"|"er"} -> {"n": N}
+// POST /api/player {"g": "sa"|"sao"|"pa"|"pao"|"hs"|"hso"|"er"|"ero"} -> {"n": N}
 // Adds one to today's anonymous count of games started for that game and says which number this player is
 // ("You're player #N today!"). Only that one number per game per day is kept; it starts over at midnight Pacific time.
-const GAMES = ['sa', 'sao', 'pa', 'pao', 'hs', 'hso', 'er'];
+const GAMES = ['sa', 'sao', 'pa', 'pao', 'hs', 'hso', 'er', 'ero'];
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const text = await request.text();

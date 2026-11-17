@@ -12,8 +12,8 @@ const STALE_MS = 6 * 3600 * 1000;
 // every time the game is opened) every 60 s while it is on screen. Each id is kept only until
 // it goes quiet (150 s), then deleted; it is never linked to anything else.
 const SOLO_MS = 150 * 1000;
-// games that show "You're player #N today!": Star Army (+online), Paper Adventure (+online), Hide & Seek (+online), Escape Rooms
-const PLAYER_GAMES = ['sa', 'sao', 'pa', 'pao', 'hs', 'hso', 'er'];
+// games that show "You're player #N today!": Star Army (+online), Paper Adventure (+online), Hide & Seek (+online), Escape Rooms (+online)
+const PLAYER_GAMES = ['sa', 'sao', 'pa', 'pao', 'hs', 'hso', 'er', 'ero'];
 
 export class Stats {
   constructor(ctx, env) { this.ctx = ctx; }

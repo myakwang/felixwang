@@ -867,7 +867,7 @@ function planFakes(n){ const R=rng((S.sd||1)+n*31+17), L=F.plan, M=MD(), fake={}
   let k=0; for(let i=0;i<M.fakeKeys&&k<pool.length;i++) fake[pool[k++]]='dkey';
   if(alt) for(let i=0;i<M.extra&&k<pool.length;i++) fake[pool[k++]]='dgem'+(4+i);
   return fake; }
-function start(n){ S.lvl=n; if(!S.sd) S.sd=1+Math.floor(Math.random()*1e9); F={}; F.plan=planLevel(n); F.fake=planFakes(n); if(window.OL) OL.onStart(n); cut=null; shake=0; moving=false; fade('#000',1,0); $('#pcount').textContent=''; inv=[]; hintAt=0; done=false; room=0; save(); closeSheet();
+function start(n){window.playerNumber&&playerNumber('ero'); S.lvl=n; if(!S.sd) S.sd=1+Math.floor(Math.random()*1e9); F={}; F.plan=planLevel(n); F.fake=planFakes(n); if(window.OL) OL.onStart(n); cut=null; shake=0; moving=false; fade('#000',1,0); $('#pcount').textContent=''; inv=[]; hintAt=0; done=false; room=0; save(); closeSheet();
   const L=LV[n]; tleft=L.time?Math.round(L.time*MD().bossK):(MD().timeK?Math.round((110+n*10)*MD().timeK):null); if(tleft!==null) tleft+=F.plan.gates*(S.mode==='hard'?60:50); lastSec=0; showTimer(); $('#rnum').textContent=L.time?`Final boss ${n-39} of 5`:`Room ${n+1} of ${LV.length}`; $('#rname').textContent=L.n; say(introText());
   drawInv(); yaw=0; pitch=-.12; yawTo=null; walk=null; px=0; pz=0; buildRoom(); }
 const OLON=()=>!!(window.OL&&OL.on);
@@ -1023,6 +1023,15 @@ return {get on(){ return O.on; },
 })();
 
 $('#brooms').textContent='Menu'; $('#brooms').onclick=()=>OL.menu(); setTimeout(()=>OL.open(),500);
+</script>
+<script>
+/* "You're player #N today!": when you start playing, the website adds one to today's count for this game and tells you
+   your number. Only that one anonymous number per game per day is kept (it starts over at midnight). Not in app builds. */
+function playerNumber(g){if(playerNumber.done||!/^https?:$/.test(location.protocol)||(location.hostname==='localhost'&&!location.port))return;playerNumber.done=1;
+  fetch('/api/player',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({g})}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.n>0)showPlayerNumber(d.n);}).catch(()=>{});}
+function showPlayerNumber(n){const el=document.createElement('div');el.id='playerNo';el.textContent=(n===1?'🥇 You\'re player #1 today! The very first!':n<=10?'🎉 You\'re player #'+n+' today! One of the first!':'🎉 You\'re player #'+n+' today!');
+  el.style.cssText='position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:99999;background:#fff8d6;color:#5a3b00;border:3px solid #f1c40f;border-radius:14px;padding:8px 16px;font-family:inherit;font-weight:bold;font-size:18px;max-width:92vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;transition:opacity .6s';
+  document.body.appendChild(el);setTimeout(()=>{el.style.opacity='0';},4500);setTimeout(()=>el.remove(),5200);}
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
