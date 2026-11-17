@@ -78,7 +78,7 @@
   <div id="top">
     <div class="pill" id="status"></div>
     <div class="pill" id="timer">—</div>
-    <div id="rb"><button class="btn" id="sndBtn">🔊</button><button class="btn" id="leaveBtn">✖</button></div>
+    <div id="rb"><button class="btn" id="sndBtn">🔊</button><button class="btn" id="musBtn">🎵</button><button class="btn" id="leaveBtn">✖</button></div>
   </div>
   <div id="cross"></div>
   <div id="toast"></div>
@@ -100,6 +100,7 @@
     <h1>Hide &amp; Seek Online</h1>
     <p class="sub">Up to 6 players! One seeker, everyone else hides. Hiders who get found become seekers too.</p>
     <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
+    <div class="row"><button class="chip" id="musChip">🎵 Music: on</button></div>
     <p><b>1. Pick your nickname</b></p>
     <div class="row"><select id="nameA"></select><select id="nameB"></select><button class="btn" id="dice" style="font-size:20px;padding:3px 10px">🎲</button></div>
     <p><b>2. Find a server, or make one</b></p>
@@ -357,7 +358,12 @@ const r2=v=>Math.round(v*100)/100,r3=v=>Math.round(v*1000)/1000;
 const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now paint yourself.',1.8);},splat:(p,n,c,r)=>{if(splatsSent<450){splatsSent++;send({t:'sp',p:p.map(r2),n:n.map(r2),c,r:r2(r)});}},erase:p=>send({t:'spx',p:p.map(r2)}),
   line:(a,b,n,c)=>{if(linesSent<5000){linesSent++;send({t:'ln',a:a.map(r2),b:b.map(r2),n:n.map(r2),c});}},lineErase:p=>send({t:'lx',p:p.map(r2)}),
   bodyLine:(b,a,z,n,c,pt)=>{if(linesSent<5000){linesSent++;send({t:'bl',b,a:a.map(r3),z:z.map(r3),n:n.map(r3),c,pt});}},bodyErase:(b,lp)=>send({t:'bx',b,p:lp.toArray().map(r3)}),part:(pt)=>send({t:'bpc',pt})};
-$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';};
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music.refresh();};
+// 🎵 the Hide & Seek song: one button in the menu and one while playing
+function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}
+$('musBtn').onclick=$('musChip').onclick=e=>{e.stopPropagation();HS.ac();HS.music.toggle();musLbl();};musLbl();
+addEventListener('pointerdown',()=>HS.ac(),{capture:true});
+
 let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
 function updateStatus(){const r=myRole();$('status').textContent=(r==='hide'?'🙈 You hide':r==='seek'?'🔍 You seek':'👀 Watching')+' · 👥 '+allIds().length+' · R'+G.round;}
 
@@ -391,6 +397,7 @@ function myState(){const s={t:'p',n:myNick,x:+P.x.toFixed(2),y:+P.feet.toFixed(2
   if(isHost())s.d=[+dog.x.toFixed(2),+dog.z.toFixed(2),+dog.yaw.toFixed(2),dog.path.length?1:dog.hold>0?3:0];return s;}
 function frame(now){
   requestAnimationFrame(frame);const rdt=Math.min(1,(now-last)/1000),dt=Math.min(0.05,rdt);last=now;T+=dt;
+  HS.music.play(state==='play'?(G.ph==='hide'?'hide':G.ph==='seek'?'seek':null):state==='over'?null:'menu');
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('show');}
   if(NET.state==='in'&&now-NET.lastSend>110){NET.lastSend=now;send(myState());}
   if(isHost()&&(G.ph==='hide'||G.ph==='seek')){G.left-=rdt;const s=Math.ceil(G.left);if(s!==lastSec){lastSec=s;if(G.left<=0){if(G.ph==='hide'){G.ph='seek';G.left=Math.round(SEEK_TIME*(W.def.time||1));lastSec=G.left;pushG();}else hostOver('hiders');}else pushG();}}

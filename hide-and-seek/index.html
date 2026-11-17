@@ -85,6 +85,7 @@
     <div class="pill" id="timer">2:00</div>
     <div id="rb">
       <button class="btn" id="sndBtn">🔊</button>
+      <button class="btn" id="musBtn">🎵</button>
       <button class="btn" id="dogBtn">🐶 3</button>
       <button class="btn" id="menuBtn">☰</button>
     </div>
@@ -116,7 +117,7 @@
     <p class="sub">Pick a place to play:</p>
     <div class="maps" id="maps"></div>
     <div class="chips" id="hideTimeRow">Hiding time: </div>
-    <div class="chips" id="lockRow">Each level: <button class="chip" id="rotChip">🔁 New place</button><button class="chip" id="lockChip">🔒 Lock place</button></div>
+    <div class="chips" id="lockRow">Each level: <button class="chip" id="rotChip">🔁 New place</button><button class="chip" id="lockChip">🔒 Lock place</button> <button class="chip" id="musChip">🎵 Music: on</button></div>
     <p class="sub" id="onlineNow" style="color:#1e7a3a;font-weight:bold;min-height:22px"></p>
     <div class="row">
       <button class="btn big yellow" id="seekBtn">🔍 I'm the Seeker</button>
@@ -202,7 +203,12 @@ function renderStatus(){
   if(lastMode==='seek')e.innerHTML=hiders.map(h=>'<span class="cap'+(h.found?'':' no')+'" style="background:'+h.color+'">'+(h.found?'✓':'')+'</span>').join('')+'<span style="margin-left:3px">'+hiders.filter(h=>h.found).length+'/'+hiders.length+'</span>';
   else e.innerHTML='🙈 You hide!';
 }
-$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
+$('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music.refresh();try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
+// 🎵 the Hide & Seek song: one button in the menu and one while playing
+function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}
+$('musBtn').onclick=$('musChip').onclick=e=>{e.stopPropagation();HS.ac();HS.music.toggle();musLbl();};musLbl();
+addEventListener('pointerdown',()=>HS.ac(),{capture:true});
+
 
 /* ---------- seek mode ---------- */
 function clearHiders(){hiders.forEach(h=>HS.scene.remove(h.fig));hiders=[];}
@@ -372,6 +378,7 @@ selectMap(HS.maps[save.map]||save.map==='random'?save.map:'house');
 let last=performance.now();const tv=new THREE.Vector3(),head=new THREE.Vector3();
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
+  HS.music.play(state==='menu'?'menu':(state==='seekCount'||state==='hideRun')?'hide':(state==='seek'||state==='search')?'seek':null);
   HS.tickPaint(me,dt);moving=false;
   HS.tickOpens(dt);
   if(canMove()){const m=HS.moveVec(dt,lastMode==='hide'&&myPose!=='stand'?2.2:4.3);moving=m[2]||!P.ground;HS.movePlayer(m[0],m[1],dt);}else if(!(P.inside>=0))HS.movePlayer(0,0,dt);
