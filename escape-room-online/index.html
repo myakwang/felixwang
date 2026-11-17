@@ -41,6 +41,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-
   padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 18px max(10px,env(safe-area-inset-left));
   background:linear-gradient(rgba(10,15,17,.78),rgba(10,15,17,0))}
 .bar>*{pointer-events:auto}
+.bar h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .chip,#time{flex:none}
+@media(max-width:560px){.bar{gap:5px}.bar .chip,.touchy .bar .chip{padding:8px 8px;font-size:13px}.bar h1{font-size:19px}}
 .bar h1{text-shadow:0 1px 4px #000}
 .bar h1{font-family:var(--display);font-weight:400;font-size:25px;letter-spacing:.04em;margin:0;flex:1;line-height:1.05}
 .bar h1 small{display:block;font-family:var(--body);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass)}
