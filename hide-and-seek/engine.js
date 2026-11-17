@@ -171,7 +171,8 @@ function builder(W){
   B.addFx=(o)=>{o.position.x*=W.k;o.position.z*=W.k;W.fx.add(o);return o;};
   // things you can open (chests, cupboards, wardrobes): someone might be hiding inside!
   // o: {kind:'chest'|'closet', x, z, y, w, h, d, ry (front faces +z turned by ry), color, lid, label}
-  B.openable=(o)=>{const i=W.opens.length,kind=o.kind||'chest',ch=kind==='chest';const w=o.w||(ch?2.0:1.3),h=o.h||(ch?0.75:2.3),d=o.d||0.95,y0=o.y||0,ry=o.ry||0,c=o.color||(ch?'#b9773e':'#c58b4e'),lc=o.lid||c,t=0.08;
+  B.openable=(o)=>{const i=W.opens.length,kind=o.kind||'chest',ch=kind==='chest';const w=o.w||(ch?2.5:1.3),h=o.h||(ch?0.75:2.3),d=o.d||(ch?1.65:0.95),y0=o.y||0,ry=o.ry||0,c=o.color||(ch?'#b9773e':'#c58b4e'),lc=o.lid||c,t=0.08;
+    if(ch&&!o.d){const sh=(d-0.95)/2;o=Object.assign({},o,{x:o.x+Math.sin(ry)*sh,z:o.z+Math.cos(ry)*sh});}
     const g=new THREE.Group();g.position.set(o.x,y0,o.z);g.rotation.y=ry;W.group.add(g);const meshes=[];
     const mk=(w_,h_,d_,x,y,z,col,par)=>{const m=B.box(w_,h_,d_,x,y,z,col,{parent:par||g});m.userData.openI=i;meshes.push(m);return m;};
     const pivot=new THREE.Group();g.add(pivot);
@@ -214,7 +215,7 @@ HS.loadMap=function(id){
 };
 /* ---------- chests & cupboards ---------- */
 function applyOpen(o){if(o.kind==='chest')o.pivot.rotation.x=-o.a*1.9;else o.pivot.rotation.y=-o.a*1.9;}
-HS.openSpot=function(o){const y=o.ry+Math.PI/2;return o.kind==='chest'?{pos:[o.x+Math.sin(y)*0.82,o.y+0.08,o.z+Math.cos(y)*0.82],pose:'lie',yaw:y}:{pos:[o.x,o.y+0.08,o.z],pose:'stand',yaw:o.ry};};
+HS.openSpot=function(o){const y=o.ry+Math.PI/2;return o.kind==='chest'?{pos:[o.x+Math.sin(y)*0.97,o.y+0.08,o.z+Math.cos(y)*0.97],pose:'lie',yaw:y}:{pos:[o.x,o.y+0.08,o.z],pose:'stand',yaw:o.ry};};
 HS.setOpen=function(i,v,quiet){const o=W&&W.opens[i];if(!o||o.open===!!v)return false;o.open=!!v;if(quiet){o.a=o.open?1:0;applyOpen(o);}else HS.sfx.creak();return true;};
 HS.closeAll=function(){if(W)W.opens.forEach(o=>{o.open=false;o.a=0;applyOpen(o);});};
 HS.tickOpens=function(dt){if(W)W.opens.forEach(o=>{const tg=o.open?1:0;if(o.a!==tg){o.a+=Math.sign(tg-o.a)*Math.min(Math.abs(tg-o.a),dt*3.2);applyOpen(o);}});};

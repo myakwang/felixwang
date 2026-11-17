@@ -326,7 +326,7 @@ function yardMore(B){
   B.steps({x0:-26.5,z0:23.4,z1:24.6,n:10,run:0.4,rise:0.35,top:'#c8925a',side:'#7a5230'});
   hut(B,{x:-20,z:24,w:4.6,d:4.6,h:2.3,y:3.5,wall:'#c58b4e',roof:'#a04000',door:'w',dw:1.3,peak:true,peakH:1.3});
   B.ball(2.4,-20,8.4,24,'#4caf50',no);B.ball(1.7,-18.2,7.6,25.2,'#5cbf60',no);B.ball(1.7,-21.8,7.8,22.8,'#43a047',no);
-  B.openable({kind:'chest',x:-19,z:22.45,y:3.5,bot:3.5,color:'#b9773e',label:'inside the treehouse chest'});
+  B.openable({kind:'chest',x:-19.4,z:22.45,y:3.5,bot:3.5,color:'#b9773e',label:'inside the treehouse chest'});
   B.cyl(0.05,1.4,2.2,-24,1.1,32,HS.mat('#27ae60',{opacity:0.5}),{col:false,seg:6,solid:false});   // camping tent
   // ---- swings, picnic table, BBQ, playhouse ----
   [[-11,16],[-7,16],[-11,19],[-7,19]].forEach(p=>B.box(0.15,2.8,0.15,p[0],1.4,p[1],'#e74c3c',{col:false}));
@@ -1084,7 +1084,7 @@ function backroomsMore(B,wm){
   B.openable({kind:'closet',x:-26,z:-18,w:1.2,d:0.9,h:2.2,color:'#a8956a',label:'inside a lost locker'});
   B.openable({kind:'chest',x:26,z:18,color:'#c89b5a',lid:'#b07d4f',label:'inside a cardboard box'});
   B.openable({kind:'closet',x:22,z:-22,w:1.3,h:2.2,color:'#c0b283',label:'inside a strange cupboard'});
-  B.openable({kind:'chest',x:-22,z:22,color:'#8f7f45',lid:'#6b5d2e',label:'inside an old toy chest'});
+  B.openable({kind:'chest',x:-22,z:23.4,ry:Math.PI,color:'#8f7f45',lid:'#6b5d2e',label:'inside an old toy chest'});
   B.box(1.0,0.35,0.08,-2,2.7,23.9,HS.mat('#ff4d4d',{emissive:'#cc0000'}),{col:false,edges:false});
 }
 /* =============== 7. THE BACKROOMS =============== */
