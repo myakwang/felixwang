@@ -218,7 +218,7 @@ function sneakCheck(dt){if((sneakT-=dt)>0)return;sneakT=0.5;const cp=HS.camera.p
     const used=new Set(hiders.map(x=>x.spot));const free=W.spots.filter(s=>!used.has(s)&&!(s.inside!=null&&W.opens[s.inside].open)&&Math.hypot(s.pos[0]-cp.x,s.pos[2]-cp.z)>7);if(!free.length)continue;
     const w=free.map(spotWeight);let r=Math.random()*w.reduce((a,b)=>a+b,0),i=0;while(r>w[i]&&i<w.length-1){r-=w[i];i++;}
     h.moved=true;hideAt(h,free[i],level);toast('👂 You heard sneaky footsteps…',2);HS.sfx.giggle();break;}}
-function startSeek(lv){
+function startSeek(lv){window.playerNumber&&playerNumber('hs');
   setBrush(false);HS.clearSplats();HS.closeAll();lastMode='seek';level=lv;clearHiders();seekerFig.visible=false;me.visible=false;bubble.visible=false;third=false;
   HS.dogReset(dog,W.def.spawn.dog[0],W.def.spawn.dog[1]);
   const n=Math.min(2+lv,8,W.spots.length);
@@ -285,7 +285,7 @@ function updateCamoTip(){const c=$('camo');if(lastMode!=='hide'||(state!=='hideR
   const k=HS.camoFrom(skEye(),me);if(state==='hideRun')camoInfo=k;
   const dot='<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #2b2b2b;vertical-align:middle;background:'+(k.bg||'#fff')+'"></span>';
   c.innerHTML='👀 From the seeker: '+(k.matched===k.total?'😎 you blend in!':'camouflage '+k.matched+'/'+k.total+' — behind you is '+dot);}
-function startHide(){
+function startHide(){window.playerNumber&&playerNumber('hs');
   lastMode='hide';clearHiders();state='hideRun';count=save.hideTime;lastTick=count;susp=0;whyFound='';
   const s=W.def.spawn.seeker;sk.x=s[0];sk.z=s[1];sk.y=HS.floorAt(s[0],s[1]);sk.yaw=Math.atan2(s[2]-s[0],s[3]-s[1]);sk.path=[];sk.wps=[];sk.mode='count';sk.scan=0;sk.investigate=null;
   seekerFig.visible=true;seekerFig.position.set(sk.x,sk.y,sk.z);seekerFig.rotation.set(0,sk.yaw,0);HS.pose(seekerFig.userData.inner,'cover');bubble.visible=false;bubTxt='';
@@ -428,6 +428,15 @@ async function showOnline(){const el=document.getElementById('onlineNow');if(!el
 showOnline();setInterval(()=>{if(!document.hidden&&(state==='menu'||state==='lobby'))showOnline();},15000);
 requestAnimationFrame(frame);
 })();
+</script>
+<script>
+/* "You're player #N today!": when you start playing, the website adds one to today's count for this game and tells you
+   your number. Only that one anonymous number per game per day is kept (it starts over at midnight). Not in app builds. */
+function playerNumber(g){if(playerNumber.done||!/^https?:$/.test(location.protocol)||(location.hostname==='localhost'&&!location.port))return;playerNumber.done=1;
+  fetch('/api/player',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({g})}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.n>0)showPlayerNumber(d.n);}).catch(()=>{});}
+function showPlayerNumber(n){const el=document.createElement('div');el.id='playerNo';el.textContent=(n===1?'🥇 You\'re player #1 today! The very first!':n<=10?'🎉 You\'re player #'+n+' today! One of the first!':'🎉 You\'re player #'+n+' today!');
+  el.style.cssText='position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:99999;background:#fff8d6;color:#5a3b00;border:3px solid #f1c40f;border-radius:14px;padding:8px 16px;font-family:inherit;font-weight:bold;font-size:18px;max-width:92vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;transition:opacity .6s';
+  document.body.appendChild(el);setTimeout(()=>{el.style.opacity='0';},4500);setTimeout(()=>el.remove(),5200);}
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){

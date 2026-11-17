@@ -12,6 +12,9 @@ const STALE_MS = 6 * 3600 * 1000;
 // every time the game is opened) every 60 s while it is on screen. Each id is kept only until
 // it goes quiet (150 s), then deleted; it is never linked to anything else.
 const SOLO_MS = 150 * 1000;
+// games that show "You're player #N today!": Star Army (+online), Paper Adventure (+online), Hide & Seek (+online), Escape Rooms
+const PLAYER_GAMES = ['sa', 'sao', 'pa', 'pao', 'hs', 'hso', 'er'];
+
 export class Stats {
   constructor(ctx, env) { this.ctx = ctx; }
   async soloCount(prefix = 's:') {
@@ -36,6 +39,18 @@ export class Stats {
       const pre = b.g === 'pa' ? 'p:' : b.g === 'er' ? 'e:' : 's:';
       if (b.bye) await this.ctx.storage.delete(pre + b.id); else await this.ctx.storage.put(pre + b.id, Date.now());
       return new Response('ok');
+    }
+    // "You're player #N today!": one anonymous number per game per day (Pacific time). Nothing else is stored; old days are deleted.
+    if (url.pathname === '/tick' && request.method === 'POST') {
+      let b = {}; try { b = await request.json(); } catch (e) {}
+      if (!PLAYER_GAMES.includes(b.g)) return new Response('bad', { status: 400 });
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+      const pre = 'n:' + b.g + ':', key = pre + day;
+      const n = ((await this.ctx.storage.get(key)) | 0) + 1;
+      await this.ctx.storage.put(key, n);
+      const old = [...(await this.ctx.storage.list({ prefix: pre })).keys()].filter(k => k !== key);
+      if (old.length) await this.ctx.storage.delete(old);
+      return Response.json({ n });
     }
     if (url.pathname === '/count') {
       const now = Date.now(); let players = 0, rooms = 0; const stale = [];

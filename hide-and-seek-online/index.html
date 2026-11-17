@@ -306,7 +306,7 @@ function loadMap(id){if(!HS.maps[id]||(W&&W.def.id===id))return;W=HS.loadMap(id)
 loadMap('house');
 function spawnFor(id,role){const sp=role==='seek'?W.def.spawn.seeker:W.def.spawn.hide;const k=Math.max(0,G.players.indexOf(id));
   if(role==='seek')return [sp[0],sp[1],sp[2],sp[3]];const dx=((k%3)-1)*1.2,dz=((k/3)|0)*1.2;const c=HS.clampXZ(sp[0]+dx,sp[1]+dz);return [c[0],c[1],sp[2],sp[3]];}
-function startRound(){
+function startRound(){window.playerNumber&&playerNumber('hso');
   loadMap(G.real);resetWorld();setBrush(false);HS.closeAll();P.inside=-1;boxT=0;splatsSent=0;linesSent=0;myPoseSel='stand';$('poseBtn').textContent=POSE_LBL.stand;$('pal').style.display='none';
   myRoleNow=myRole();const s=spawnFor(NET.id,myRoleNow);HS.resetPlayer(s[0],s[1],s[2],s[3]);
   HS.clearBodyDots(meFig);HS.paint(meFig,null);third=myRoleNow==='hide';
@@ -441,6 +441,15 @@ requestAnimationFrame(frame);
 })();
 </script>
 
+<script>
+/* "You're player #N today!": when you start playing, the website adds one to today's count for this game and tells you
+   your number. Only that one anonymous number per game per day is kept (it starts over at midnight). Not in app builds. */
+function playerNumber(g){if(playerNumber.done||!/^https?:$/.test(location.protocol)||(location.hostname==='localhost'&&!location.port))return;playerNumber.done=1;
+  fetch('/api/player',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({g})}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.n>0)showPlayerNumber(d.n);}).catch(()=>{});}
+function showPlayerNumber(n){const el=document.createElement('div');el.id='playerNo';el.textContent=(n===1?'🥇 You\'re player #1 today! The very first!':n<=10?'🎉 You\'re player #'+n+' today! One of the first!':'🎉 You\'re player #'+n+' today!');
+  el.style.cssText='position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:99999;background:#fff8d6;color:#5a3b00;border:3px solid #f1c40f;border-radius:14px;padding:8px 16px;font-family:inherit;font-weight:bold;font-size:18px;max-width:92vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;transition:opacity .6s';
+  document.body.appendChild(el);setTimeout(()=>{el.style.opacity='0';},4500);setTimeout(()=>el.remove(),5200);}
+</script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
