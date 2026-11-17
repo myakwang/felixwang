@@ -362,6 +362,9 @@ const brushCb={picked:c=>{brushUI.setColor(c);toast('💧 Got that color! Now pa
   line:(a,b,n,c)=>{if(linesSent<5000){linesSent++;send({t:'ln',a:a.map(r2),b:b.map(r2),n:n.map(r2),c});}},lineErase:p=>send({t:'lx',p:p.map(r2)}),
   bodyLine:(b,a,z,n,c,pt)=>{if(linesSent<5000){linesSent++;send({t:'bl',b,a:a.map(r3),z:z.map(r3),n:n.map(r3),c,pt});}},bodyErase:(b,lp)=>send({t:'bx',b,p:lp.toArray().map(r3)}),part:(pt)=>send({t:'bpc',pt})};
 $('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music&&HS.music.refresh();};
+// an old saved copy of the game files (from before an update) is missing the song: throw the old copy away and load again, once
+if(!HS.music&&/^https?:$/.test(location.protocol)){try{if(!sessionStorage.getItem('hideSeekFresh')){sessionStorage.setItem('hideSeekFresh','1');
+  caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('hide-and-seek')).map(k=>caches.delete(k)))).then(()=>location.reload());}}catch(e){}}
 // 🎵 the Hide & Seek song: one button in the menu and one while playing
 if(HS.music){
 function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}

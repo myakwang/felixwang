@@ -8,7 +8,13 @@ HS.EYE=1.55;
 
 /* ================= audio ================= */
 let AC=null;HS.sound=true;
-HS.ac=function(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC;};
+HS.ac=function(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state!=='running'){try{AC.resume();}catch(e){}}return AC;};
+// iPad/iPhone only allow sound to start when a tap ENDS (not when it starts), so wake the sound up on every finished tap or key
+// (playing one silent sample is the old iOS trick that makes it stick). Games on iPhone also play when the silent mode is on.
+(function(){let unlocked=false;const wake=()=>{const a=HS.ac();if(!a)return;if(!unlocked){try{const b=a.createBuffer(1,1,22050),src=a.createBufferSource();src.buffer=b;src.connect(a.destination);src.start(0);}catch(e){}}
+    if(a.state==='running')unlocked=true;};
+  ['touchend','click','keydown','pointerup'].forEach(ev=>addEventListener(ev,wake,{capture:true,passive:true}));
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}})();
 function tone(f,d,type,v,delay,f2){const a=HS.ac();if(!a||!HS.sound)return;const t=a.currentTime+(delay||0);const o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v||0.15,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05);}
 HS.sfx={
   found(){[523,659,784,1047].forEach((f,i)=>tone(f,0.2,'triangle',0.18,i*0.08));},
@@ -43,7 +49,7 @@ HS.sfx={
   let master=null,noise=null,mode=null,step=0,nextT=0,timer=null;
   const M=HS.music={on:true};
   try{M.on=localStorage.getItem('hideSeekMusic')!=='off';}catch(e){}
-  function out(){const a=HS.ac();if(!a)return null;if(!master){master=a.createGain();master.gain.value=0;master.connect(a.destination);
+  function out(){const a=AC;if(!a)return null;if(!master){master=a.createGain();master.gain.value=0;master.connect(a.destination);
       noise=a.createBuffer(1,a.sampleRate*0.3,a.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}return a;}
   function note(a,f,t,dur,type,v){const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.012);
     g.gain.exponentialRampToValueAtTime(0.0001,t+Math.max(0.05,dur));o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.05);}
@@ -60,12 +66,12 @@ HS.sfx={
     else{note(a,b%2?bass*2:bass,t,sd*0.8,'triangle',0.12);if(b%2===1)chord.forEach(f=>note(a,f,t,sd*0.6,'square',0.008));}
     if(m.drum==='soft'){if(b===0||b===4)hit(a,t,'kick');if(b%2===1)hit(a,t,'hat');}
     else if(m.drum==='beat'){if(b===0||b===4)hit(a,t,'kick');if(b===2||b===6)hit(a,t,'snare');hit(a,t,'hat');}}
-  function tick(){const a=AC;if(!a||!mode||a.state!=='running'||document.hidden)return;const sd=60/MODES[mode].bpm/2;
+  function tick(){const a=out();if(!a||!mode||a.state!=='running'||document.hidden)return;level();const sd=60/MODES[mode].bpm/2;
     if(nextT<a.currentTime)nextT=a.currentTime+0.05;
     while(nextT<a.currentTime+0.25){play(a,step,nextT,sd);nextT+=sd;step=(step+1)%MEL.length;}}
-  function level(){if(!master)return;const v=(M.on&&HS.sound&&mode)?0.5:0;master.gain.setTargetAtTime(v,AC.currentTime,0.15);}
+  let lastV=-1;function level(){if(!master||!AC)return;const v=(M.on&&HS.sound&&mode)?0.5:0;if(v===lastV)return;lastV=v;master.gain.setTargetAtTime(v,AC.currentTime,0.15);}
   // which mood to play (null = quiet). Safe to call every frame.
-  M.play=function(m){m=m||null;if(m===mode){level();return;}const a=out();if(!a)return;if(m&&!MODES[m])m=null;
+  M.play=function(m){m=m||null;if(m===mode){level();return;}if(m&&!MODES[m])m=null;
     if(m&&(!mode||MODES[m].bpm!==MODES[mode].bpm))step=m==='hide'?0:step-(step%8);mode=m;nextT=0;level();if(!timer)timer=setInterval(tick,40);};
   M.toggle=function(){M.on=!M.on;try{localStorage.setItem('hideSeekMusic',M.on?'on':'off');}catch(e){}level();return M.on;};
   M.refresh=level;

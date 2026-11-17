@@ -204,6 +204,9 @@ function renderStatus(){
   else e.innerHTML='🙈 You hide!';
 }
 $('sndBtn').onclick=e=>{e.stopPropagation();HS.sound=!HS.sound;$('sndBtn').textContent=HS.sound?'🔊':'🔇';HS.music&&HS.music.refresh();try{if(!HS.sound)speechSynthesis.cancel();}catch(_){}};
+// an old saved copy of the game files (from before an update) is missing the song: throw the old copy away and load again, once
+if(!HS.music&&/^https?:$/.test(location.protocol)){try{if(!sessionStorage.getItem('hideSeekFresh')){sessionStorage.setItem('hideSeekFresh','1');
+  caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('hide-and-seek')).map(k=>caches.delete(k)))).then(()=>location.reload());}}catch(e){}}
 // 🎵 the Hide & Seek song: one button in the menu and one while playing
 if(HS.music){
 function musLbl(){const on=HS.music.on;$('musBtn').textContent=on?'🎵':'🎵✖';$('musChip').textContent=on?'🎵 Music: on':'🎵 Music: off';}
