@@ -13,6 +13,7 @@ def rep(a, b):
 rep("<title>Felix's Escape Rooms</title>", "<title>Felix's Escape Rooms Online</title>")
 rep('content="Escape Rooms">', 'content="Escape Online">')
 rep("const KEY='escapeRoomSave';", "const KEY='escapeRoomOnlineSave';")
+rep("playerNumber('er')", "playerNumber('ero')")
 # no live counter in the online copy
 i = s.index("if(ON_SITE){ playBeat(); setTimeout(readLive,900);"); j = s.index("\n", s.index("addEventListener('pagehide',()=>playBeat(true)); }", i)); s = s[:i] + s[j+1:]
 # hooks
