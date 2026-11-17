@@ -33,7 +33,7 @@ export class Stats {
     if (url.pathname === '/beat' && request.method === 'POST') {
       let b = {}; try { b = await request.json(); } catch (e) {}
       if (typeof b.id !== 'string' || !/^[0-9a-f]{16}$/.test(b.id)) return new Response('bad', { status: 400 });
-      const pre = b.g === 'pa' ? 'p:' : 's:';
+      const pre = b.g === 'pa' ? 'p:' : b.g === 'er' ? 'e:' : 's:';
       if (b.bye) await this.ctx.storage.delete(pre + b.id); else await this.ctx.storage.put(pre + b.id, Date.now());
       return new Response('ok');
     }
@@ -44,7 +44,7 @@ export class Stats {
         players += v.n; rooms++;
       }
       if (stale.length) await this.ctx.storage.delete(stale);
-      return Response.json({ players, rooms, solo: await this.soloCount('s:'), paper: await this.soloCount('p:') });
+      return Response.json({ players, rooms, solo: await this.soloCount('s:'), paper: await this.soloCount('p:'), escape: await this.soloCount('e:') });
     }
     return new Response('not found', { status: 404 });
   }
