@@ -475,7 +475,7 @@ const AU=(()=>{
       next+=.33; step++; } }
   function music(){ if(mode!=='on'||!ensure()) return; mus.gain.value=1; if(timer) return; next=ctx.currentTime+.1; timer=setInterval(()=>{ if(document.hidden||mode!=='on') return; sched(); },150); }
   const api={
-    unlock(){ if(mode==='off') return; if(ensure()){ if(ctx.state==='suspended') ctx.resume(); music(); } },
+    unlock(){ if(mode==='off') return; if(ensure()){ if(ctx.state!=='running'){ try{ ctx.resume(); const sb=ctx.createBuffer(1,1,22050), ss=ctx.createBufferSource(); ss.buffer=sb; ss.connect(ctx.destination); ss.start(0); }catch(e){} } music(); } },
     cycle(){ mode=mode==='on'?'sfx':mode==='sfx'?'off':'on'; try{localStorage.setItem('escapeRoomSound',mode)}catch(e){}
       if(mode==='off'){ if(ctx) ctx.suspend(); } else { if(ensure()){ ctx.resume(); mus.gain.value=mode==='on'?1:0; if(mode==='on'){ if(timer){ next=ctx.currentTime+.1; } music(); } } }
       return mode; },
@@ -495,7 +495,7 @@ const AU=(()=>{
   document.addEventListener('visibilitychange',()=>{ if(!ctx||mode==='off') return; if(document.hidden) ctx.suspend(); else ctx.resume(); });
   return api;
 })();
-['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>AU.unlock(),{passive:true}));
+['pointerdown','pointerup','keydown','touchstart','touchend','click'].forEach(ev=>addEventListener(ev,()=>AU.unlock(),{passive:true}));
 const SND={on:['🎵','Sound: music and effects on'],sfx:['🔔','Sound: effects only'],off:['🔇','Sound: off']};
 function sndLabel(){ const m=AU.mode(), b=$('#bsnd'); b.textContent=SND[m][0]; b.setAttribute('aria-label',SND[m][1]); b.title=SND[m][1]; }
 $('#bsnd').onclick=()=>{ AU.cycle(); sndLabel(); toast(SND[AU.mode()][1]); }; sndLabel();
