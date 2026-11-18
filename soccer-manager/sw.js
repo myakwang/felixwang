@@ -1,7 +1,7 @@
 // Felix's Soccer Manager offline cache. The deploy workflow stamps a new VERSION on every push.
 const VERSION = 'soccer-manager-__BUILD__'; // __BUILD__ is replaced with the commit id on every deploy
 const FILES = ['./', './index.html', './manifest.webmanifest',
-  './favicon.png', './lilita-one.woff2', './nunito-600.woff2', './nunito-800.woff2', './nunito-900.woff2', './icons/icon-192.png', './icons/icon-512.png',
+  './favicon.png', './three.min.js', './lilita-one.woff2', './nunito-600.woff2', './nunito-800.woff2', './nunito-900.woff2', './icons/icon-192.png', './icons/icon-512.png',
   './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -147,6 +147,17 @@ input[type=text]{font:inherit;padding:12px;border-radius:14px;border:3px solid v
 .ovrs{font-family:"Lilita One";color:var(--gold);font-size:1.2em;min-width:30px;text-align:right}
 .tabs button{font-size:.75em}
 select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#04101d;color:#fff;border:2px solid var(--line)}
+#nego{position:fixed;inset:0;background:#000c;z-index:55;display:none;align-items:center;justify-content:center;padding:10px}
+#nego .nbox{background:linear-gradient(180deg,#164878,#0d2b4b);border:3px solid var(--gold);border-radius:20px;padding:12px;width:100%;max-width:480px;max-height:96vh;overflow:auto}
+.ng3d{position:relative;height:220px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#1e5a8c,#0f2f50)}
+.ng3d canvas{display:block;width:100%;height:100%}
+.ngfx{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.ngfx .pop{position:absolute;font-size:3.5em;animation:pop 1.5s ease-out forwards}
+.chat{height:150px;overflow:auto;background:#04101d;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.bub{max-width:82%;padding:7px 10px;border-radius:14px;font-size:.9em;line-height:1.3}
+.bub.him{background:#fff;color:#123;align-self:flex-start;border-bottom-left-radius:4px}
+.bub.me{background:var(--gold);color:#3a2500;align-self:flex-end;border-bottom-right-radius:4px}
+.qs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -297,7 +308,7 @@ function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(
 function addTrials(n){for(let i=0;i<n&&S.trials.length<4;i++){
  let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
  const p=makePlayer(t,pick(['GK','DEF','DEF','MID','MID','FWD','FWD']));const o=ovr(p);
- p.fee=Math.max(5,Math.round((o-45)*2.6+rnd(-4,6)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;
+ p.fee=Math.max(5,Math.round((o-45)*2.6+rnd(-4,6)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.5;
  p.msg=pick(["I completed the trial! ","Trial done, coach! ","I finished the trial and I'm ready! ","That trial was easy! "])+`I want ${money(p.fee)} to join, and ${money(p.salary)} every week.`;
  S.trials.push(p)}}
 
@@ -436,12 +447,13 @@ function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const
 function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
  <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`<div class="quote">"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
-  <div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div></div>`).join('')}</div>
+  ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
+   :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
  ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why).join('<br>')}</div></div>`:''}`}
 function acceptT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;
  if(S.players.length>=22)return toast('Your squad is full (22). Kick someone out first!');
  if(S.money<p.fee)return toast(`Not enough money! You have ${money(S.money)}.`);
- S.money-=p.fee;S.trials=S.trials.filter(x=>x.id!==id);p.energy=100;['fee','weeks','final','msg'].forEach(k=>delete p[k]);S.players.push(p);save();render();confetti(70);
+ S.money-=p.fee;S.trials=S.trials.filter(x=>x.id!==id);p.energy=100;['fee','weeks','final','msg','talk'].forEach(k=>delete p[k]);S.players.push(p);save();render();confetti(70);
  modal(`${jersey(S.color,p.num,90)}<h2>${esc(p.name)} joined!</h2><p>"Thanks coach! I'll play my best for ${esc(S.teamName)}!"</p>`)}
 function haggle(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const r=Math.random();
  if(p.final||r<.12){leave(p,'Got mad and left');modal(`<div class="big">😠</div><h2>${esc(p.name)} left!</h2><p>"${p.final?"I said that was my FINAL offer!":"That's rude! I'm going to another team!"}"<br>He's gone forever.</p>`);return}
@@ -480,7 +492,7 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
   ${tip?`<div class="tip">${tip}</div>`:''}
   ${R?`<h3 style="margin-top:12px;text-align:center">How your team plays</h3>${tacButtons(true)}<div class="muted" style="text-align:center">${TACTICS[tacOf()].tip}</div>`:''}<br>
   ${isMatchDay()?`<button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="startMatch()" ${R?'':'disabled'}>⚽ KICK OFF!</button>`:`<button class="gray" style="width:100%;font-size:1.1em;padding:14px" disabled>⏳ Not match day yet</button><div class="muted dayClock" style="text-align:center;margin-top:6px">${dayLabel()}</div><div class="muted" style="text-align:center">Use the time: train your team and scout the other team below!</div>`}</div>
-  ${scoutView(o,xi,R)}
+  ${callCard()}${scoutView(o,xi,R)}
   <div class="card" style="text-align:center"><h3>🌐 Play a real person</h3><div class="muted">Play your team against a friend or another player online. It doesn't count for your flight.</div><br><button onclick="go('online')">🌐 Play online</button></div>
   ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
 
@@ -512,6 +524,129 @@ function tableView(){const st=standings();
  ${st.map((t,k)=>`<tr class="${t.i===0?'me':''} ${k<2?'q':''} ${S.level>0&&st.length>=TEAMS_PER&&k>=st.length-RELEG?'r':''}"><td>${k+1}</td><td class="t"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${t.i===0?S.color:t.col||'#ccc'};margin-right:6px"></span>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf-t.ga}</td><td><b>${t.pts}</b></td></tr>`).join('')}</table></div>`;
  if(S.wc)h+=`<div class="card"><h2>🌍 World Cup</h2><div class="bracket">${S.wc.opps.map((o,i)=>`<div class="br ${i===S.wc.round&&S.phase==='wc'?'now':''}"><b style="min-width:100px">${WC_ROUNDS[i]}</b>${crest(o.name,o.col||'#ddd',26)}<span class="sp">${esc(o.name)} (${o.str})</span><span>${o.res||(i===S.wc.round&&S.phase==='wc'?'⏳ next':'🔒')}</span></div>`).join('')}</div></div>`;
  return h}
+
+/* ---------- TALKING WITH PLAYERS & SPONSORS (all on this device, nothing is sent) ---------- */
+const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rocket Juice','Splashy Water','Comet Chips','Twisty Gum','Turbo Toys','Sunny Shampoo','Mega Burger'];
+function newCall(){if(!S||S.call||!S.players.length)return;const star=[...S.players].sort((a,b)=>ovr(b)-ovr(a))[0];const amt=money2(rnd(20,45));
+ S.call={co:pick(COMPANIES),pid:star.id,amt,max:Math.round(amt*(1.25+Math.random()*.3))};save();if(!M)render();
+ setTimeout(()=>{if(!M&&S.call)modal(`<div class="big">📞</div><h2>Ring ring!</h2><p><b>${esc(S.call.co)}</b> is calling! They want to make an ad with <b>${esc(star.name)}</b>.</p>`,[{t:'📞 Answer',c:'gold',f:openSponsor},{t:'Later',c:'gray'}])},300)}
+function callCard(){if(!S.call)return '';const p=S.players.find(x=>x.id===S.call.pid);if(!p){S.call=null;return ''}
+ return `<div class="card" style="border-color:var(--gold);text-align:center"><div class="big">📞</div><h3>${esc(S.call.co)} is calling!</h3><div class="muted">They want an ad with ${esc(p.name)}.</div><br><button class="gold" onclick="openSponsor()">📞 Answer</button></div>`}
+let NG=null,G3=null;
+const SKINS=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac','#a0662f'];
+function openTalk(id){const t=S.trials.find(x=>x.id===id);if(!t)return;const g=goodBad(t);
+ NG={kind:'player',id,name:t.name,ask:t.fee,floor:Math.round(t.fee*(.6+Math.random()*.22)),pat:rnd(3,5),max:5,used:{},offer:Math.round(t.fee*.8),busy:false,
+  log:[{w:'him',t:`Hi coach! I'm ${t.name}. I'm good at ${SKN[g.good[0]]}. I want ${money(t.fee)} to join.`}],look:{shirt:'#8a8f98',skin:pick(SKINS)}};openNego()}
+function openSponsor(){const c=S.call;if(!c)return;const p=S.players.find(x=>x.id===c.pid);if(!p){S.call=null;save();return render()}
+ NG={kind:'sponsor',name:c.co,player:p.name,ask:c.amt,floor:c.max,pat:rnd(3,4),max:4,used:{},offer:Math.round(c.amt*1.2),busy:false,
+  log:[{w:'him',t:`Hello! This is ${c.co}. We want ${p.name} in our TV ad! We will pay you ${money(c.amt)}.`}],look:{shirt:'#2d3436',skin:pick(SKINS),suit:true}};openNego()}
+function moodFace(){const r=NG.pat/NG.max;return r>.7?'😊':r>.45?'😐':r>.2?'😠':'🤬'}
+function openNego(){let el=$('#nego');if(!el){el=document.createElement('div');el.id='nego';document.body.appendChild(el)}
+ el.innerHTML=`<div class="nbox"><div class="row"><h3 class="sp">${NG.kind==='player'?'💬 Talking with '+esc(NG.name):'📞 '+esc(NG.name)}</h3><button class="small gray" onclick="closeNego()">✖</button></div>
+  <div class="ng3d" id="ng3d"><div class="ngfx" id="ngfx"></div></div><div id="ngInfo"></div><div class="chat" id="ngChat"></div><div id="ngAct"></div></div>`;
+ el.style.display='flex';ngUpdate();
+ loadThree().then(()=>{if(NG&&$('#ng3d')){G3&&G3.dispose();G3=makeScene($('#ng3d'),NG.look)}}).catch(()=>{})}
+function closeNego(){if(NG&&NG.busy)return;const el=$('#nego');if(el)el.style.display='none';G3&&G3.dispose();G3=null;NG=null;render()}
+function ngSay(w,t){NG.log.push({w,t});if(w==='him'&&G3)G3.play('talk')}
+function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
+ $('#ngInfo').innerHTML=`<div class="row" style="margin:6px 0"><span class="chip">Mood ${moodFace()} ${'●'.repeat(Math.max(0,NG.pat))}${'○'.repeat(Math.max(0,NG.max-NG.pat))}</span><span class="chip m">${pl?'Wants':'Pays'} ${money(NG.ask)}</span>${pl?`<span class="chip">You have ${money(S.money)}</span>`:`<span class="chip">Ad with ${esc(NG.player)}</span>`}</div>`;
+ const c=$('#ngChat');c.innerHTML=NG.log.map(m=>`<div class="bub ${m.w}">${esc(m.t)}</div>`).join('');c.scrollTop=c.scrollHeight;
+ if(NG.busy){$('#ngAct').innerHTML='';return}
+ const lo=Math.max(1,Math.round(NG.ask*(pl?.4:.8))),hi=Math.round(NG.ask*(pl?1.05:1.8));NG.offer=clamp(NG.offer,lo,hi);
+ const q=pl?[['less','💰 Can you take less money?'],['why','🤔 Why so much?'],['starter',"⭐ You'll be a starter!"],['league','🏆 Our team is winning!']]
+  :[['more','💰 Can you pay more?'],['why','🤔 Why our player?'],['fans','📣 He has lots of fans!']];
+ $('#ngAct').innerHTML=`<div class="qs">${q.map(([k,t])=>`<button class="small gray" onclick="ngAsk('${k}')">${t}</button>`).join('')}</div>
+  <div class="row" style="margin-top:8px"><input type="range" min="${lo}" max="${hi}" value="${NG.offer}" style="flex:1" oninput="NG.offer=+this.value;$('#ngOv').textContent=money(NG.offer)"><button class="small" onclick="ngOffer()">${pl?'Offer':'Ask for'} <span id="ngOv">${money(NG.offer)}</span></button></div>
+  <div class="row" style="margin-top:8px;justify-content:center"><button class="small green" onclick="ngDeal()">✅ Deal at ${money(NG.ask)}</button><button class="small red" onclick="ngBye()">👋 No thanks</button></div>`}
+function ngAngry(by,line){NG.pat-=by;ngSay('him',line);if(G3)G3.play('grr')}
+function ngAsk(k){if(!NG||NG.busy)return;const pl=NG.kind==='player',t=pl?S.trials.find(x=>x.id===NG.id):null,u=NG.used[k]=(NG.used[k]||0)+1;
+ const me={less:'Can you take a little less money?',why:pl?'Why do you want so much?':'Why do you want our player?',starter:"If you join, you'll be a starter!",league:'Our team is doing great this season!',more:'Can you pay us a bit more?',fans:'He has lots and lots of fans!'}[k];ngSay('me',me);
+ if(k==='why'){if(u>1)ngAngry(1,'I already told you!');else if(pl){const g=goodBad(t);ngSay('him',`Because I'm really good at ${SKN[g.good[0]]} (${t.s[g.good[0]]}) and ${SKN[g.good[1]]} (${t.s[g.good[1]]})!`)}else ngSay('him',`Because ${NG.player} is a star! Kids love watching him play.`)}
+ else if(k==='less'){if(u>2)ngAngry(1,'Stop asking me that!');else if(Math.random()<.55&&NG.ask>NG.floor){NG.ask=Math.max(NG.floor,Math.round(NG.ask*.9));ngSay('him',`Hmm... okay. ${money(NG.ask)} then.`)}else ngAngry(1,pick(["No! I'm worth it!","No way!","Hmm, no."]))}
+ else if(k==='starter'){if(u>1)ngAngry(1,'You said that already!');else{const would=wouldStart(t);if(would){NG.ask=Math.max(NG.floor,Math.round(NG.ask*.88));ngSay('him',`A starter? Cool! Then ${money(NG.ask)} is okay.`)}else ngAngry(1,'A starter? You have better players than me... I don\'t believe you.')}}
+ else if(k==='league'){if(u>1)ngAngry(1,'I heard you the first time!');else{const pos=S.league?standings().findIndex(x=>x.i===0)+1:9;if(pos<=3){NG.ask=Math.max(NG.floor,Math.round(NG.ask*.92));ngSay('him',`You're #${pos}? Nice! ${money(NG.ask)} then.`)}else ngAngry(1,`You're #${pos}... that's not winning!`)}}
+ else if(k==='more'){if(u>2)ngAngry(1,'Please stop asking!');else if(Math.random()<.6&&NG.ask<NG.floor){NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.12));ngSay('him',`Okay, okay. ${money(NG.ask)}!`)}else ngAngry(1,"Sorry, that's all the money we have.")}
+ else if(k==='fans'){if(u>1)ngAngry(1,'Yes, yes, we know.');else{NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.08));ngSay('him',`That's true! We can pay ${money(NG.ask)}.`)}}
+ ngAfter()}
+function wouldStart(t){const keep=S.lineup;S.lineup=null;S.players.push(t);const yes=bestXI().some(x=>x.p.id===t.id);S.players.pop();S.lineup=keep;return yes}
+function ngOffer(){if(!NG||NG.busy)return;const v=NG.offer,pl=NG.kind==='player';ngSay('me',pl?`How about ${money(v)}?`:`Can you pay ${money(v)}?`);
+ if(pl){if(v>=NG.ask)return ngDone(v);if(v>=NG.floor){if(Math.random()<.5)return ngDone(v);NG.ask=Math.max(v,Math.round((NG.ask+v)/2));ngSay('him',`Let's meet in the middle: ${money(NG.ask)}.`)}
+  else ngAngry((NG.floor-v)/NG.floor>.3?2:1,(NG.floor-v)/NG.floor>.3?'WHAT?! That is WAY too low!':'Too low!')}
+ else{if(v<=NG.ask)return ngDone(v);if(v<=NG.floor){if(Math.random()<.5)return ngDone(v);NG.ask=Math.min(v,Math.round((NG.ask+v)/2));ngSay('him',`How about ${money(NG.ask)}?`)}
+  else ngAngry((v-NG.floor)/NG.floor>.3?2:1,(v-NG.floor)/NG.floor>.3?'WHAT?! We are not a bank!':'That is too much for us.')}
+ ngAfter()}
+function ngDeal(){if(!NG||NG.busy)return;ngSay('me','Deal!');ngDone(NG.ask)}
+function ngDone(v){const pl=NG.kind==='player';
+ if(pl){const t=S.trials.find(x=>x.id===NG.id);if(!t)return closeNego();if(S.players.length>=22){ngSay('him','Your team is full! Kick someone out first.');return ngUpdate()}
+  if(S.money<v){ngSay('him',`You only have ${money(S.money)}... come back with more money!`);return ngUpdate()}
+  S.money-=v;S.trials=S.trials.filter(x=>x.id!==t.id);t.energy=100;['fee','weeks','final','msg','talk'].forEach(k=>delete t[k]);S.players.push(t);ngSay('him',"YES! Thank you coach! I'll play my best!")}
+ else{const p=S.players.find(x=>x.id===S.call.pid);S.money+=v;if(p)p.energy=clamp(p.energy-10,5,100);S.call=null;ngSay('him',`Great! Here is ${money(v)}. The ad will be awesome!`)}
+ save();NG.busy=true;ngUpdate();fx('👏');confetti(120);
+ const end=()=>{const done=NG;NG.busy=false;closeNego();toast(done.kind==='player'?`🤝 ${done.name} joined for ${money(v)}!`:`💰 +${money(v)} from ${done.name}!`)};
+ if(G3)G3.play('clap',end);else setTimeout(end,1800)}
+function ngBye(){if(!NG||NG.busy)return;ngSay('me','No thanks. Goodbye!');ngSay('him',NG.kind==='player'?'Okay... bye.':'Okay, maybe another time.');
+ if(NG.kind==='player'){const t=S.trials.find(x=>x.id===NG.id);if(t)leave(t,'Declined')}else{S.call=null;save()}NG.busy=true;ngUpdate();
+ const end=()=>{NG.busy=false;closeNego()};if(G3)G3.play('walk',end);else setTimeout(end,1200)}
+function ngAfter(){if(NG.pat>0)return ngUpdate();
+ ngSay('him',NG.kind==='player'?"THAT'S IT!! I'M LEAVING!!":"THIS IS RIDICULOUS! WE'RE DONE!");NG.busy=true;ngUpdate();fx('💢');
+ if(NG.kind==='player'){const t=S.trials.find(x=>x.id===NG.id);if(t){S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Smashed bottles and left'});save()}}else{S.call=null;save()}
+ const nm=NG.name,end=()=>{NG.busy=false;closeNego();toast(`😡 ${nm} stormed off!`)};if(G3)G3.play('smash',end);else setTimeout(end,1500)}
+function fx(e){const f=$('#ngfx');if(!f)return;const d=document.createElement('div');d.className='pop';d.textContent=e;f.appendChild(d);setTimeout(()=>d.remove(),1500)}
+function loadThree(){if(window.THREE)return Promise.resolve();if(loadThree.p)return loadThree.p;
+ return loadThree.p=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='three.min.js';sc.onload=res;sc.onerror=()=>{loadThree.p=null;rej()};document.head.appendChild(sc)})}
+function makeScene(host,look){const T=THREE,W=host.clientWidth||340,H=host.clientHeight||220;
+ const r=new T.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.setSize(W,H);host.prepend(r.domElement);
+ const sc=new T.Scene(),cam=new T.PerspectiveCamera(36,W/H,.1,50);cam.position.set(0,1.75,4.6);cam.lookAt(0,1.05,0);
+ sc.add(new T.HemisphereLight(0xffffff,0x334455,.9));const dl=new T.DirectionalLight(0xffffff,.7);dl.position.set(2,4,3);sc.add(dl);
+ const mat=c=>new T.MeshLambertMaterial({color:c});
+ const floor=new T.Mesh(new T.PlaneGeometry(12,8),mat(0x2b5f8a));floor.rotation.x=-Math.PI/2;sc.add(floor);
+ const wall=new T.Mesh(new T.PlaneGeometry(12,6),mat(0x184066));wall.position.set(0,3,-2.2);sc.add(wall);
+ // table + bottles
+ const table=new T.Group();const top=new T.Mesh(new T.BoxGeometry(2,.08,.8),mat(0x8b5a2b));top.position.y=.8;table.add(top);
+ [[-.9,-.32],[.9,-.32],[-.9,.32],[.9,.32]].forEach(([x,z])=>{const l=new T.Mesh(new T.BoxGeometry(.07,.8,.07),mat(0x6b4420));l.position.set(x,.4,z);table.add(l)});
+ table.position.set(0,0,.85);sc.add(table);
+ const glass=new T.MeshLambertMaterial({color:0x2ecc71,transparent:true,opacity:.75});
+ const mkBottle=x=>{const b=new T.Group();const body=new T.Mesh(new T.CylinderGeometry(.07,.07,.28,12),glass);body.position.y=.14;const neck=new T.Mesh(new T.CylinderGeometry(.025,.04,.12,10),glass);neck.position.y=.34;b.add(body,neck);b.position.set(x,.84,.85);sc.add(b);return b};
+ const bottles=[mkBottle(-.6),mkBottle(.55),mkBottle(.75)];
+ // person
+ const P=new T.Group();sc.add(P);const shirt=mat(new T.Color(look.shirt)),skin=mat(new T.Color(look.skin)),pants=mat(0x22313f);
+ const body=new T.Mesh(new T.BoxGeometry(.6,.75,.32),shirt);body.position.y=1.32;P.add(body);
+ if(look.suit){const tie=new T.Mesh(new T.BoxGeometry(.08,.4,.02),mat(0xd63031));tie.position.set(0,1.42,.17);P.add(tie)}
+ else{const num=new T.Mesh(new T.BoxGeometry(.22,.22,.02),mat(0xffffff));num.position.set(0,1.38,.17);P.add(num)}
+ const headG=new T.Group();headG.position.y=1.92;P.add(headG);const head=new T.Mesh(new T.SphereGeometry(.24,20,16),skin);headG.add(head);
+ const hair=new T.Mesh(new T.SphereGeometry(.25,20,16,0,Math.PI*2,0,Math.PI/2.2),mat(0x2d1b0e));hair.position.y=.03;headG.add(hair);
+ const eyeM=mat(0x111111);[-.08,.08].forEach(x=>{const e=new T.Mesh(new T.SphereGeometry(.03,8,8),eyeM);e.position.set(x,.03,.21);headG.add(e)});
+ const brows=[-.08,.08].map(x=>{const b=new T.Mesh(new T.BoxGeometry(.09,.02,.02),eyeM);b.position.set(x,.1,.22);headG.add(b);return b});
+ const mouth=new T.Mesh(new T.BoxGeometry(.12,.03,.02),mat(0x7a1f1f));mouth.position.set(0,-.09,.22);headG.add(mouth);
+ const limb=(w,h,m,x,y)=>{const g=new T.Group();g.position.set(x,y,0);const l=new T.Mesh(new T.BoxGeometry(w,h,w),m);l.position.y=-h/2;g.add(l);P.add(g);return g};
+ const armL=limb(.15,.62,shirt,-.39,1.66),armR=limb(.15,.62,shirt,.39,1.66),legL=limb(.2,.92,pants,-.16,.94),legR=limb(.2,.92,pants,.16,.94);
+ [armL,armR].forEach(a=>{const h=new T.Mesh(new T.SphereGeometry(.08,10,8),skin);h.position.y=-.66;a.add(h)});
+ let anim='idle',t0=0,cb=null,raf=0,shards=[],held=null,alive=true,headCol=new T.Color(look.skin);const red=new T.Color(0xff4d4d);
+ function play(a,done){anim=a;t0=performance.now();cb=done||null;if(a!=='talk'){armL.rotation.set(0,0,0);armR.rotation.set(0,0,0)}}
+ function finish(){const c=cb;cb=null;anim='idle';c&&c()}
+ function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,k=now/1000;
+  if(anim!=='smash'&&anim!=='walk'){P.position.y=Math.sin(k*2)*.01;P.rotation.y=Math.sin(k*.7)*.08}
+  if(anim==='idle'){armL.rotation.z=.08;armR.rotation.z=-.08;head.material.color.lerp(headCol,.05);mouth.scale.set(1,1,1);brows.forEach((b,i)=>b.rotation.z=0)}
+  if(anim==='talk'){mouth.scale.y=1+Math.abs(Math.sin(t*18))*2;headG.rotation.x=Math.sin(t*9)*.08;if(t>.9){mouth.scale.y=1;headG.rotation.x=0;anim='idle'}}
+  if(anim==='grr'){head.material.color.lerp(red,.08);brows[0].rotation.z=-.5;brows[1].rotation.z=.5;headG.rotation.z=Math.sin(t*30)*.08;armL.rotation.z=.5;armR.rotation.z=-.5;if(t>1.1){headG.rotation.z=0;anim='idle'}}
+  if(anim==='clap'){const c=Math.abs(Math.sin(t*9));armL.rotation.x=armR.rotation.x=-1.25;armL.rotation.z=-.5+c*.5;armR.rotation.z=.5-c*.5;mouth.scale.set(1.6,2.5,1);P.position.y=Math.abs(Math.sin(t*4.5))*.08;if(t>2.6){armL.rotation.set(0,0,0);armR.rotation.set(0,0,0);finish()}}
+  if(anim==='walk'||(anim==='smash'&&t>2.7)){const w=anim==='walk'?t:t-2.7;P.rotation.y=Math.min(Math.PI,w*4);const s=Math.sin(w*10)*.6;legL.rotation.x=s;legR.rotation.x=-s;armL.rotation.x=-s*.8;armR.rotation.x=s*.8;
+   if(w>.6){P.position.z-=.035;P.position.x+=.012}if(w>2.4){finish()}}
+  if(anim==='smash'&&t<=2.7){head.material.color.lerp(red,.1);brows[0].rotation.z=-.6;brows[1].rotation.z=.6;mouth.scale.set(1.5,3,1);
+   const b=bottles[0];
+   if(t<.5){headG.rotation.z=Math.sin(t*40)*.1;armL.rotation.z=.6;armR.rotation.z=-.6}
+   else if(t<1){armR.rotation.set(-1.1,0,.25);if(!held&&b.parent){held=b;armR.add(b);b.position.set(0,-.7,.05);b.rotation.set(0,0,0)}}
+   else if(t<1.5){armR.rotation.set(-2.9,0,.2)}
+   else if(t<1.75){armR.rotation.set(-2.9+(t-1.5)*8,0,.2)}
+   else{if(held){const wp=new T.Vector3();held.getWorldPosition(wp);armR.remove(held);held=null;bottles[0].visible=false;
+     for(let i=0;i<18;i++){const sh=new T.Mesh(new T.TetrahedronGeometry(.03+Math.random()*.04),glass);sh.position.copy(wp);sh.position.y=Math.max(.9,wp.y);sh.v=new T.Vector3((Math.random()-.5)*.09,.05+Math.random()*.08,(Math.random()-.2)*.08);sc.add(sh);shards.push(sh)}
+     bottles[1].v=new T.Vector3(.03,.04,.02);bottles[2].v=new T.Vector3(.045,.05,.03)}
+    table.position.x=Math.sin(t*60)*.03*Math.max(0,2.4-t);armR.rotation.set(-1,0,.2)}}
+  shards.forEach(sh=>{sh.position.add(sh.v);sh.v.y-=.006;sh.rotation.x+=.2;sh.rotation.y+=.15;if(sh.position.y<.03){sh.position.y=.03;sh.v.set(sh.v.x*.5,0,sh.v.z*.5)}});
+  [bottles[1],bottles[2]].forEach(b=>{if(!b.v)return;b.position.add(b.v);b.v.y-=.006;b.rotation.z-=.12;if(b.position.y<.08){b.position.y=.08;b.v.set(0,0,0);b.rotation.z=-Math.PI/2}});
+  r.render(sc,cam)}
+ raf=requestAnimationFrame(loop);
+ return{play,dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
 
 /* ---------- ONLINE (this site's own server relay /api/server/CODE?g=sm, 2 players; fixed nicknames, no chat) ---------- */
 const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
@@ -829,7 +964,7 @@ function afterMatch(){if(!M||!M.done)return;if(M.online)return afterOnline();con
   S.league.fixtures[S.league.round].forEach(([a,b])=>{if(a===0||b===0)return;const A=S.league.teams[a].str,B=S.league.teams[b].str;record(a,b,pois(clamp(1.25*Math.pow(A/B,EXP),.05,6)),pois(clamp(1.25*Math.pow(B/A,EXP),.05,6)))});
   S.league.round++;if(S.league.round>=S.league.fixtures.length)after=endLeague}
  else{prize=money2(win?150:40);const o=S.wc.opps[S.wc.round];o.res=(win?'✅ ':'❌ ')+M.my+'-'+M.op+(M.pens?` (pens ${M.pens[0]}-${M.pens[1]})`:'');
-  if(win){S.wc.round++;if(S.wc.round>=4){S.trophies.push({type:'wc',season:S.season});S.phase='over';S.resultIcon='🌍🏆';S.result='<b>YOU WON THE WORLD CUP!</b> You are the best team in the whole world!';
+  if(win){S.wc.round++;if(S.wc.round<4)newCall();if(S.wc.round>=4){S.trophies.push({type:'wc',season:S.season});S.phase='over';S.resultIcon='🌍🏆';S.result='<b>YOU WON THE WORLD CUP!</b> You are the best team in the whole world!';
     after=()=>{confetti(300);modal(`<div class="big">🌍🏆🎉</div><h1>WORLD CUP CHAMPIONS!</h1><p><b>${esc(S.teamName)}</b> beat everyone in the world! This is the BEST trophy there is!</p>`,[{t:'🎉 Yay!',c:'gold'}])}}
    else after=()=>modal(`<div class="big">🎉</div><h2>We're through!</h2><p>Next: the World Cup <b>${WC_ROUNDS[S.wc.round]}</b> vs ${esc(S.wc.opps[S.wc.round].name)}!</p>`)}
   else{S.phase='over';S.resultIcon='😢';S.result=`Knocked out of the World Cup in the <b>${WC_ROUNDS[S.wc.round]}</b>. Still, getting to the World Cup is awesome!`;
@@ -848,7 +983,7 @@ function endLeague(){const st=standings(),n=st.length,pos=st.findIndex(t=>t.i===
     ${S.level===TOP?'<h2>⭐ YOU MADE THE FULL NATIONAL TEAM! ⭐</h2><p>That\'s the goal! Now finish top 2 there to go to the World Cup 🌍.</p>':S.level===TOP-1?'<p>You made the <b>Half National Team</b>! One more step to the Full National Team!</p>':'<p>The teams there are better. Train hard and sign good players!</p>'}`,[{t:'⬆️ Awesome!',c:'gold'}])}
   else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in ${L.name}. You need the top 2 to move up. You stay in ${L.name} next season — try again!${S.level>0?' (Phew, you were not in the last '+RELEG+'!)':''}`;save();render();
    modal(`<div class="big">📅</div><h2>${L.name} finished: #${pos}</h2><p>You need top 2 to move up. Train hard and try again next season!</p>`)}return}
- if(pos<=2){S.phase='wc';S.wc={round:0,opps:shuffle(WC_TEAMS).slice(0,4).map(([n,c],i)=>{const o={name:n,col:c,str:wcStr(i)};ensureSquad(o);return o})};save();render();confetti(pos===1?250:120);
+ if(pos<=2){setTimeout(newCall,4000);S.phase='wc';S.wc={round:0,opps:shuffle(WC_TEAMS).slice(0,4).map(([n,c],i)=>{const o={name:n,col:c,str:wcStr(i)};ensureSquad(o);return o})};save();render();confetti(pos===1?250:120);
   modal(`<div class="big">${pos===1?'🏆':'🥈'}</div><h2>${pos===1?'NATIONAL CHAMPIONS!':'2nd place!'}</h2><p>${pos===1?'You won the Full National Team League! 🏆':'So close to the trophy!'}</p><p><b>You're going to the WORLD CUP! 🌍</b><br>Win 4 games in a row to become world champions!</p>`,[{t:'🌍 To the World Cup!',c:'gold'}])}
  else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in the ${L.name}. You need the top 2 to go to the World Cup. Sign better players and train hard!`;save();render();
   modal(`<div class="big">📅</div><h2>League finished: #${pos}</h2><p>Not enough for the World Cup this time. Try again next season!</p>`)}}
