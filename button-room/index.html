@@ -59,11 +59,17 @@ button{font-family:inherit;font-weight:bold;cursor:pointer;border:0;border-radiu
 #joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;background:rgba(255,255,255,.6)}
 .conf{position:fixed;top:-30px;font-size:24px;animation:fall linear forwards;pointer-events:none;z-index:4}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+#hHunger b{font-weight:normal}
+#hHunger u{display:inline-block;width:84px;height:12px;background:#0c1124;border-radius:6px;vertical-align:middle;margin-left:6px;overflow:hidden;text-decoration:none}
+#hHunger i{display:block;height:100%;width:100%;background:#ffb703}
+#hHunger.low i{background:#ff4d6d}
+#hHunger.low{animation:pulse .7s infinite alternate}
+@keyframes pulse{to{background:rgba(130,20,45,.9)}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><span id="hHome" style="display:none;pointer-events:auto;cursor:pointer" role="button" aria-label="All games">🏠</span><span id="hLives"></span><span id="hStars"></span><span id="hKey"></span><span id="hCode"></span><span id="hTro"></span><span id="hMus" style="pointer-events:auto;cursor:pointer">🎵 On</span></div>
+<div id="hud"><span id="hHome" style="display:none;pointer-events:auto;cursor:pointer" role="button" aria-label="All games">🏠</span><span id="hLives"></span><span id="hHunger" title="Food"><b>🍽</b><u><i></i></u></span><span id="hStars"></span><span id="hKey"></span><span id="hCode"></span><span id="hNote" style="display:none"></span><span id="hTro"></span><span id="hMus" style="pointer-events:auto;cursor:pointer">🎵 On</span></div>
 <div id="hint"></div>
 <div id="toast"></div>
 <div id="joy"><i></i></div>
@@ -143,7 +149,7 @@ WALLS.forEach((w,wi)=>{
   const bg=new THREE.Group();bg.position.set(x,y,0);g.add(bg);
   const base=new THREE.Mesh(baseGeo,M({color:0x333a44}));base.rotation.x=Math.PI/2;base.position.z=.03;bg.add(base);
   const cap=new THREE.Mesh(capGeo,M({color:0xffffff,emissive:0x000000,emissiveIntensity:.3}));cap.rotation.x=Math.PI/2;cap.position.z=.1;bg.add(cap);
-  const b={base,cap,wall:wi,type:'good',used:false,z:.1,tz:.1};
+  const b={base,cap,wall:wi,type:'good',used:false,z:.1,tz:.1,x,y};
   base.userData={kind:'btn',b};cap.userData={kind:'btn',b};buttons.push(b);clickables.push(base,cap);
  }));
 });
@@ -184,14 +190,16 @@ function hud(){
  $('#hKey').textContent=hasKey?'🗝 Key!':'🗝 —';
  $('#hCode').textContent='🔢 '+(hasCode?code.join(' '):code.map(()=>'?').join(' '));
  $('#hTro').textContent='🏆 '+trophies;
+ $('#hNote').style.display=knowsNote?'':'none';$('#hNote').textContent='📝 '+chestCode;
 }
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600);}
 function fillButtons(first){
- let types=first?['door','chest','paper']:[];
+ clearWindows();
+ let types=(first?['door','chest','paper']:[]).concat(['window','window','window','window','window','window','window','vase','vase','vase','vase','loot','loot','loot']);
  const n=buttons.length-types.length,ng=Math.round(n*.27),nb=Math.round(n*.28);
  for(let i=0;i<n;i++)types.push(i<ng?'good':i<ng+nb?'bad':'chal');
  shuffle(types);
- buttons.forEach((b,i)=>{b.type=types[i];b.used=false;b.tz=.1;const c=BCOL[rnd(BCOL.length)];b.cap.material.color.set(c);b.cap.material.emissive.set(c);b.base.material.color.set(0x333a44);
+ buttons.forEach((b,i)=>{b.type=types[i];b.used=false;b.tz=.1;const c=BCOL[rnd(BCOL.length)];b.cap.material.color.set(c);b.cap.material.emissive.set(c);b.base.material.color.set(0x333a44);b.cap.visible=b.base.visible=true;
   if(b.type==='door'){wallG[b.wall].add(door);}});
 }
 function setLights(on){amb.intensity=on?.65:.07;lamp.intensity=on?.75:.12;}
@@ -203,7 +211,8 @@ function reset(){
  document.querySelectorAll('.conf').forEach(e=>e.remove());
  fillButtons(true);
  const a=Math.random()*Math.PI*2;chest.position.set(Math.sin(a)*2.6,0,Math.cos(a)*2.6);chest.rotation.y=a+Math.PI;
- camera.position.set(0,1.6,0);yaw=0;pitch=0;hud();
+ camera.position.set(0,1.6,0);yaw=0;pitch=0;
+ hunger=100;lowWarned=false;knowsNote=false;chestCode=''+rnd(10)+rnd(10)+rnd(10);clearSpawned();placeNotes();hud();
 }
 
 /* ---------- cards ---------- */
@@ -223,7 +232,7 @@ function press(b){
  if(b.used||busy)return;b.used=true;b.tz=.05;b.cap.material.color.set(0x59606b);b.cap.material.emissive.set(0x000000);b.base.material.color.set(0x333a44);
  sfx.press();busy=true;setTimeout(()=>resolve(b),380);
 }
-function peekSome(){const left=shuffle(buttons.filter(b=>!b.used)).slice(0,3);const col={good:0x06d6a0,bad:0xff2244,chal:0xffd60a,door:0x3a86ff,chest:0x3a86ff,paper:0x3a86ff};left.forEach(b=>b.base.material.color.set(col[b.type]));return left.length;}
+function peekSome(){const left=shuffle(buttons.filter(b=>!b.used)).slice(0,3);const col={good:0x06d6a0,bad:0xff2244,chal:0xffd60a,door:0x3a86ff,chest:0x3a86ff,paper:0x3a86ff,window:0xff9f1c,vase:0xff9f1c,loot:0xff9f1c};left.forEach(b=>b.base.material.color.set(col[b.type]));return left.length;}
 function resolve(b){
  const t=b.type;
  if(t==='door'){doorFound=true;door.visible=true;door.scale.y=.01;sfx.good();
@@ -232,21 +241,26 @@ function resolve(b){
   show('<h2>📄 A piece of paper popped out!</h2><div class="paper">'+code.join('')+'</div><p>That is the door passcode! It is saved at the top of the screen.</p><button class="go">OK</button>');card.querySelector('.go').onclick=()=>{hide();afterTurn();};return;}
  if(t==='chest'){chestFound=true;chest.visible=true;chest.scale.set(.01,.01,.01);sfx.good();
   info('🧰','A treasure chest!','A chest dropped into the room. The door key is inside — it costs <b>'+KEY_COST+' ⭐</b> to open. Click the chest when you have enough.',afterTurn);return;}
+ if(t==='window'){sfx.good();const fp=spawnWindow(b);firstTime('window','🪟','A window pops out!','A window popped out of the wall and <b>food fell out</b>! Click the food on the floor to eat it. Your <b>🍽 bar</b> needs it.','🪟 Food is falling out of the window!',fp);return;}
+ if(t==='vase'){sfx.good();const v=spawnVase();firstTime('vase','🏺','A vase!','A vase appeared in the room. <b>Click it 3 times to break it</b> and see what is inside.','🏺 A vase! Click it 3 times to break it.',v.pos);return;}
+ if(t==='loot'){sfx.good();const c=spawnLoot();firstTime('loot','🧰','A locked chest!','<b>Smash it</b> by clicking the chest 6 times (only food and stars survive a smash). Or click its <b>🔒 lock</b> and type the 3-digit code from a <b>yellow sticky note 📝</b> on the walls. Opening it with the code can give the key, the passcode, hearts and more!','🧰 A chest! Smash it, or use the code from a sticky note.',c.pos);return;}
  if(t==='good'){sfx.good();const r=Math.random();
   if(r<.45){addStars(1);info('⭐','Lucky!','You got 1 star.',afterTurn);}
   else if(r<.63){addStars(2);info('🌟','Very lucky!','You got 2 stars.',afterTurn);}
   else if(r<.68){addStars(3);info('💫','JACKPOT!','You got 3 stars!',afterTurn);}
   else if(r<.77){if(lives<3){lives++;hud();info('❤️','Extra life!','One life came back.',afterTurn);}else{addStars(1);info('⭐','Lucky!','Your lives are full, so you got a star instead.',afterTurn);}}
   else if(r<.87){shield=true;hud();info('🛡','Shield!','It will block the next bad thing or failed challenge.',afterTurn);}
-  else{const n=peekSome();info('👀','X-ray glasses!',n+' buttons now show a colored rim:<br>🟢 good · 🔴 bad · 🟡 challenge · 🔵 door, chest or paper',afterTurn);}
+  else if(r>.94){hunger=Math.min(100,hunger+25);lowWarned=false;info('🥪','Tasty snack!','You found a snack. Your 🍽 bar went up!',afterTurn);}
+  else{const n=peekSome();info('👀','X-ray glasses!',n+' buttons now show a colored rim:<br>🟢 good · 🔴 bad · 🟡 challenge · 🔵 door, chest or paper · 🟠 food',afterTurn);}
   return;}
  if(t==='bad'){
   if(shield){shield=false;hud();sfx.good();info('🛡','Blocked!','That was a bad button, but your shield blocked it.',afterTurn);return;}
   sfx.bad();const r=Math.random();
-  if(r<.32){if(stars>0){addStars(-1);info('🦝','A thief!','A raccoon stole 1 star.',afterTurn);}else info('🦝','A thief!','A raccoon came to steal a star… but you have none. Ha!',afterTurn);}
-  else if(r<.5){if(stars>0){const n=Math.min(2,stars);addStars(-n);info('🕳','Hole in your pocket!','You dropped '+n+' star'+(n>1?'s':'')+'.',afterTurn);}else info('🕳','Hole in your pocket!','Good thing your pockets were empty.',afterTurn);}
-  else if(r<.72){setLights(false);clearTimeout(darkT);darkT=setTimeout(()=>setLights(true),14000);info('🌑','Lights out!','The room goes dark for a while.',afterTurn);}
-  else if(r<.9){curse=true;info('😈','Cursed!','Your next challenge will be harder.',afterTurn);}
+  if(r<.25){if(stars>0){addStars(-1);info('🦝','A thief!','A raccoon stole 1 star.',afterTurn);}else info('🦝','A thief!','A raccoon came to steal a star… but you have none. Ha!',afterTurn);}
+  else if(r<.4){if(stars>0){const n=Math.min(2,stars);addStars(-n);info('🕳','Hole in your pocket!','You dropped '+n+' star'+(n>1?'s':'')+'.',afterTurn);}else info('🕳','Hole in your pocket!','Good thing your pockets were empty.',afterTurn);}
+  else if(r<.6){setLights(false);clearTimeout(darkT);darkT=setTimeout(()=>setLights(true),14000);info('🌑','Lights out!','The room goes dark for a while.',afterTurn);}
+  else if(r<.78){curse=true;info('😈','Cursed!','Your next challenge will be harder.',afterTurn);}
+  else if(r<.92){hunger=Math.max(1,hunger-25);info('🌀','Tummy rumble!','Your belly growls. You lost some 🍽 food!',afterTurn);}
   else info('🧦','Stinky sock!','Yuck. Nothing else happened.',afterTurn);
   return;}
  startChallenge();
@@ -355,6 +369,168 @@ function challengeResult(ok){
  else{const n=r>.9?2:1;addStars(n);info('⭐','Challenge won!','Prize: '+n+' star'+(n>1?'s':'')+'!',afterTurn);}
 }
 
+/* ---------- hunger, food, windows, vases and chests ---------- */
+let hunger=100,lowWarned=false,started=false,knowsNote=false,chestCode='000',lastH=-1;
+const tips={},spawned={windows:[],foods:[],vases:[],chests:[],notes:[],shards:[]};
+const FOODS=[['🍎',15],['🍌',15],['🍞',20],['🍪',12],['🥕',12],['🍔',30],['🍕',30],['🍰',40]];
+const eTex={};
+function emojiTex(e){if(eTex[e])return eTex[e];const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+ x.font='88px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';
+ x.shadowColor='rgba(255,255,255,.95)';x.shadowBlur=16;x.fillText(e,64,70);x.fillText(e,64,70);return eTex[e]=new THREE.CanvasTexture(c);}
+function unclick(o){o.traverse(m=>{const i=clickables.indexOf(m);if(i>=0)clickables.splice(i,1);});}
+function faceTo(p){const dx=p.x-camera.position.x,dz=p.z-camera.position.z,hd=Math.hypot(dx,dz)||1;yaw=Math.atan2(-dx,-dz);pitch=Math.max(-1.1,Math.min(1.1,Math.atan2(p.y-1.6,hd)));}
+function firstTime(key,emoji,title,text,short,pos){
+ if(pos)faceTo(pos);
+ if(!tips[key]){tips[key]=1;info(emoji,title,text,afterTurn);}
+ else{toast(short);busy=false;afterTurn();}
+}
+function clearWindows(){spawned.windows.forEach(w=>w.wg.remove(w.g));spawned.windows.length=0;}
+function clearSpawned(){
+ clearWindows();[...spawned.foods].forEach(removeFood);
+ spawned.vases.forEach(v=>{scene.remove(v.g);unclick(v.g);});spawned.vases.length=0;
+ spawned.chests.forEach(c=>{scene.remove(c.g);unclick(c.g);});spawned.chests.length=0;
+ spawned.notes.forEach(m=>{if(m.parent)m.parent.remove(m);unclick(m);});spawned.notes.length=0;
+ spawned.shards.forEach(h=>scene.remove(h.m));spawned.shards.length=0;
+}
+function floorSpot(){
+ const taken=spawned.vases.map(v=>v.g.position).concat(spawned.chests.map(c=>c.g.position),[chest.position]);
+ let p;for(let i=0;i<40;i++){const a=Math.random()*6.283,r=2+Math.random()*2.3;p=new THREE.Vector3(Math.sin(a)*r,0,Math.cos(a)*r);
+  if(taken.every(q=>Math.hypot(q.x-p.x,q.z-p.z)>1.3)&&Math.hypot(p.x-camera.position.x,p.z-camera.position.z)>1.1)break;}
+ return p;}
+
+// food
+function makeFood(f,pos,vel){
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:emojiTex(f[0]),transparent:true}));sp.scale.set(.8,.8,1);sp.position.copy(pos);
+ const o={e:f[0],v:f[1],vel:vel.clone(),landed:false,ph:Math.random()*6,s:sp};sp.userData={kind:'food',f:o};
+ scene.add(sp);clickables.push(sp);spawned.foods.push(o);while(spawned.foods.length>14)removeFood(spawned.foods[0]);return o;}
+function removeFood(o){scene.remove(o.s);const i=clickables.indexOf(o.s);if(i>=0)clickables.splice(i,1);const j=spawned.foods.indexOf(o);if(j>=0)spawned.foods.splice(j,1);}
+function dropFoods(pos,n){for(let i=0;i<n;i++)makeFood(FOODS[rnd(FOODS.length)],pos.clone().add(new THREE.Vector3((Math.random()-.5)*.4,.3,(Math.random()-.5)*.4)),new THREE.Vector3((Math.random()-.5)*2.2,2+Math.random()*1.5,(Math.random()-.5)*2.2));}
+function eat(o){hunger=Math.min(100,hunger+o.v);lowWarned=false;removeFood(o);tone(300,.06,'square',.1);tone(420,.08,'square',.1,.07);tone(660,.15,'sine',.15,.15);toast(o.e+' Yum! +'+o.v+' food');}
+
+// window that pops out of the wall and drops food
+function spawnWindow(b){
+ const wg=wallG[b.wall],ry=WALLS[b.wall].ry;b.cap.visible=false;b.base.visible=false;
+ const g=new THREE.Group();g.position.set(b.x,b.y,.06);g.scale.setScalar(.01);wg.add(g);
+ const wood=M({color:0x8a5a2b,roughness:.7});
+ const bar=(w,h,x,y)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,.12),wood);m.position.set(x,y,0);g.add(m);};
+ bar(1,.1,0,.45);bar(1,.1,0,-.45);bar(.1,.8,-.45,0);bar(.1,.8,.45,0);
+ const dark=new THREE.Mesh(new THREE.PlaneGeometry(.8,.8),new THREE.MeshBasicMaterial({color:0x0b0e1a}));dark.position.z=-.02;g.add(dark);
+ const hinges=[-1,1].map(sd=>{const h=new THREE.Group();h.position.set(sd*.4,0,.04);g.add(h);
+  const pane=new THREE.Mesh(new THREE.BoxGeometry(.4,.8,.03),M({color:0xbfe6ff,transparent:true,opacity:.55,roughness:.1}));pane.position.x=-sd*.2;h.add(pane);return h;});
+ const w={g,wg,t:0,hinges};spawned.windows.push(w);sfx.chal();
+ setTimeout(()=>{if(spawned.windows.indexOf(w)<0)return;
+  const p=wg.localToWorld(new THREE.Vector3(b.x,b.y,.35)),n=new THREE.Vector3(Math.sin(ry),0,Math.cos(ry)).multiplyScalar(1.3+Math.random()*.6);n.y=1.2;
+  makeFood(FOODS[rnd(FOODS.length)],p,n);tone(520,.12,'triangle',.12);},900);
+ const wp=wg.localToWorld(new THREE.Vector3(b.x,b.y,.4));return new THREE.Vector3(wp.x,b.y*.45,wp.z);
+}
+
+// vase: click 3 times to break it
+const VASEPTS=[[0,0],[.22,0],[.3,.08],[.42,.34],[.38,.58],[.2,.76],[.19,.88],[.3,.98],[.27,1],[.15,.92]].map(q=>new THREE.Vector2(q[0]*.9,q[1]*.9));
+function spawnVase(){
+ const col=[0x2a9d8f,0xe76f51,0x6a4c93,0x2f6fdb,0xd62828][rnd(5)],p=floorSpot();
+ const g=new THREE.Group();g.position.copy(p);g.scale.setScalar(.01);scene.add(g);
+ const mesh=new THREE.Mesh(new THREE.LatheGeometry(VASEPTS,20),M({color:col,roughness:.35,metalness:.1,side:THREE.DoubleSide}));g.add(mesh);
+ const stripe=new THREE.Mesh(new THREE.TorusGeometry(.385,.03,6,20),M({color:0xffd60a}));stripe.rotation.x=Math.PI/2;stripe.position.y=.3;g.add(stripe);
+ const v={g,col,hits:0,wob:0,done:false,pos:new THREE.Vector3(p.x,.5,p.z)};mesh.userData={kind:'vase',v};stripe.userData=mesh.userData;
+ clickables.push(mesh,stripe);spawned.vases.push(v);return v;}
+function hitVase(v){
+ if(v.done)return;v.hits++;v.wob=.45;tone(200+v.hits*90,.09,'square',.1);
+ if(v.hits<3){toast('🏺 Crack! '+(3-v.hits)+' more');return;}
+ v.done=true;scene.remove(v.g);unclick(v.g);const i=spawned.vases.indexOf(v);if(i>=0)spawned.vases.splice(i,1);
+ for(let k=0;k<18;k++){const m=new THREE.Mesh(new THREE.BoxGeometry(.08+Math.random()*.1,.08+Math.random()*.1,.03),M({color:v.col}));
+  m.position.copy(v.pos).add(new THREE.Vector3((Math.random()-.5)*.4,(Math.random()-.3)*.6,(Math.random()-.5)*.4));scene.add(m);
+  spawned.shards.push({m,vel:new THREE.Vector3((Math.random()-.5)*4,2+Math.random()*2.5,(Math.random()-.5)*4),life:2.2});}
+ tone(180,.25,'sawtooth',.12);tone(120,.3,'sawtooth',.1,.05);tone(900,.06,'square',.06,.02);
+ setTimeout(()=>lootReward('vase',v.pos,true),250);
+}
+
+// loot chest: smash it (6 hits) or open the lock with the code from a sticky note
+function spawnLoot(){
+ const p=floorSpot(),g=new THREE.Group();g.position.copy(p);g.rotation.y=Math.atan2(camera.position.x-p.x,camera.position.z-p.z);g.scale.setScalar(.01);scene.add(g);
+ const steel=M({color:0x4a6fa5,roughness:.5,metalness:.3}),silver=M({color:0xc9d6e8,metalness:.7,roughness:.3});
+ const body=new THREE.Mesh(new THREE.BoxGeometry(1.1,.55,.7),steel);body.position.y=.275;g.add(body);
+ const bnd=new THREE.Mesh(new THREE.BoxGeometry(1.14,.1,.74),silver);bnd.position.y=.42;g.add(bnd);
+ const lidP=new THREE.Group();lidP.position.set(0,.55,-.35);g.add(lidP);
+ const lid=new THREE.Mesh(new THREE.BoxGeometry(1.1,.24,.7),steel);lid.position.set(0,.12,.35);lidP.add(lid);
+ const lk=new THREE.Mesh(new THREE.BoxGeometry(.24,.3,.1),M({color:0xffd60a,metalness:.6,roughness:.3,emissive:0x553300,emissiveIntensity:.5}));lk.position.set(0,.47,.39);g.add(lk);
+ const ch={g,lidP,lock:lk,hits:0,shake:0,opened:false,bx:p.x,pos:new THREE.Vector3(p.x,.4,p.z)};
+ [body,bnd,lid].forEach(m=>{m.userData={kind:'lootBody',ch};});lk.userData={kind:'lootLock',ch};
+ clickables.push(body,bnd,lid,lk);spawned.chests.push(ch);return ch;}
+function hitLoot(ch){
+ if(ch.opened)return;ch.hits++;ch.shake=.35;tone(130+ch.hits*25,.12,'sawtooth',.12);
+ if(ch.hits<6){toast('💥 '+(6-ch.hits)+' more hits!');return;}
+ ch.opened=true;unclick(ch.g);tone(100,.3,'sawtooth',.14);toast('💥 Smashed open! Some things inside broke…');
+ setTimeout(()=>lootReward('loot',ch.pos,true),250);
+}
+function lockLoot(ch){
+ if(ch.opened)return;
+ keypad('🔒 Chest lock','Type the 3-digit code. Look for a yellow sticky note 📝 on the walls!',3,c=>{
+  if(c===chestCode){hide();ch.opened=true;unclick(ch.g);sfx.win();toast('🔓 Click! The chest opened!');setTimeout(()=>lootReward('loot',ch.pos,false),300);}
+  else{sfx.bad();info('❌','Wrong code','The lock did not open. Find the sticky note 📝 with the code!');}});
+}
+function keypad(title,sub,len,cb){
+ let entry=[];
+ const draw=()=>{card.querySelector('.slots').textContent=Array.from({length:len},(_,i)=>entry[i]!==undefined?entry[i]:'•').join('');};
+ let k='';[1,2,3,4,5,6,7,8,9].forEach(n=>k+='<button data-n="'+n+'">'+n+'</button>');
+ k+='<button class="x" data-n="del">⌫</button><button data-n="0">0</button><button class="e" data-n="ok">OK</button>';
+ show('<h2>'+title+'</h2><p>'+sub+'</p><div class="slots"></div><div class="keys">'+k+'</div><button class="alt">Cancel</button>');
+ draw();card.querySelector('.alt').onclick=hide;
+ card.querySelectorAll('.keys button').forEach(bt=>bt.onclick=()=>{const n=bt.dataset.n;sfx.tick();
+  if(n==='del')entry.pop();else if(n==='ok'){if(entry.length<len)return;cb(entry.join(''));return;}else if(entry.length<len)entry.push(n);draw();});
+}
+function weighted(t){let r=Math.random()*t.reduce((a,x)=>a+x[1],0);for(const x of t){r-=x[1];if(r<=0)return x[0];}return t[0][0];}
+function showPaper(cb){hasCode=true;hud();sfx.win();show('<h2>📄 The door passcode!</h2><div class="paper">'+code.join('')+'</div><p>It is saved at the top of the screen.</p><button class="go">OK</button>');card.querySelector('.go').onclick=()=>{hide();if(cb)cb();};}
+function lootReward(kind,pos,smashed){
+ let t;
+ if(kind==='vase')t=[['food',.7],['stars',.2],['bug',.1]];
+ else if(smashed)t=[['feast',.5],['stars',.35],['bug',.15]];
+ else t=[['feast',.3],['stars',.2],['heart',.12],['shield',.12],['key',.13],['paper',.13]];
+ let k=weighted(t);
+ if(k==='heart'&&lives>=3)k='stars';if(k==='key'&&hasKey)k='feast';if(k==='paper'&&hasCode)k='stars';
+ if(k==='food'){dropFoods(pos,1);toast('🍎 Food fell out! Click it to eat.');}
+ else if(k==='feast'){dropFoods(pos,2+(Math.random()<.4?1:0));toast('🍽 A feast! Click the food to eat it.');}
+ else if(k==='stars'){const n=(kind==='vase'?1:2)+rnd(2);addStars(n);sfx.good();toast('⭐ +'+n+' stars!');}
+ else if(k==='bug'){toast('🐛 Just a bug… nothing inside!');}
+ else if(k==='heart'){lives++;hud();sfx.good();info('❤️','Extra life!','A heart was hiding in the chest.',afterTurn);}
+ else if(k==='shield'){shield=true;hud();sfx.good();info('🛡','Shield!','It will block the next bad thing or failed challenge.',afterTurn);}
+ else if(k==='key'){hasKey=true;hud();sfx.win();info('🗝','The door key!','It was hiding inside the chest!'+(doorFound?'':' Now find the door!'),afterTurn);}
+ else showPaper(afterTurn);
+}
+
+// sticky notes with the chest code, stuck between the buttons
+function placeNotes(){
+ const dw=(buttons.find(b=>b.type==='door')||{wall:0}).wall;
+ shuffle([0,1,2,3].filter(w=>w!==dw)).slice(0,2).forEach(wi=>{
+  const cv2=document.createElement('canvas');cv2.width=cv2.height=128;const c=cv2.getContext('2d');
+  c.fillStyle='#ffe066';c.fillRect(0,0,128,128);c.fillStyle='rgba(0,0,0,.12)';c.fillRect(0,0,128,16);
+  c.fillStyle='#333';c.textAlign='center';c.font='bold 22px Trebuchet MS,Verdana,sans-serif';c.fillText('CODE',64,48);c.font='bold 44px "Courier New",monospace';c.fillText(chestCode,64,100);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(.55,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv2)}));
+  m.position.set([-3.6,-1.2,1.2,3.6][rnd(4)],[1.9,3.1][rnd(2)],.02);m.rotation.z=(Math.random()-.5)*.25;m.userData={kind:'note'};
+  wallG[wi].add(m);clickables.push(m);spawned.notes.push(m);});
+}
+function showNote(){knowsNote=true;hud();sfx.good();show('<h2>📝 Sticky note</h2><div class="paper">'+chestCode+'</div><p>A <b>chest code</b>! It opens the 🔒 on locked chests. It is saved at the top of the screen.</p><button class="go">OK</button>');card.querySelector('.go').onclick=hide;}
+
+// hunger bar
+function starve(){hunger=35;lowWarned=false;sfx.bad();const m=loseLife();info('🍽','Starving!','Your tummy was empty. '+m,afterTurn);}
+function updHunger(dt){
+ if(started&&!won)hunger=Math.max(0,hunger-dt*(busy?.25:.5));
+ const r=Math.round(hunger);if(r!==lastH){lastH=r;const hb=$('#hHunger');hb.querySelector('i').style.width=r+'%';hb.classList.toggle('low',r<25);}
+ if(started&&!won&&!busy){if(hunger<=0)starve();else if(hunger<25&&!lowWarned){lowWarned=true;toast('🍽 You are getting hungry! Find food!');}}
+}
+function updSpawned(dt,now){
+ for(const w of spawned.windows){w.t+=dt;w.g.scale.setScalar(Math.max(.01,Math.min(1,w.t/.4))*1.3);const o=Math.max(0,Math.min(1,(w.t-.4)/.5));w.hinges[0].rotation.y=-1.7*o;w.hinges[1].rotation.y=1.7*o;}
+ for(const o of spawned.foods){
+  if(!o.landed){o.vel.y-=9*dt;o.s.position.addScaledVector(o.vel,dt);o.s.position.x=Math.max(-5.4,Math.min(5.4,o.s.position.x));o.s.position.z=Math.max(-5.4,Math.min(5.4,o.s.position.z));
+   if(o.s.position.y<=.3){o.s.position.y=.3;if(o.vel.y<-2.5){o.vel.y=-o.vel.y*.35;o.vel.x*=.6;o.vel.z*=.6;}else o.landed=true;}}
+  else o.s.position.y=.3+Math.sin(now/300+o.ph)*.05;}
+ for(const v of spawned.vases){if(v.g.scale.x<1)v.g.scale.setScalar(Math.min(1,v.g.scale.x+dt*3));if(v.wob>0){v.wob-=dt;v.g.rotation.z=Math.sin(now/20)*.18*Math.max(0,v.wob/.45);}else v.g.rotation.z=0;}
+ for(const c of spawned.chests){if(c.g.scale.x<1)c.g.scale.setScalar(Math.min(1,c.g.scale.x+dt*3));
+  if(c.shake>0){c.shake-=dt;c.g.position.x=c.bx+Math.sin(now/15)*.05*Math.max(0,c.shake/.35);}else c.g.position.x=c.bx;
+  c.lidP.rotation.x+=((c.opened?-1.2:0)-c.lidP.rotation.x)*.12;}
+ for(let i=spawned.shards.length-1;i>=0;i--){const h=spawned.shards[i];h.vel.y-=9*dt;h.m.position.addScaledVector(h.vel,dt);h.m.rotation.x+=dt*6;h.m.rotation.z+=dt*5;
+  if(h.m.position.y<.05){h.m.position.y=.05;h.vel.multiplyScalar(.3);}h.life-=dt;if(h.life<=0){scene.remove(h.m);spawned.shards.splice(i,1);}}
+}
+
 /* ---------- controls ---------- */
 let yaw=0,pitch=0;const keys={};
 window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.indexOf('Arrow')===0)e.preventDefault();});
@@ -371,7 +547,8 @@ cv.addEventListener('pointermove',e=>{
   yaw+=dx*.005;pitch=Math.max(-1.1,Math.min(1.1,pitch+dy*.005));}
  else if(e.pointerType==='mouse'&&!busy)cv.style.cursor=pick(e.clientX,e.clientY)?'pointer':'grab';});
 const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;const m=drag.m;drag=null;if(e.type==='pointerup'&&m<12&&!busy&&!won){const u=pick(e.clientX,e.clientY);if(!u)return;
- if(u.kind==='btn')press(u.b);else if(u.kind==='door')clickDoor();else clickChest();}};
+ if(u.kind==='btn')press(u.b);else if(u.kind==='door')clickDoor();else if(u.kind==='chest')clickChest();
+ else if(u.kind==='food')eat(u.f);else if(u.kind==='vase')hitVase(u.v);else if(u.kind==='lootBody')hitLoot(u.ch);else if(u.kind==='lootLock')lockLoot(u.ch);else if(u.kind==='note')showNote();}};
 cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 // joystick for touch screens
 let jx=0,jy=0;const joy=$('#joy'),jk=joy.querySelector('i');
@@ -403,11 +580,12 @@ function frame(now){
  lidP.rotation.x+=((hasKey?-1.2:0)-lidP.rotation.x)*.1;
  hinge.rotation.y+=((doorOpen?-1.9:0)-hinge.rotation.y)*.06;
  if(trophy.visible){const s=Math.min(1,trophy.scale.x+dt*1.2);trophy.scale.set(s,s,s);trophy.rotation.y+=dt*1.6;trophy.position.y=.55+Math.sin(now/400)*.08;}
+ updSpawned(dt,now);updHunger(dt);
  renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 reset();requestAnimationFrame(frame);
-show('<div class="big">🔴🟡🔵</div><h2>Felix&#39;s Lucky Button Room</h2><ul><li>Press the buttons on the walls. Each one is <b>good</b>, <b>bad</b>, or a <b>challenge</b>.</li><li>Fail a challenge and you lose a life. You have <b>3 ❤️</b>.</li><li>One button reveals the <b>door 🚪</b>. Another drops a <b>chest 🧰</b> — pay '+KEY_COST+' ⭐ to get the <b>key 🗝</b>.</li><li>One button pops out a <b>paper 📄</b> with the <b>'+CODE_LEN+'-digit passcode 🔢</b>.</li><li>Unlock the door to escape and win the <b>trophy 🏆</b>!</li></ul><button class="go">Play</button>');
-card.querySelector('.go').onclick=()=>{hide();sfx.good();if(musicOn)startMusic();};
+show('<div class="big">🔴🟡🔵</div><h2>Felix&#39;s Lucky Button Room</h2><ul><li>Press the buttons on the walls. Each one is <b>good</b>, <b>bad</b>, or a <b>challenge</b>.</li><li>Fail a challenge and you lose a life. You have <b>3 ❤️</b>.</li><li>One button reveals the <b>door 🚪</b>. Another drops a <b>chest 🧰</b> — pay '+KEY_COST+' ⭐ to get the <b>key 🗝</b>.</li><li>One button pops out a <b>paper 📄</b> with the <b>'+CODE_LEN+'-digit passcode 🔢</b>.</li><li>Watch your <b>🍽 hunger bar</b>! Food comes out of <b>windows 🪟</b>, <b>vases 🏺</b> and <b>chests 🧰</b>. When the bar is empty you lose a life.</li><li>Unlock the door to escape and win the <b>trophy 🏆</b>!</li></ul><button class="go">Play</button>');
+card.querySelector('.go').onclick=()=>{hide();started=true;sfx.good();if(musicOn)startMusic();};
 })();
 </script>
 <script>
