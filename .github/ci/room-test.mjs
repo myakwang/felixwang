@@ -42,4 +42,19 @@ const okS = listed && listed.n === 1 && listed.m === 'castle' && h1.got.some(m =
 h1.ws.close(); await wait(1500);
 const gone = !(await list()).some(x => x.c === scode); console.log('removed from list after empty:', gone);
 if (!okS || !gone) { console.log('SERVER TEST FAILED'); process.exit(1); }
+// Soccer Manager online rooms (g=sm): public, in their own list (not Hide & Seek's), 2 players max.
+const mcode = 'T' + 'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random() * 23)] + 'ZM';
+const mopen = q => new Promise((res, rej) => { const ws = new WebSocket(`${base}/api/server/${mcode}${q}`); const got = []; ws.onmessage = e => got.push(JSON.parse(e.data)); ws.onopen = () => res({ ws, got }); ws.onerror = e => rej(new Error('ws error ' + (e.message || ''))); });
+const smList = async () => (await (await fetch(process.argv[2] + '/api/servers?g=sm', { cache: 'no-store' })).json());
+const m1 = await mopen('?make=1&pub=1&g=sm'); await wait(800);
+m1.ws.send(JSON.stringify({ t: 'list', m: 'soccer', h: [3, 4], ph: 'lobby' })); await wait(1000);
+const inSm = (await smList()).find(x => x.c === mcode), inHs = (await list()).some(x => x.c === mcode);
+console.log('soccer listed:', JSON.stringify(inSm), 'in hide & seek list?', inHs);
+const m2 = await mopen(''); await wait(900); const m3 = await mopen(''); await wait(900);
+m1.ws.send(JSON.stringify({ t: 'ev', min: 5, team: 0, kind: 'keep', passes: 2 })); await wait(800);
+console.log('M2 got', JSON.stringify(m2.got)); console.log('M3 got', JSON.stringify(m3.got));
+const okM = inSm && inSm.m === 'soccer' && !inHs && m2.got.some(m => m.t === 'hello' && m.id === 2) && m3.got.some(m => m.t === 'full') && m2.got.some(m => m.t === 'ev' && m.f === 1);
+m1.ws.close(); m2.ws.close(); m3.ws.close(); await wait(1500);
+const mGone = !(await smList()).some(x => x.c === mcode); console.log('soccer room removed after empty:', mGone);
+if (!okM || !mGone) { console.log('SOCCER TEST FAILED'); process.exit(1); }
 if (!ok || !ok2 || !ok3 || !ok5 || leftEarly) { console.log('ROOM TEST FAILED'); process.exit(1); } console.log('ROOM TEST PASSED');

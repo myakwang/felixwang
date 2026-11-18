@@ -146,6 +146,7 @@ input[type=text]{font:inherit;padding:12px;border-radius:14px;border:3px solid v
 .benchrow.can{outline:2px dashed #ffc83d88}
 .ovrs{font-family:"Lilita One";color:var(--gold);font-size:1.2em;min-width:30px;text-align:right}
 .tabs button{font-size:.75em}
+select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#04101d;color:#fff;border:2px solid var(--line)}
 </style>
 </head>
 <body>
@@ -259,7 +260,7 @@ const TACTICS={super:{n:'🔥 Super Attack',att:7,def:-7,drain:1.5,du:.09,sp:1.0
  defend:{n:'🛡️ Defend',att:-5,def:5,drain:.8,du:-.08,sp:.9,tip:'Stay back. Hard to score on you, but you attack less. Players stay fresh.'}};
 const tacOf=()=>TACTICS[S.tactic]?S.tactic:'mid';
 function tacButtons(small){return `<div class="opts" style="justify-content:${small?'center':'flex-start'};margin:6px 0">${Object.entries(TACTICS).map(([k,t])=>`<button class="small ${k===tacOf()?'gold':'gray'}" data-tac="${k}" onclick="setTactic('${k}')">${t.n}</button>`).join('')}</div>`}
-function setTactic(k){S.tactic=k;save();if(M&&!M.done){M.R=matchR();say(`📣 Coach: ${TACTICS[k].n}!`);document.querySelectorAll('[data-tac]').forEach(b=>b.className='small '+(b.dataset.tac===k?'gold':'gray'));const t=$('#tacTip');if(t)t.textContent=TACTICS[k].tip;refreshPanel()}else render()}
+function setTactic(k){S.tactic=k;save();if(M&&!M.done){M.R=matchR();sendR();say(`📣 Coach: ${TACTICS[k].n}!`);document.querySelectorAll('[data-tac]').forEach(b=>b.className='small '+(b.dataset.tac===k?'gold':'gray'));const t=$('#tacTip');if(t)t.textContent=TACTICS[k].tip;refreshPanel()}else render()}
 const zoneRole=u=>u<.1?'GK':u<.28?'DEF':u<.48?'MID':'FWD';
 function spotsOf(){return FORMS[formOf()].pos.map((p,i)=>S.spots&&S.spots[i]?[S.spots[i][0],S.spots[i][1]]:[p[0],p[1]])}
 const slotRoles=()=>spotsOf().map(([u])=>zoneRole(u));
@@ -306,9 +307,9 @@ function render(){const a=$('#app');stopAnim();if(!S){a.innerHTML=startScreen();
   <div class="goal"><span>🎯 ${prog.txt}</span></div>${ladder()}
   <div class="tabs">${[['team','👥','Team'],['lineup','📋','Lineup'],['train','🏋️','Train'],['trials','📝','Trials'],['match','⚽','Match'],['table','📊','Table']]
    .map(([k,i,l])=>`<button class="${S.tab===k?'on':''}" onclick="go('${k}')"><span class="ic">${i}</span>${l}${k==='trials'&&tc?`<span class="badge">${tc}</span>`:''}</button>`).join('')}</div>
-  <div id="view">${({team:teamView,lineup:lineupView,train:trainView,trials:trialsView,match:matchView,table:tableView})[S.tab]()}</div>
+  <div id="view">${({team:teamView,lineup:lineupView,online:onlineView,train:trainView,trials:trialsView,match:matchView,table:tableView})[S.tab]()}</div>
   <p style="text-align:center;margin-top:26px"><button class="small gray" onclick="askReset()">New game</button></p>`}
-function go(t){selSlot=null;S.tab=t;save();render();scrollTo(0,0)}
+function go(t){selSlot=null;S.tab=t;if(t==='online'){NET.list=[];refreshList()}save();render();scrollTo(0,0)}
 function progress(){if(S.phase==='wc')return{txt:'🌍 World Cup · '+WC_ROUNDS[S.wc.round]};
  if(S.phase==='over')return{txt:'Season over! Start the next one'};
  const pos=standings().findIndex(t=>t.i===0)+1,L=LEVELS[S.level];
@@ -374,7 +375,7 @@ function dragMove(e){if(!drag)return;if(Math.hypot(e.clientX-drag.x0,e.clientY-d
  drag.el.style.left=drag.lx+'%';drag.el.style.top=drag.ty+'%';drag.el.classList.add('dragging');drag.el.querySelector('.lo').textContent=zoneRole((92-drag.ty)/140)}
 function dragEnd(){removeEventListener('pointermove',dragMove);const d=drag;drag=null;if(!d)return;if(!d.moved)return tapSlot(d.i);
  if(inMatch()){const u=(92-d.ty)/140,y=d.lx/100,pp=P.teams[0][d.i];pp.bu=u;pp.by=y;pp.role=zoneRole(u);M.xi[d.i].pos=pp.role;
-  if(!S.spots)S.spots=spotsOf();S.spots[d.i]=[u,y];save();M.R=matchR();selSlot=null;refreshPanel();return}
+  if(!S.spots)S.spots=spotsOf();S.spots[d.i]=[u,y];save();M.R=matchR();sendR();sendXI();selSlot=null;refreshPanel();return}
  fixLineup();if(!S.spots)S.spots=spotsOf();S.spots[d.i]=[(92-d.ty)/140,d.lx/100];selSlot=null;save();render()}
 function shiftAll(du,dy){fixLineup();const sp=spotsOf();S.spots=sp.map(([u,y])=>zoneRole(u)==='GK'?[u,y]:[clamp(u+du,.1,.62),clamp(.5+(y-.5)*(1+dy),.04,.96)]);save();render()}
 function resetSpots(){S.spots=null;save();render();toast('↺ Back to normal '+formOf()+' positions')}
@@ -450,6 +451,7 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
   ${tip?`<div class="tip">${tip}</div>`:''}
   ${R?`<h3 style="margin-top:12px;text-align:center">How your team plays</h3>${tacButtons(true)}<div class="muted" style="text-align:center">${TACTICS[tacOf()].tip}</div>`:''}<br>
   <button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="startMatch()" ${R?'':'disabled'}>⚽ KICK OFF!</button></div>
+  <div class="card" style="text-align:center"><h3>🌐 Play a real person</h3><div class="muted">Play your team against a friend or another player online. It doesn't count for your flight.</div><br><button onclick="go('online')">🌐 Play online</button></div>
   ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
 
 function standings(){return S.league.teams.map((t,i)=>({...t,i})).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
@@ -461,6 +463,84 @@ function tableView(){const st=standings();
  if(S.wc)h+=`<div class="card"><h2>🌍 World Cup</h2><div class="bracket">${S.wc.opps.map((o,i)=>`<div class="br ${i===S.wc.round&&S.phase==='wc'?'now':''}"><b style="min-width:100px">${WC_ROUNDS[i]}</b>${crest(o.name,o.col||'#ddd',26)}<span class="sp">${esc(o.name)} (${o.str})</span><span>${o.res||(i===S.wc.round&&S.phase==='wc'?'⏳ next':'🔒')}</span></div>`).join('')}</div></div>`;
  return h}
 
+/* ---------- ONLINE (this site's own server relay /api/server/CODE?g=sm, 2 players; fixed nicknames, no chat) ---------- */
+const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
+const NICK_B=['Comet','Star','Pencil','Giant','Dragon','Tiger','Shark','Wizard','Robot','Panda','Falcon','Knight','Puppy','Taco','Volcano','Penguin'];
+const ROLES=['GK','DEF','MID','FWD'];
+let myNick=[rnd(0,15),rnd(0,15)];try{const v=JSON.parse(localStorage.getItem('soccerMgrNick')||'null');if(Array.isArray(v)&&NICK_A[v[0]]&&NICK_B[v[1]])myNick=v}catch(e){}
+const okNick=n=>Array.isArray(n)&&NICK_A[n[0]]!==undefined&&NICK_B[n[1]]!==undefined;
+const nickText=n=>okNick(n)?NICK_A[n[0]]+' '+NICK_B[n[1]]:'A player';
+function setNick(n){myNick=n;try{localStorage.setItem('soccerMgrNick',JSON.stringify(n))}catch(e){}if(NET.state==='in')sendHi();render()}
+const NET={ws:null,id:0,host:0,code:null,pub:true,state:'idle',timer:0,opp:null,msg:'',list:[],listT:0,codeIn:''};
+const CODE_ABC='ABCDEFGHJKMNPQRSTUVWXYZ';
+const randCode=()=>{let c='';for(let i=0;i<4;i++)c+=CODE_ABC[(Math.random()*CODE_ABC.length)|0];return c};
+function netBase(){let q=null;try{q=new URLSearchParams(location.search).get('server')}catch(e){}return (q||(/^https?:$/.test(location.protocol)?location.origin:'https://felixwang.pages.dev')).replace(/\/$/,'')}
+function netSend(o){if(NET.ws&&NET.ws.readyState===1){try{NET.ws.send(JSON.stringify(o))}catch(e){}}}
+const isHost=()=>NET.id>0&&NET.id===NET.host;
+function closeNet(){clearTimeout(NET.timer);const w=NET.ws;NET.ws=null;NET.state='idle';NET.id=0;NET.host=0;NET.opp=null;if(w){try{w.close()}catch(e){}}}
+function netFail(msg){closeNet();NET.msg=msg;if(S&&S.tab==='online'&&!M)render()}
+function netOpen(code,make){closeNet();NET.code=code;NET.state='connecting';NET.msg='Connecting…';let ws;
+ const q=make?'?make=1&g=sm&pub='+(NET.pub?1:0):'';
+ try{ws=new WebSocket(netBase().replace(/^http/,'ws')+'/api/server/'+code+q)}catch(e){return netFail('Could not connect. Check the internet and try again.')}
+ NET.ws=ws;ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch(_){return}if(m&&typeof m==='object'&&!Array.isArray(m))onNet(m)};
+ ws.onclose=()=>{if(NET.ws!==ws)return;const was=NET.state;NET.ws=null;closeNet();if(M&&M.online&&!M.done){say('📡 The connection was lost.');endMatch()}NET.msg=was==='connecting'?'Could not connect. Check the internet and try again.':'The connection was closed.';if(S.tab==='online'&&!M)render()};
+ ws.onerror=()=>{};NET.timer=setTimeout(()=>{if(NET.state==='connecting')netFail('Could not reach the game server. Try again.')},9000);render()}
+function makeRoom(pub){if(bestXI().length<11)return toast('You need 11 players first!');NET.pub=pub;netOpen(randCode(),true)}
+function joinRoom(c){c=String(c||'').toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){NET.msg='Type the 4-letter room code.';return render()}if(bestXI().length<11)return toast('You need 11 players first!');netOpen(c,false)}
+function leaveRoom(){closeNet();NET.msg='';render()}
+const numIn=(v,a,b,d)=>typeof v==='number'&&isFinite(v)?clamp(v,a,b):d;
+function myR(){const R=teamRating(bestXI());return{att:R.att,def:R.def,str:R.str}}
+function sendR(){if(!M||!M.online)return;netSend({t:'r',R:{att:M.R.att,def:M.R.def,str:M.R.str}})}
+function sendXI(){if(!M||!M.online||!P)return;netSend({t:'xi',nums:P.teams[0].map(p=>p.num|0),spots:P.teams[0].map(p=>[+p.bu.toFixed(3),+p.by.toFixed(3),ROLES.indexOf(p.role)])})}
+function sendHi(){const xi=bestXI();netSend({t:'hi',nick:myNick,col:Math.max(0,COLORS.indexOf(S.color)),R:myR(),nums:xi.map(x=>x.p.num|0),spots:mySpots().map(([u,y,r])=>[+u.toFixed(3),+y.toFixed(3),ROLES.indexOf(r)])})}
+function sendList(ph){if(isHost())netSend({t:'list',m:'soccer',h:myNick,ph})}
+function parseR(r){r=r||{};return{att:numIn(r.att,1,150,50),def:numIn(r.def,1,150,50),str:numIn(r.str,1,150,50)}}
+function parseNums(a){return Array.isArray(a)&&a.length===11?a.map(n=>numIn(n,0,99,0)|0):null}
+function parseSpots(a){return Array.isArray(a)&&a.length===11&&a.every(x=>Array.isArray(x)&&x.length===3)?a.map(([u,y,r])=>[numIn(u,.02,.7,.3),numIn(y,.03,.97,.5),ROLES[r|0]||'MID']):null}
+function onNet(m){switch(m.t){
+ case 'hello':clearTimeout(NET.timer);NET.id=m.id|0;NET.host=m.host|0;NET.pub=!!m.pub;if(typeof m.code==='string')NET.code=m.code.replace(/[^A-Z]/g,'').slice(0,4);NET.state='in';NET.msg='';sendHi();sendList('lobby');break;
+ case 'join':NET.host=m.host|0;sendHi();break;
+ case 'leave':NET.host=m.host|0;NET.opp=null;if(M&&M.online&&!M.done){say('😢 Your opponent left the match.');endMatch()}else toast('Your opponent left the room');sendList('lobby');break;
+ case 'hi':if(okNick(m.nick)){NET.opp={nick:m.nick,col:numIn(m.col,0,COLORS.length-1,0)|0,R:parseR(m.R),nums:parseNums(m.nums),spots:parseSpots(m.spots)}}break;
+ case 'ko':if(!isHost()&&NET.opp&&!M)startOnline();break;
+ case 'ev':if(M&&M.online&&!M.host&&!M.done){const ok=['goal','chance','keep','lose'];if(!ok.includes(m.kind))break;
+  M.queue.push({min:clamp((m.min|0)-(m.min|0)%5,5,90),team:m.team?1:0,kind:m.kind,result:['save','wide','post'].includes(m.result)?m.result:'save',passes:clamp(m.passes|0,1,5)})}break;
+ case 'r':if(NET.opp){NET.opp.R=parseR(m.R);if(M&&M.online){M.oppR=NET.opp.R;M.o.str=NET.opp.R.str}}break;
+ case 'xi':if(M&&M.online&&P){const n=parseNums(m.nums),sp=parseSpots(m.spots);P.teams[1].forEach((p,i)=>{if(n)p.num=n[i];if(sp){p.bu=sp[i][0];p.by=sp[i][1];p.role=sp[i][2]}})}break;
+ case 'kicked':netFail('You were removed from the room.');break;
+ case 'full':netFail('That room is full (2 players).');break;
+ case 'taken':netFail('Oops, try again.');break;
+ case 'nosuch':netFail('No room with that code. Check the letters!');break}
+ if(S&&S.tab==='online'&&!M)render()}
+function startOnline(){const op=NET.opp;if(!op)return;if(bestXI().length<11)return toast('You need 11 players!');
+ startMatch({o:{name:nickText(op.nick)+"'s team",str:op.R.str,col:COLORS[op.col]||'#cccccc',label:'🌐 Online match'},oppR:op.R,host:isHost(),nums:op.nums,spots:op.spots})}
+function hostKickoff(){if(!isHost()||!NET.opp)return;netSend({t:'ko'});sendList('play');startOnline()}
+function afterOnline(){const r=M.my>M.op?'w':M.my<M.op?'l':'d',sc=M.my+' - '+M.op,on=nickText(NET.opp&&NET.opp.nick);S.online=S.online||{w:0,d:0,l:0};S.online[r]++;M=null;S.tab='online';save();sendList('lobby');render();
+ modal(`<div class="big">${r==='w'?'🏆':r==='d'?'🤝':'😢'}</div><h2>${r==='w'?'You won!':r==='d'?"It's a draw!":'You lost'}</h2><p>${sc}</p><p class="muted">Online record: ${S.online.w} W · ${S.online.d} D · ${S.online.l} L</p>`)}
+function refreshList(){if(!SITE)return;fetch(netBase()+'/api/servers?g=sm',{cache:'no-store'}).then(r=>r.json()).then(a=>{NET.list=Array.isArray(a)?a.filter(x=>x&&/^[A-Z]{4}$/.test(x.c)).slice(0,20):[];if(S.tab==='online'&&!M&&NET.state!=='in')render()}).catch(()=>{})}
+setInterval(()=>{if(S&&S.tab==='online'&&!M&&NET.state==='idle'&&!document.hidden)refreshList()},5000);
+function onlineView(){const back=`<button class="small gray" onclick="go('match')">← Back</button>`;
+ if(!SITE)return `<div class="card" style="text-align:center"><div class="big">🌐</div><h2>Play online</h2><p>Online play works in the game on <b>felixplayground.com</b>. Open it there to play a real person!</p>${back}</div>`;
+ const rec=S.online?`<span class="chip">Online: ${S.online.w}W ${S.online.d}D ${S.online.l}L</span>`:'';
+ const nickSel=`<div class="row" style="justify-content:center"><select id="nA" onchange="setNick([+this.value,myNick[1]])">${NICK_A.map((w,i)=>`<option value="${i}" ${i===myNick[0]?'selected':''}>${w}</option>`).join('')}</select>
+  <select id="nB" onchange="setNick([myNick[0],+this.value])">${NICK_B.map((w,i)=>`<option value="${i}" ${i===myNick[1]?'selected':''}>${w}</option>`).join('')}</select><button class="small gray" onclick="setNick([rnd(0,15),rnd(0,15)])">🎲</button></div>`;
+ if(NET.state==='in'){const op=NET.opp,R=myR(),host=isHost();
+  return `<div class="card" style="text-align:center"><div class="row">${back}<span class="sp"></span>${rec}</div><h2>🌐 Room <span style="color:var(--gold);letter-spacing:3px">${esc(NET.code||'')}</span></h2>
+   <div class="muted">${NET.pub?'🌍 Public room: anyone can join from the list.':'🔒 Friends room: tell your friend the code.'}</div>
+   <div class="vs" style="margin-top:12px"><div>${crest(S.teamName,S.color,56)}<div class="disp">${esc(nickText(myNick))}</div><div class="num">${R.str}</div><div class="muted">ATT ${R.att} · DEF ${R.def}</div></div><div class="disp" style="font-size:1.8em">VS</div>
+    <div>${op?`${crest(nickText(op.nick),COLORS[op.col]||'#ccc',56)}<div class="disp">${esc(nickText(op.nick))}</div><div class="num">${op.R.str}</div><div class="muted">ATT ${op.R.att} · DEF ${op.R.def}</div>`:'<div class="big">⏳</div><div class="muted">Waiting for a player to join…</div>'}</div></div><br>
+   ${op?(host?`<button class="gold" style="width:100%;font-size:1.25em;padding:14px" onclick="hostKickoff()">⚽ KICK OFF!</button>`:'<div class="tip">⏳ Waiting for the host to kick off…</div>'):''}
+   <br><button class="small red" onclick="leaveRoom()">Leave room</button>
+   <p class="muted">Tip: change your lineup and playing style before the match. You can also change them during the match!</p></div>`}
+ const list=NET.list.length?NET.list.map(x=>`<div class="benchrow" onclick="joinRoom('${x.c}')"><b class="sp">⚽ ${esc(nickText(x.h))}'s team</b><span class="muted">${x.ph==='play'?'playing':'waiting'} · ${x.n}/2</span><button class="small">Join</button></div>`).join(''):'<div class="muted">No public rooms right now. Make one!</div>';
+ return `<div class="card"><div class="row">${back}<span class="sp"></span>${rec}</div><h2>🌐 Play a real person</h2>
+  <p class="muted">Pick your nickname (no real names!). Then make a room or join one. Online matches don't count for your flight.</p>${nickSel}
+  <div style="text-align:center;margin:6px 0" class="disp">${esc(nickText(myNick))}</div>
+  <div class="row" style="justify-content:center;gap:8px;margin-top:8px"><button onclick="makeRoom(true)">🌍 Make public room</button><button class="gray" onclick="makeRoom(false)">🔒 Make friends room</button></div>
+  <h3 style="margin-top:14px">Join with a code</h3><div class="row"><input type="text" id="codeIn" maxlength="4" placeholder="ABCD" value="${esc(NET.codeIn)}" oninput="NET.codeIn=this.value" style="flex:1;text-transform:uppercase;letter-spacing:4px"><button onclick="joinRoom($('#codeIn').value)">Join</button></div>
+  ${NET.msg?`<div class="tip">${esc(NET.msg)}</div>`:''}</div>
+  <div class="card"><div class="row"><h3 class="sp">🌍 Public rooms</h3><button class="small gray" onclick="refreshList()">↻</button></div>${list}</div>`}
+
 /* ---------- MATCH ---------- */
 // Formation 4-3-3, written for the team attacking to the right. u = how far up the pitch (0 = own goal, 1 = their goal)
 const FORM=FORMS['4-3-3'].pos;
@@ -468,9 +548,10 @@ const UCL={GK:[.02,.2],DEF:[.07,.62],MID:[.14,.8],FWD:[.24,.92]};
 const OPP_NUM=[1,2,4,5,3,6,8,10,7,9,11];
 function hexDist(a,b){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));try{const A=p(a),B=p(b);return Math.hypot(A[0]-B[0],A[1]-B[1],A[2]-B[2])}catch(e){return 999}}
 
-function startMatch(){const xi=bestXI();if(xi.length<11)return toast('You need at least 11 players to play!');const o=nextOpp();if(!o)return;
+function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need at least 11 players to play!');const o=on?on.o:nextOpp();if(!o)return;
  M={o,xi:xi.map(x=>({p:x.p,pos:x.pos})),min:0,my:0,op:0,done:false,pens:null,half:false,en:{},played:new Set(),subs:0};
  xi.forEach(x=>{M.en[x.p.id]=x.p.energy;M.played.add(x.p.id)});M.R=matchR();selSlot=null;
+ if(on){M.online=true;M.host=on.host;M.oppR=on.oppR;M.queue=[];M.oppNums=on.nums;M.oppSpots=on.spots}
  $('#app').innerHTML=`<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   <div class="sb"><div class="tm">${crest(S.teamName,S.color,40)}<br>${esc(S.teamName)}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
   <div class="pitchwrap"><canvas id="pitch" width="720" height="460"></canvas><div class="flash" id="flash">GOAL!</div><div id="ftOv" class="ftov" style="display:none"><div class="disp" style="font-size:1.6em">FULL TIME</div><div class="disp" id="ftScore" style="font-size:2.4em;color:var(--gold)"></div><button class="gold" style="font-size:1.3em;padding:14px 30px" onclick="afterMatch()">Continue ▶</button></div></div>
@@ -482,12 +563,12 @@ function startMatch(){const xi=bestXI();if(xi.length<11)return toast('You need a
   <div id="mPanel" style="display:none"></div>
   <div class="feed" id="feed"></div>
   <div class="row" style="margin-top:10px;justify-content:center"><button id="contB" class="gold" style="display:none;font-size:1.15em" onclick="afterMatch()">Continue ▶</button></div></div>`;
- initPitch();say('🟢 Kick off! Let\'s go '+esc(S.teamName)+'!');scrollTo(0,0)}
+ initPitch();say('🟢 Kick off! Let\'s go '+esc(S.teamName)+'!');if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
 function matchR(){return teamRating(M.xi.map(x=>({p:Object.assign({},x.p,{energy:M.en[x.p.id]}),pos:x.pos})))}
 function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(1.6-x.p.s.sta/100)*d,5,100)})}
 const inMatch=()=>M&&!M.done&&$('#mPanel')&&$('#mPanel').style.display!=='none';
 let panelMode='move';
-function openPanel(m){if(!M||M.done||!P)return;panelMode=m;P.paused=m==='sub';selSlot=null;$('#mPanel').style.display='block';$('#liveCtl').style.display=m==='sub'?'none':'block';refreshPanel();$('#mPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openPanel(m){if(!M||M.done||!P)return;panelMode=m;P.paused=m==='sub'&&!M.online;selSlot=null;$('#mPanel').style.display='block';$('#liveCtl').style.display=m==='sub'?'none':'block';refreshPanel();$('#mPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 function closePanel(){if(!P)return;P.paused=false;selSlot=null;$('#mPanel').style.display='none';$('#liveCtl').style.display='block';$('.pitchwrap').scrollIntoView({block:'center',behavior:'smooth'})}
 function refreshPanel(){const el=$('#mPanel');if(!el||el.style.display==='none')return;const ids=new Set(M.xi.map(x=>x.p.id)),R=M.R;
  const bench=S.players.filter(p=>!ids.has(p.id)).sort((a,b)=>ovr(b)-ovr(a));
@@ -501,8 +582,8 @@ function refreshPanel(){const el=$('#mPanel');if(!el||el.style.display==='none')
   ${sub?`<h3 style="margin-top:10px">🪑 Bench</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">No players on the bench.</div>'}`:''}</div>`}
 function matchSub(slot,id){if(M.subs>=5)return toast('You already made 5 subs!');const np=S.players.find(p=>p.id===id);if(!np)return;const out=M.xi[slot].p;
  M.xi[slot]={p:np,pos:M.xi[slot].pos};M.en[np.id]=np.energy;M.played.add(np.id);M.subs++;const pp=P.teams[0][slot];pp.name=np.name;pp.num=np.num||slot+1;pp.spd=np.s.spd/100;
- M.R=matchR();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);selSlot=null;refreshPanel()}
-function matchSwap(a,b){[M.xi[a].p,M.xi[b].p]=[M.xi[b].p,M.xi[a].p];const A=P.teams[0][a],B=P.teams[0][b];for(const k of ['name','num','spd']){const t=A[k];A[k]=B[k];B[k]=t}M.R=matchR();selSlot=null;refreshPanel()}
+ M.R=matchR();sendR();sendXI();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);selSlot=null;refreshPanel()}
+function matchSwap(a,b){setTimeout(()=>{sendR();sendXI()},0);[M.xi[a].p,M.xi[b].p]=[M.xi[b].p,M.xi[a].p];const A=P.teams[0][a],B=P.teams[0][b];for(const k of ['name','num','spd']){const t=A[k];A[k]=B[k];B[k]=t}M.R=matchR();selSlot=null;refreshPanel()}
 function setSpeed(s){if(P)P.speed=s;document.querySelectorAll('#ctrl [data-sp]').forEach(b=>b.className='small '+(+b.dataset.sp===s?'gold':'gray'))}
 function say(t,c){const f=$('#feed');if(!f)return;const d=document.createElement('div');if(c)d.className=c;d.innerHTML=`<b>${M.min}'</b> ${t}`;f.prepend(d)}
 function upd(){const a=$('#sMy');if(a){a.textContent=M.my;$('#sOp').textContent=M.op;$('#clock').textContent=M.min+"'"}}
@@ -510,7 +591,7 @@ function flash(t,sad){const f=$('#flash');if(!f)return;f.textContent=t;f.style.c
 
 // What happens in the next 5 minutes (decided by team strength)
 function decideEvent(){const{R,o}=M;
- const pA=clamp(.072*Math.pow(R.att/o.str,EXP),.004,.36),pB=clamp(.068*Math.pow(o.str/R.def,EXP),.004,.36),r=Math.random();
+ const pA=M.online?clamp(.07*Math.pow(R.att/M.oppR.def,EXP),.004,.36):clamp(.072*Math.pow(R.att/o.str,EXP),.004,.36),pB=M.online?clamp(.07*Math.pow(M.oppR.att/R.def,EXP),.004,.36):clamp(.068*Math.pow(o.str/R.def,EXP),.004,.36),r=Math.random();
  if(r<pA)return{team:0,kind:'goal'};if(r<pA+pB)return{team:1,kind:'goal'};
  if(r<pA+pB+.32){const t=Math.random()<R.str/(R.str+o.str)?0:1;return{team:t,kind:'chance',result:pick(['save','save','wide','post'])}}
  return{team:Math.random()<R.str/(R.str+o.str)?0:1,kind:Math.random()<.5?'keep':'lose'}}
@@ -528,8 +609,8 @@ function initPitch(){const c=$('#pitch');if(!c)return;
  let oc=M.o.col||'#cccccc';if(hexDist(oc,S.color)<110)oc=hexDist('#f1f3f5',S.color)<110?'#212529':'#f1f3f5';
  P={c,x:c.getContext('2d'),cols:[S.color,oc],teams:[[],[]],ball:{x:.5,y:.5,z:0,fly:null},poss:0,carrier:null,plan:null,wait:0,after:null,
   mode:'play',dribble:null,speed:1,f:0,last:null,reset:0,steps:0};
- for(let t=0;t<2;t++)(t===0?mySpots():FORM).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
-  P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):OPP_NUM[i],name:t===0?xp.name:'',spd:t===0?xp.s.spd/100:M.o.str/100,dive:null})});
+ for(let t=0;t<2;t++)(t===0?mySpots():(M.online&&M.oppSpots?M.oppSpots:FORM)).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
+  P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):(M.online&&M.oppNums?M.oppNums[i]:OPP_NUM[i]),name:t===0?xp.name:'',spd:t===0?xp.s.spd/100:M.o.str/100,dive:null})});
  kickoff(0);P.after=nextChunk;P.wait=50;
  const loop=()=>{if(!P)return;for(let k=0;k<P.speed;k++)step();draw();anim=requestAnimationFrame(loop)};loop()}
 function stopAnim(){if(anim)cancelAnimationFrame(anim);anim=null;P=null}
@@ -623,7 +704,13 @@ function endChunk(){if(M.done)return;
  if(M.min>=90)return endMatch();
  if(M.min===45&&!M.half){M.half=true;say('⏸️ Half time!');kickoff(1);P.wait=60;P.after=nextChunk;return}
  nextChunk()}
-function nextChunk(){if(M.done)return;M.min+=5;fatigue();M.R=matchR();upd();P.plan=decideEvent();P.plan.passes=rnd(2,4);P.steps=0;
+function nextChunk(){if(M.done)return;
+ if(M.online&&!M.host){while(M.queue.length>2){const e=M.queue.shift();M.min=e.min;if(e.kind==='goal'){if(e.team===1)M.my++;else M.op++}}
+  const e=M.queue.shift();if(!e){P.wait=8;P.after=nextChunk;return}
+  M.min=e.min;fatigue();M.R=matchR();sendR();upd();P.plan={team:1-e.team,kind:e.kind,result:e.result,passes:e.passes};P.steps=0;
+  if(!P.carrier){P.wait=10;P.after=next;return}return next()}
+ M.min+=5;fatigue();M.R=matchR();upd();P.plan=decideEvent();P.plan.passes=rnd(2,4);P.steps=0;
+ if(M.online)netSend({t:'ev',min:M.min,team:P.plan.team,kind:P.plan.kind,result:P.plan.result||'',passes:P.plan.passes});
  if(!P.carrier){P.wait=10;P.after=next;return}next()}
 
 function skipMatch(){if(M.done)return;if(P)P.paused=false;const mp=$('#mPanel');if(mp)mp.style.display='none';const pl=P&&P.plan;if(pl&&pl.kind==='goal'&&!(P.mode==='celebrate')){pl.team===0?M.my++:M.op++}
@@ -632,7 +719,7 @@ function skipMatch(){if(M.done)return;if(P)P.paused=false;const mp=$('#mPanel');
 function scorer(){const w=M.xi.map(x=>({x,w:({FWD:4,MID:2,DEF:.5,GK:0})[x.pos]*x.p.s.sho}));let t=w.reduce((a,b)=>a+b.w,0)*Math.random();for(const e of w){t-=e.w;if(t<=0)return e.x.p}return M.xi[0].p}
 
 function endMatch(){if(M.done)return;M.done=true;say('🏁 Full time!');
- if(S.phase==='wc'&&M.my===M.op){let a=0,b=0;const pa=clamp(.76+(M.R.att-M.o.str)/200,.5,.92),pb=clamp(.72+(M.o.str-M.R.def)/200,.5,.9);
+ if(S.phase==='wc'&&!M.online&&M.my===M.op){let a=0,b=0;const pa=clamp(.76+(M.R.att-M.o.str)/200,.5,.92),pb=clamp(.72+(M.o.str-M.R.def)/200,.5,.9);
   for(let i=0;i<5;i++){if(Math.random()<pa)a++;if(Math.random()<pb)b++}let n=0;while(a===b&&n<20){if(Math.random()<pa)a++;if(Math.random()<pb)b++;n++}if(a===b)a++;
   M.pens=[a,b];say(`🥅 PENALTY SHOOTOUT! ${a} - ${b} ${a>b?'— WE WIN! 🎉':'— we lose... 😢'}`,a>b?'g':'b')}
  const win=M.my>M.op||(M.pens&&M.pens[0]>M.pens[1]),draw=!M.pens&&M.my===M.op;
@@ -685,7 +772,7 @@ function draw(){const{x,c,ball}=P,W=c.width,H=c.height,mx=30,my=16,pw=W-2*mx,ph=
 function record(a,b,ga,gb){const A=S.league.teams[a],B=S.league.teams[b];A.p++;B.p++;A.gf+=ga;A.ga+=gb;B.gf+=gb;B.ga+=ga;
  if(ga>gb){A.w++;B.l++;A.pts+=3}else if(ga<gb){B.w++;A.l++;B.pts+=3}else{A.d++;B.d++;A.pts++;B.pts++}}
 function pois(l){let L=Math.exp(-l),k=0,p=1;do{k++;p*=Math.random()}while(p>L);return k-1}
-function afterMatch(){if(!M||!M.done)return;const win=M.my>M.op||(M.pens&&M.pens[0]>M.pens[1]),draw=!M.pens&&M.my===M.op;let prize,after=null;
+function afterMatch(){if(!M||!M.done)return;if(M.online)return afterOnline();const win=M.my>M.op||(M.pens&&M.pens[0]>M.pens[1]),draw=!M.pens&&M.my===M.op;let prize,after=null;
  M.played.forEach(id=>{const p=S.players.find(x=>x.id===id);if(p&&M.en[id]!=null)p.energy=Math.round(M.en[id])});
  if(S.phase==='league'){prize=money2(win?60:draw?30:15);record(0,M.o.idx,M.my,M.op);
   S.league.fixtures[S.league.round].forEach(([a,b])=>{if(a===0||b===0)return;const A=S.league.teams[a].str,B=S.league.teams[b].str;record(a,b,pois(clamp(1.25*Math.pow(A/B,EXP),.05,6)),pois(clamp(1.25*Math.pow(B/A,EXP),.05,6)))});

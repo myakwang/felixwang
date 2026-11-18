@@ -125,6 +125,8 @@ export class Room {
 // players and whether a round is being played. The entry is removed when the
 // server empties. No free text is ever accepted.
 const MAXP = 6;
+// Felix's Soccer Manager uses the same servers for its online matches (g=sm): 2 players, own public list.
+const maxFor = g => (g === 'sm' ? 2 : MAXP);
 export class Server {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
   socks() { return this.ctx.getWebSockets().filter(s => { const t = this.ctx.getTags(s)[0]; return t && t[0] === 's'; }); }
@@ -134,22 +136,23 @@ export class Server {
   async info() { return (await this.ctx.storage.get('info')) || null; }
   async publish(exclude) {
     const n = this.socks().filter(s => s !== exclude).length; const info = await this.info();
-    try { await this.env.STATS.get(this.env.STATS.idFromName('global')).fetch('https://stats/report', { method: 'POST', body: JSON.stringify({ room: 'hs:' + this.ctx.id.toString(), n }) }); } catch (e) {}
-    try { if (info) await this.env.LISTING.get(this.env.LISTING.idFromName('global')).fetch('https://list/set', { method: 'POST', body: JSON.stringify({ code: info.code, pub: !!info.pub && n > 0, n, m: info.m, h: info.h, ph: info.ph }) }); } catch (e) {}
+    try { await this.env.STATS.get(this.env.STATS.idFromName('global')).fetch('https://stats/report', { method: 'POST', body: JSON.stringify({ room: (info && info.g === 'sm' ? 'sm:' : 'hs:') + this.ctx.id.toString(), n }) }); } catch (e) {}
+    try { if (info) await this.env.LISTING.get(this.env.LISTING.idFromName('global')).fetch('https://list/set', { method: 'POST', body: JSON.stringify({ code: info.code, pub: !!info.pub && n > 0, n, m: info.m, h: info.h, ph: info.ph, g: info.g || 'hs' }) }); } catch (e) {}
     if (n === 0) await this.ctx.storage.deleteAll();
   }
   async fetch(request) {
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
     const url = new URL(request.url);
-    const make = url.searchParams.get('make') === '1', pub = url.searchParams.get('pub') === '1';
+    const make = url.searchParams.get('make') === '1', pub = url.searchParams.get('pub') === '1', g = url.searchParams.get('g') === 'sm' ? 'sm' : 'hs';
     const code = (url.searchParams.get('code') || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
     const pair = new WebSocketPair(); const [client, server] = Object.values(pair);
     const list = this.socks();
     const turn = t => { this.ctx.acceptWebSocket(server, ['x']); server.send(JSON.stringify({ t })); server.close(4001, t); return new Response(null, { status: 101, webSocket: client }); };
     if (make && list.length > 0) return turn('taken');
     if (!make && list.length === 0) return turn('nosuch');
-    if (list.length >= MAXP) return turn('full');
-    if (make) await this.ctx.storage.put('info', { code, pub, m: 'house', h: [0, 0], ph: 'lobby' });
+    const before = make ? null : await this.info();
+    if (list.length >= maxFor(make ? g : before && before.g)) return turn('full');
+    if (make) await this.ctx.storage.put('info', { code, pub, g, m: g === 'sm' ? 'soccer' : 'house', h: [0, 0], ph: 'lobby' });
     const used = list.map(s => this.idOf(s)); let id = 1; while (used.includes(id)) id++;
     this.ctx.acceptWebSocket(server, ['s' + id, 'j' + Date.now()]);
     const info = await this.info(); const host = this.hostOf([...list, server]);
@@ -172,7 +175,7 @@ export class Server {
     }
     if (m.t === 'list') {
       if (id !== host) return; const info = await this.info(); if (!info) return;
-      info.m = typeof m.m === 'string' && /^[a-z]{1,16}$/.test(m.m) ? m.m : 'house';
+      info.m = typeof m.m === 'string' && /^[a-z]{1,16}$/.test(m.m) ? m.m : info.g === 'sm' ? 'soccer' : 'house';
       info.h = Array.isArray(m.h) ? [(m.h[0] | 0) & 15, (m.h[1] | 0) & 15] : [0, 0];
       info.ph = m.ph === 'play' ? 'play' : 'lobby';
       await this.ctx.storage.put('info', info); await this.publish(); return;
@@ -190,7 +193,7 @@ export class Server {
   async webSocketError(ws) { await this.webSocketClose(ws); }
 }
 
-// The public server list for Hide & Seek Online. Entries are written only by the
+// The public server lists for Hide & Seek Online and Soccer Manager (?g=sm). Entries are written only by the
 // servers themselves and expire 5 minutes after their last update.
 const LIST_TTL = 5 * 60 * 1000;
 export class Listing {
@@ -201,16 +204,18 @@ export class Listing {
       let b = {}; try { b = await request.json(); } catch (e) {}
       if (typeof b.code !== 'string' || !/^[A-Z]{4}$/.test(b.code)) return new Response('bad', { status: 400 });
       const n = b.n | 0;
-      if (b.pub && n > 0 && n <= MAXP) await this.ctx.storage.put('l:' + b.code, { n, m: typeof b.m === 'string' && /^[a-z]{1,16}$/.test(b.m) ? b.m : 'house', h: Array.isArray(b.h) ? [(b.h[0] | 0) & 15, (b.h[1] | 0) & 15] : [0, 0], ph: b.ph === 'play' ? 'play' : 'lobby', ts: Date.now() });
+      const g = b.g === 'sm' ? 'sm' : 'hs';
+      if (b.pub && n > 0 && n <= maxFor(g)) await this.ctx.storage.put('l:' + b.code, { g, n, m: typeof b.m === 'string' && /^[a-z]{1,16}$/.test(b.m) ? b.m : 'house', h: Array.isArray(b.h) ? [(b.h[0] | 0) & 15, (b.h[1] | 0) & 15] : [0, 0], ph: b.ph === 'play' ? 'play' : 'lobby', ts: Date.now() });
       else await this.ctx.storage.delete('l:' + b.code);
       return new Response('ok');
     }
     if (url.pathname === '/list') {
+      const g = url.searchParams.get('g') === 'sm' ? 'sm' : 'hs';
       const now = Date.now(), out = [], stale = [];
-      for (const [k, v] of await this.ctx.storage.list({ prefix: 'l:' })) { if (!v || now - v.ts > LIST_TTL) { stale.push(k); continue; } out.push({ c: k.slice(2), n: v.n, m: v.m, h: v.h, ph: v.ph }); }
+      for (const [k, v] of await this.ctx.storage.list({ prefix: 'l:' })) { if (!v || now - v.ts > LIST_TTL) { stale.push(k); continue; } if ((v.g || 'hs') !== g) continue; out.push({ c: k.slice(2), n: v.n, m: v.m, h: v.h, ph: v.ph }); }
       if (stale.length) await this.ctx.storage.delete(stale.slice(0, 128));
       out.sort((a, b) => (a.ph === b.ph ? 0 : a.ph === 'lobby' ? -1 : 1) || b.n - a.n);
-      return Response.json(out.filter(x => x.n < MAXP).slice(0, 30));
+      return Response.json(out.filter(x => x.n < maxFor(g)).slice(0, 30));
     }
     return new Response('not found', { status: 404 });
   }

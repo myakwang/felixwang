@@ -5,7 +5,7 @@ export async function onRequest({ request, env, params }) {
   if (code.length !== 4) return new Response('Bad server code', { status: 400 });
   if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
   const url = new URL(request.url); const q = new URLSearchParams({ code });
-  if (url.searchParams.get('make') === '1') { q.set('make', '1'); q.set('pub', url.searchParams.get('pub') === '1' ? '1' : '0'); }
+  if (url.searchParams.get('make') === '1') { q.set('make', '1'); q.set('pub', url.searchParams.get('pub') === '1' ? '1' : '0'); if (url.searchParams.get('g') === 'sm') q.set('g', 'sm'); }
   const stub = env.SERVERS.get(env.SERVERS.idFromName(code));
   return stub.fetch(new Request('https://server/?' + q.toString(), request));
 }
