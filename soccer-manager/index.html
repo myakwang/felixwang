@@ -79,6 +79,8 @@ td:first-child{border-radius:10px 0 0 10px}td:last-child{border-radius:0 10px 10
 td.t{text-align:left}
 tr.me td{background:#ffc83d33;color:var(--gold)}
 tr.q td:first-child{box-shadow:inset 4px 0 0 var(--good)}
+tr.r td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+tr.r td{background:#ff7a7a14}
 /* training */
 .tr{display:flex;align-items:center;gap:8px;margin:7px 0;background:#ffffff0d;border-radius:12px;padding:6px 8px}
 .tr .lbl{flex:1}.tr .h{min-width:30px;text-align:center;font-family:"Lilita One";font-size:1.6em;color:var(--gold)}
@@ -161,18 +163,19 @@ const SKN={sho:'Shooting',pas:'Passing',def:'Defending',spd:'Speed',sta:'Stamina
 const SKS={sho:'SHO',pas:'PAS',def:'DEF',spd:'SPD',sta:'STA'};
 const FIRST=['Leo','Mateo','Jayden','Lucas','Noah','Diego','Kai','Ethan','Omar','Rafael','Theo','Marco','Jonah','Zane','Hugo','Andre','Felipe','Caleb','Milo','Ryder','Dante','Luca','Ezra','Malik','Santi','Jonas','Rio','Tyler','Bruno','Kenji','Elias','Axel','Nico','Ivan','Max','Owen','Aiden','Mason','Liam','Gabe','Carlos','Emil','Jasper','Tomas','Remy','Dev','Isaac','Finn','Arlo','Yusuf','Cruz','Sami','Pablo','Henry','Oscar','Rocco','Jude','Ollie','Enzo','Wes'];
 const LAST=['Rocket','Silva','Thunder','Martinez','Kim','Johnson','Lopez','Storm','Nakamura','Okafor','Rivera','Blaze','Garcia','Fox','Chen','Santos','Ortiz','Walker','Diaz','Steel','Park','Moreno','Banks','Reyes','Hart','Volt','Cruz','Brooks','Navarro','Stone','Kane','Flash','Torres','Wolfe','Ramos','Price','Lee','Vega','Hunter','Sterling','Costa','Knight','Bell','Mendes','Rush','Duarte','Swift','Archer','Flores','Quinn'];
-const LEAGUE_COL=['#f4d03f','#d35400','#1abc9c','#8e44ad','#2e86c1','#7f8c8d','#c0392b'];
+const LEAGUE_COL=['#f4d03f','#d35400','#1abc9c','#8e44ad','#2e86c1','#7f8c8d','#c0392b','#16a085','#e84393','#6c5ce7','#00b894'];
+const TEAMS_PER=12,RELEG=5;
 const LEVELS=[
- {short:'F4',name:'Flight 4',base:[42,44,46,48,50,52,55],pool:['Laguna Beach','Irvine','Tustin','Lake Forest','Costa Mesa','Orange','Anaheim','Fullerton','Aliso Viejo','Laguna Hills','Dana Point','San Clemente','Seal Beach','Cypress','Buena Park','Westminster']},
- {short:'F3',name:'Flight 3',base:[49,51,53,55,57,59,62],pool:['Mission Viejo','Laguna Niguel','Huntington Beach','Newport Beach','Santa Ana','Garden Grove','Yorba Linda','Brea','Rancho Santa Margarita','San Juan Capistrano','Fountain Valley','Placentia','Ladera Ranch','Corona del Mar','Los Alamitos','La Habra']},
- {short:'F2',name:'Flight 2',base:[56,58,60,62,64,66,69],pool:['San Diego','Riverside','Pasadena','Long Beach','Ventura','Temecula','Malibu','Carlsbad','Oceanside','Santa Monica','Torrance','Ontario','Chino Hills','Redlands','Palm Springs','Santa Barbara']},
- {short:'F1',name:'Flight 1',base:[63,65,67,69,71,73,76],pool:['Los Angeles','San Francisco','Sacramento','San Jose','Fresno','Oakland','Phoenix','Las Vegas','Portland','Seattle','Salt Lake','Tucson','Reno','Bakersfield','Honolulu','Albuquerque']},
- {short:'Half NT',name:'Half National Team League',base:[69,71,73,75,77,79,81],pool:['Boston','Dallas','Miami','Chicago','Denver','Atlanta','New York','Houston','Philadelphia','Detroit','Minneapolis','Nashville','Orlando','Charlotte','St. Louis','Kansas City']},
- {short:'Full NT',name:'Full National Team League',base:[74,76,78,80,82,84,86],pool:['Team USA East','Team USA West','Team USA North','Team USA South','Liberty','Capital','Golden Gate','Empire State','Lone Star','Sunshine State','Great Lakes','Rocky Mountain','Pacific Coast','Atlantic Coast','Big Sky','Heartland']}];
+ {short:'F4',name:'Flight 4',base:[40,42,43,45,46,48,50,51,53,54,56],pool:['Laguna Beach','Irvine','Tustin','Lake Forest','Costa Mesa','Orange','Anaheim','Fullerton','Aliso Viejo','Laguna Hills','Dana Point','San Clemente','Seal Beach','Cypress','Buena Park','Westminster']},
+ {short:'F3',name:'Flight 3',base:[47,49,50,52,53,55,57,58,60,61,63],pool:['Mission Viejo','Laguna Niguel','Huntington Beach','Newport Beach','Santa Ana','Garden Grove','Yorba Linda','Brea','Rancho Santa Margarita','San Juan Capistrano','Fountain Valley','Placentia','Ladera Ranch','Corona del Mar','Los Alamitos','La Habra']},
+ {short:'F2',name:'Flight 2',base:[54,56,57,59,60,62,64,65,67,68,70],pool:['San Diego','Riverside','Pasadena','Long Beach','Ventura','Temecula','Malibu','Carlsbad','Oceanside','Santa Monica','Torrance','Ontario','Chino Hills','Redlands','Palm Springs','Santa Barbara']},
+ {short:'F1',name:'Flight 1',base:[61,63,64,66,67,69,71,72,74,75,77],pool:['Los Angeles','San Francisco','Sacramento','San Jose','Fresno','Oakland','Phoenix','Las Vegas','Portland','Seattle','Salt Lake','Tucson','Reno','Bakersfield','Honolulu','Albuquerque']},
+ {short:'Half NT',name:'Half National Team League',base:[67,68,70,72,73,74,76,78,79,80,82],pool:['Boston','Dallas','Miami','Chicago','Denver','Atlanta','New York','Houston','Philadelphia','Detroit','Minneapolis','Nashville','Orlando','Charlotte','St. Louis','Kansas City']},
+ {short:'Full NT',name:'Full National Team League',base:[72,74,75,76,78,80,81,82,84,86,87],pool:['Team USA East','Team USA West','Team USA North','Team USA South','Liberty','Capital','Golden Gate','Empire State','Lone Star','Sunshine State','Great Lakes','Rocky Mountain','Pacific Coast','Atlantic Coast','Big Sky','Heartland']}];
 const TOP=LEVELS.length-1;
 const SUFFIX=['FC','SC','United','City','Rovers','Strikers','Waves','Tigers','Sharks','Eagles','Thunder','Stars','Wolves','Rockets','Lions','Hawks'];
 const TEAM_IDEAS=['Laguna Beach','Irvine','Newport Beach','Huntington Beach','Mission Viejo','Costa Mesa','Tustin','San Clemente'];
-function levelTeams(L){const mine=(S.teamName||'').toLowerCase();const cities=shuffle(L.pool).filter(c=>!mine.startsWith(c.toLowerCase())).slice(0,7);const suf=shuffle(SUFFIX);
+function levelTeams(L){const mine=(S.teamName||'').toLowerCase();const cities=shuffle(L.pool).filter(c=>!mine.startsWith(c.toLowerCase())).slice(0,TEAMS_PER-1);const suf=shuffle(SUFFIX);
  return cities.map((c,i)=>L.short==='Full NT'&&c.startsWith('Team USA')?c:c+' '+suf[i])}
 const WC_TEAMS=[['Brazil Samba Stars','#f9d71c'],['Spain Royal FC','#c60b1e'],['Germany Iron Eagles','#eeeeee'],['Argentina Tango','#74acdf'],['France Blue Roosters','#1f3a93'],['England Lions','#ffffff'],['Japan Blue Samurai','#1b3f8b'],['Italy Azzurri','#2a7de1'],['Portugal Navigators','#a3001b'],['Netherlands Orange','#ff7f00']];
 const WC_BASE=[80,83,86,89];
@@ -276,7 +279,7 @@ function makeFixtures(n){let t=[...Array(n).keys()],r=[];for(let k=0;k<n-1;k++){
  return r.concat(r.map(ms=>ms.map(([a,b])=>[b,a])))}
 function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(levelTeams(LEVELS[S.level]).map((n,i)=>({name:n,str:leagueStr(i),col:LEAGUE_COL[i]})));
  teams.forEach(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
- S.league={teams,fixtures:makeFixtures(8),round:0};S.phase='league';S.wc=null;S.week=1}
+ S.league={teams,fixtures:makeFixtures(teams.length),round:0};S.phase='league';S.wc=null;S.week=1}
 
 function addTrials(n){for(let i=0;i<n&&S.trials.length<4;i++){
  let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
@@ -290,7 +293,7 @@ function newGame(name){name=(name||'').trim()||'Irvine Strikers';
   plan:{sho:2,pas:2,def:2,spd:1,sta:1,rest:2},trained:false,trophies:[],phase:'league',result:''};
  ['GK','GK','DEF','DEF','DEF','DEF','DEF','MID','MID','MID','MID','FWD','FWD','FWD','FWD','MID'].forEach(pos=>S.players.push(makePlayer(rnd(50,60),pos)));
  setupLeague();addTrials(3);save();render();confetti(90);
- modal(`${crest(S.teamName,S.color,80)}<h2>Welcome, Coach!</h2><p>You manage <b>${esc(S.teamName)}</b>.</p><p>You start in <b>Flight 4</b>. Teams only play teams in the same flight.</p><p>Finish in the <b>top 2</b> to move up: F4 → F3 → F2 → F1 → <b>Half National Team</b> → <b>Full National Team</b> ⭐</p><p>Your goal: reach the <b>Full National Team</b>! Top 2 there go to the World Cup 🌍.</p>`,[{t:"Let's go!",c:'gold'}])}
+ modal(`${crest(S.teamName,S.color,80)}<h2>Welcome, Coach!</h2><p>You manage <b>${esc(S.teamName)}</b>.</p><p>You start in <b>Flight 4</b>. Teams only play teams in the same flight.</p><p>Finish in the <b>top 2</b> to move up: F4 → F3 → F2 → F1 → <b>Half National Team</b> → <b>Full National Team</b> ⭐</p><p>But watch out: the <b>last 5</b> teams go down a flight!</p><p>Your goal: reach the <b>Full National Team</b>! Top 2 there go to the World Cup 🌍.</p>`,[{t:"Let's go!",c:'gold'}])}
 
 /* ---------- RENDER ---------- */
 function render(){const a=$('#app');stopAnim();if(!S){a.innerHTML=startScreen();return}
@@ -309,6 +312,7 @@ function go(t){selSlot=null;S.tab=t;save();render();scrollTo(0,0)}
 function progress(){if(S.phase==='wc')return{txt:'🌍 World Cup · '+WC_ROUNDS[S.wc.round]};
  if(S.phase==='over')return{txt:'Season over! Start the next one'};
  const pos=standings().findIndex(t=>t.i===0)+1,L=LEVELS[S.level];
+ const n=S.league.teams.length;if(S.level>0&&n>=TEAMS_PER&&pos>n-RELEG&&S.league.round>0)return{txt:`${L.short} · You're #${pos} · ⚠️ Last ${RELEG} go down!`};
  return{txt:S.level===TOP?`${L.short} · You're #${pos} · Top 2 → World Cup`:`${L.short} · You're #${pos} · Top 2 move up`}}
 
 function startScreen(){return `${homeBtn()}<div class="card" style="text-align:center;margin-top:24px;padding:22px">
@@ -451,9 +455,9 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
 function standings(){return S.league.teams.map((t,i)=>({...t,i})).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
 function tableView(){const st=standings();
  const L=LEVELS[S.level];let h=`<div class="card"><h2>🪜 The Ladder</h2>${ladder()}<p class="muted">Lowest is Flight 4, highest is the Full National Team ⭐. You only play teams in your own flight.</p></div>
- <div class="card"><h2>📊 ${L.name}</h2><p class="muted">Green line = top 2 → ${S.level===TOP?'World Cup 🌍':'move up to '+LEVELS[S.level+1].name+' ⬆️'}. 1st place wins a trophy 🏆.</p>
+ <div class="card"><h2>📊 ${L.name}</h2><p class="muted">Green = top 2 → ${S.level===TOP?'World Cup 🌍':'move up to '+LEVELS[S.level+1].name+' ⬆️'}. ${S.level>0?`Red = last ${RELEG} go down to ${LEVELS[S.level-1].name} ⬇️.`:'Flight 4 is the lowest, so nobody goes down.'} 1st place wins a trophy 🏆.</p>
  <table><tr><th>#</th><th style="text-align:left">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr>
- ${st.map((t,k)=>`<tr class="${t.i===0?'me':''} ${k<2?'q':''}"><td>${k+1}</td><td class="t"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${t.i===0?S.color:t.col||'#ccc'};margin-right:6px"></span>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf-t.ga}</td><td><b>${t.pts}</b></td></tr>`).join('')}</table></div>`;
+ ${st.map((t,k)=>`<tr class="${t.i===0?'me':''} ${k<2?'q':''} ${S.level>0&&st.length>=TEAMS_PER&&k>=st.length-RELEG?'r':''}"><td>${k+1}</td><td class="t"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${t.i===0?S.color:t.col||'#ccc'};margin-right:6px"></span>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf-t.ga}</td><td><b>${t.pts}</b></td></tr>`).join('')}</table></div>`;
  if(S.wc)h+=`<div class="card"><h2>🌍 World Cup</h2><div class="bracket">${S.wc.opps.map((o,i)=>`<div class="br ${i===S.wc.round&&S.phase==='wc'?'now':''}"><b style="min-width:100px">${WC_ROUNDS[i]}</b>${crest(o.name,o.col||'#ddd',26)}<span class="sp">${esc(o.name)} (${o.str})</span><span>${o.res||(i===S.wc.round&&S.phase==='wc'?'⏳ next':'🔒')}</span></div>`).join('')}</div></div>`;
  return h}
 
@@ -681,15 +685,18 @@ function afterMatch(){if(!M||!M.done)return;const win=M.my>M.op||(M.pens&&M.pens
   else{S.phase='over';S.resultIcon='😢';S.result=`Knocked out of the World Cup in the <b>${WC_ROUNDS[S.wc.round]}</b>. Still, getting to the World Cup is awesome!`;
    after=()=>modal(`<div class="big">😢</div><h2>Out of the World Cup</h2><p>We lost in the ${WC_ROUNDS[S.wc.round]}. Train harder and come back next season!</p>`)}}
  S.money+=prize;M=null;endWeek(prize);S.tab='match';save();if(after===endLeague){endLeague();return}render();if(after)after()}
-function endLeague(){const st=standings(),pos=st.findIndex(t=>t.i===0)+1,L=LEVELS[S.level];
+function endLeague(){const st=standings(),n=st.length,pos=st.findIndex(t=>t.i===0)+1,L=LEVELS[S.level];
  if(pos===1)S.trophies.push({type:'flight',name:L.name+' Champions',season:S.season});
+ if(n>=TEAMS_PER&&S.level>0&&pos>n-RELEG){S.level--;const N=LEVELS[S.level];S.phase='over';S.resultIcon='⬇️';
+  S.result=`You finished <b>#${pos}</b> in ${L.name}. The last ${RELEG} teams go down, so next season you play in <b>${N.name}</b>. Win it and come back up!`;save();render();
+  modal(`<div class="big">😢⬇️</div><h2>Moved down to ${N.name}</h2><p>You finished #${pos}. The last ${RELEG} teams go down.</p><p>Train hard, sign better players and come back up!</p>`,[{t:'💪 We will be back!',c:'gold'}]);return}
  if(S.level<TOP){if(pos<=2){S.level++;const N=LEVELS[S.level];S.phase='over';S.resultIcon=S.level===TOP?'⭐':'⬆️';
    S.result=`You finished <b>#${pos}</b> in ${L.name}! Next season you move UP to <b>${N.name}</b>!`;
    if(S.level===TOP)S.trophies.push({type:'goal',name:'Made the Full National Team',season:S.season});
    save();render();confetti(S.level===TOP?320:180);
    modal(`<div class="big">${pos===1?'🏆':'🥈'}⬆️</div><h2>${pos===1?L.name.toUpperCase()+' CHAMPIONS!':'2nd place!'}</h2><p>You move up to <b>${N.name}</b>!</p>
     ${S.level===TOP?'<h2>⭐ YOU MADE THE FULL NATIONAL TEAM! ⭐</h2><p>That\'s the goal! Now finish top 2 there to go to the World Cup 🌍.</p>':S.level===TOP-1?'<p>You made the <b>Half National Team</b>! One more step to the Full National Team!</p>':'<p>The teams there are better. Train hard and sign good players!</p>'}`,[{t:'⬆️ Awesome!',c:'gold'}])}
-  else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in ${L.name}. You need the top 2 to move up. You stay in ${L.name} next season — try again!`;save();render();
+  else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in ${L.name}. You need the top 2 to move up. You stay in ${L.name} next season — try again!${S.level>0?' (Phew, you were not in the last '+RELEG+'!)':''}`;save();render();
    modal(`<div class="big">📅</div><h2>${L.name} finished: #${pos}</h2><p>You need top 2 to move up. Train hard and try again next season!</p>`)}return}
  if(pos<=2){S.phase='wc';S.wc={round:0,opps:shuffle(WC_TEAMS).slice(0,4).map(([n,c],i)=>({name:n,col:c,str:wcStr(i)}))};save();render();confetti(pos===1?250:120);
   modal(`<div class="big">${pos===1?'🏆':'🥈'}</div><h2>${pos===1?'NATIONAL CHAMPIONS!':'2nd place!'}</h2><p>${pos===1?'You won the Full National Team League! 🏆':'So close to the trophy!'}</p><p><b>You're going to the WORLD CUP! 🌍</b><br>Win 4 games in a row to become world champions!</p>`,[{t:'🌍 To the World Cup!',c:'gold'}])}
