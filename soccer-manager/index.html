@@ -158,6 +158,7 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .bub.him{background:#fff;color:#123;align-self:flex-start;border-bottom-left-radius:4px}
 .bub.me{background:var(--gold);color:#3a2500;align-self:flex-end;border-bottom-right-radius:4px}
 .qs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stb{display:inline-block;margin-top:3px;background:#1c1300;color:var(--gold);border-radius:999px;padding:1px 8px;font-size:.75em;font-weight:900;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -251,13 +252,25 @@ const ovr=p=>ovrAt(p,p.pos);
 const eff=(p,pos)=>ovrAt(p,pos)*(0.7+0.3*p.energy/100);
 const tier=o=>o>=70?'gold':o>=60?'silver':'bronze';
 
+const STYLES={joker:{i:'🃏',n:'Joker',d:'Knows lots of special dribbling moves',att:1.5},sniper:{i:'🎯',n:'Sniper',d:'Super accurate shots',att:1.5},
+ speedster:{i:'🚀',n:'Speedster',d:'Runs past defenders',att:.5},playmaker:{i:'🧠',n:'Playmaker',d:'Amazing passes',att:1,def:.5},wall:{i:'🧱',n:'Wall',d:'Nobody gets past him',def:1.5},
+ cat:{i:'🐱',n:'Cat Keeper',d:'Crazy saves',def:2},engine:{i:'🔋',n:'Engine',d:'Almost never gets tired',att:.5,def:.5},captain:{i:'©️',n:'Captain',d:'Makes the whole team better',att:1,def:1}};
+function assignStyle(p){const o=ovr(p),ch=o>=75?1:o>=68?.6:o>=62?.25:.04;p.st='';if(Math.random()>=ch)return p;
+ const top=[...SK].sort((a,b)=>p.s[b]-p.s[a])[0];let st;
+ if(p.pos==='GK')st='cat';else if(o>=74&&Math.random()<.22)st='captain';
+ else if(top==='sho'&&p.pos!=='DEF')st='sniper';else if(top==='spd')st=(p.pos!=='DEF'&&p.s.pas>=55&&Math.random()<.6)?'joker':'speedster';
+ else if(top==='pas')st=p.pos==='MID'?'playmaker':'joker';else if(top==='def')st=p.pos==='DEF'?'wall':'engine';else if(top==='sta')st='engine';
+ else st=p.pos==='FWD'?'joker':p.pos==='DEF'?'wall':'playmaker';p.st=st;return p}
+const stB=p=>p&&p.st&&STYLES[p.st]?`<span class="stb" title="${STYLES[p.st].d}">${STYLES[p.st].i} ${STYLES[p.st].n}</span>`:'';
+const stI=p=>p&&p.st&&STYLES[p.st]?STYLES[p.st].i:'';
+function styleBonus(xi){let a=0,d=0;xi.forEach(x=>{const st=STYLES[x.p.st];if(!st)return;if(x.p.st==='cat'&&x.pos!=='GK')return;if(x.p.st!=='cat'&&x.pos==='GK')return;a+=st.att||0;d+=st.def||0});return{att:Math.min(6,a),def:Math.min(6,d)}}
 function makePlayer(t,pos){const s={};SK.forEach(k=>s[k]=t+rnd(-6,6));
  if(pos==='GK'){s.def+=8;s.sho-=15}if(pos==='DEF'){s.def+=7;s.sho-=6}if(pos==='MID'){s.pas+=7}if(pos==='FWD'){s.sho+=8;s.spd+=4;s.def-=10}
  const ks=shuffle(SK);s[ks[0]]+=rnd(5,12);s[ks[1]]+=rnd(3,9);s[ks[4]]-=rnd(8,16);
  SK.forEach(k=>s[k]=clamp(Math.round(s[k]),15,97));
  const p={id:S.nextId++,name:newName(),pos,age:rnd(17,33),s,energy:100,num:rnd(2,99)};
  if(pos==='GK')p.num=pick([1,12,23]);
- p.salary=Math.max(1,Math.round((ovr(p)-40)/8));return p}
+ p.salary=Math.max(1,Math.round((ovr(p)-40)/8));assignStyle(p);return p}
 function goodBad(p){const ks=[...SK].sort((a,b)=>p.s[b]-p.s[a]);return{good:ks.slice(0,2),bad:ks[4]}}
 
 const FORMS={
@@ -286,17 +299,17 @@ function teamRating(xi){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
  const str=avg(xi.map(x=>eff(x.p,x.pos)));const fw=avg(xi.filter(x=>x.pos==='FWD').map(x=>eff(x.p,'FWD')));
  const df=avg(xi.filter(x=>x.pos==='DEF'||x.pos==='GK').map(x=>eff(x.p,x.pos)));
  const F=FORMS[formOf()],T=TACTICS[tacOf()],gks=xi.filter(x=>x.pos==='GK').length,noGK=gks===0?14:0,extra=Math.max(0,gks-1)*4;
- return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att-extra),def:Math.round((str+df)/2+F.def+T.def-noGK),noGK:!gks}}
+ const sb=styleBonus(xi);return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att-extra+sb.att),def:Math.round((str+df)/2+F.def+T.def-noGK+sb.def),noGK:!gks}}
 
 function makeFixtures(n){let t=[...Array(n).keys()],r=[];for(let k=0;k<n-1;k++){const ms=[];for(let i=0;i<n/2;i++)ms.push([t[i],t[n-1-i]]);r.push(ms);t=[t[0],t[n-1],...t.slice(1,n-1)]}
  return r.concat(r.map(ms=>ms.map(([a,b])=>[b,a])))}
 function genPlayer(t,pos){const s={};SK.forEach(k=>s[k]=t+rnd(-6,6));
  if(pos==='GK'){s.def+=8;s.sho-=15}if(pos==='DEF'){s.def+=7;s.sho-=6}if(pos==='MID'){s.pas+=7}if(pos==='FWD'){s.sho+=8;s.spd+=4;s.def-=10}
  const ks=shuffle(SK);s[ks[0]]+=rnd(5,12);s[ks[1]]+=rnd(3,9);s[ks[4]]-=rnd(8,16);SK.forEach(k=>s[k]=clamp(Math.round(s[k]),15,97));
- return{name:pick(FIRST)+' '+pick(LAST),pos,s,num:pos==='GK'?1:rnd(2,99),energy:100}}
+ return assignStyle({name:pick(FIRST)+' '+pick(LAST),pos,s,num:pos==='GK'?1:rnd(2,99),energy:100})}
 function oppRating(sq){const sp=FORMS[sq.form].pos,avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,xi=sq.xi.map((p,i)=>({p,pos:sp[i][2]}));
  const str=avg(xi.map(x=>ovrAt(x.p,x.pos))),fw=avg(xi.filter(x=>x.pos==='FWD').map(x=>ovrAt(x.p,'FWD'))),df=avg(xi.filter(x=>x.pos==='DEF'||x.pos==='GK').map(x=>ovrAt(x.p,x.pos)));
- const F=FORMS[sq.form],T=TACTICS[sq.tac];return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att),def:Math.round((str+df)/2+F.def+T.def)}}
+ const F=FORMS[sq.form],T=TACTICS[sq.tac],sb=styleBonus(xi);return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att+sb.att),def:Math.round((str+df)/2+F.def+T.def+sb.def)}}
 function makeSquad(target){const form=pick(Object.keys(FORMS)),tac=pick(['super','attack','mid','mid','defend']),sp=FORMS[form].pos;
  const xi=sp.map(([u,y,role])=>genPlayer(target,role));const used=new Set();xi.forEach(p=>{while(used.has(p.num))p.num=rnd(2,99);used.add(p.num)});
  const sq={form,tac,xi};for(let k=0;k<4;k++){const d=target-oppRating(sq).str;if(Math.abs(d)<1)break;xi.forEach(p=>SK.forEach(q=>p.s[q]=clamp(Math.round(p.s[q]+d),15,97)))}return sq}
@@ -308,7 +321,7 @@ function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(
 function addTrials(n){setTimeout(ensureTalker,0);for(let i=0;i<n&&S.trials.length<4;i++){
  let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
  const p=makePlayer(t,pick(['GK','DEF','DEF','MID','MID','FWD','FWD']));const o=ovr(p);
- p.fee=Math.max(5,Math.round((o-45)*2.6+rnd(-4,6)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.6;
+ p.fee=Math.max(5,Math.round(((o-45)*2.6+rnd(-4,6))*(p.st?1.15:1)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.6;
  p.msg=pick(["I completed the trial! ","Trial done, coach! ","I finished the trial and I'm ready! ","That trial was easy! "])+`I want ${money(p.fee)} to join, and ${money(p.salary)} every week.`;
  S.trials.push(p)}}
 
@@ -361,7 +374,7 @@ function keepName(){const v=$('#tname').value;render();$('#tname').value=v}
 function pcard(p,{xi=false,trial=false}={}){const o=ovr(p),g=goodBad(p),ec=p.energy>=70?'#18b85f':p.energy>=40?'#e3a008':'#e0393e';
  return `<div class="pc ${tier(o)}">${xi?'<span class="xi">⭐ STARTER</span>':''}
   <div class="top"><div class="ov">${o}<small><span class="pos ${p.pos}">${p.pos}</span></small></div>${jersey(trial?'#8a8f98':S.color,p.num||'?')}
-   <div style="min-width:0"><div class="nm">${esc(p.name)}</div><div style="font-size:.8em">Age ${p.age} · ${money(p.salary)}/wk</div></div></div>
+   <div style="min-width:0"><div class="nm">${esc(p.name)}</div><div style="font-size:.8em">Age ${p.age} · ${money(p.salary)}/wk</div>${stB(p)}</div></div>
   <div class="sks">${SK.map(k=>`<div><span>${SKS[k]}</span><b style="color:${p.s[k]>=70?'#0b6b33':p.s[k]<45?'#a3121a':'inherit'}">${p.s[k]}</b></div>`).join('')}
    ${trial?'':`<div><span>⚡ NRG</span><b>${Math.round(p.energy)}</b></div>`}</div>
   ${trial?'':`<div class="en"><i style="width:${p.energy}%;background:${ec}"></i></div>`}
@@ -373,6 +386,7 @@ function teamView(){const xi=new Set(bestXI().map(x=>x.p.id));const order={GK:0,
  return `<div class="card"><div class="row"><h2 class="sp">Your Squad</h2>${R?`<span class="chip m">Team power ${R.str}</span>`:''}</div>
   <div class="muted">⭐ = starting 11 (your best players are picked automatically). Salaries: ${money(wage)} per week.</div>
   ${S.players.length<11?youthBtn():''}</div>
+  ${(()=>{const have=[...new Set(S.players.map(p=>p.st).filter(Boolean))];return `<div class="card"><h3>✨ Play styles</h3><div class="muted">Good players can have a special play style. It makes your team stronger when they play.</div><div style="margin-top:6px;line-height:1.9">${Object.entries(STYLES).map(([k,v])=>`<div style="opacity:${have.includes(k)?1:.45}">${v.i} <b>${v.n}</b> — ${v.d}${have.includes(k)?' ✅':''}</div>`).join('')}</div></div>`})()}
   <div class="grid">${ps.map(p=>pcard(p,{xi:xi.has(p.id)})+`<div class="act"><span class="sp"></span><button class="small red" onclick="askKick(${p.id})">🚫 Kick out</button></div></div>`).join('')}</div>`}
 function youthBtn(){return `<div class="tip" style="background:#ff7a7a22;border-color:#ff7a7a88"><b>You have ${S.players.length} players. You need 11 to play!</b><br>Sign players in Trials, or call up a free kid from your youth team.<div class="row" style="margin-top:8px;justify-content:center"><button class="small gold" onclick="callYouth()">🧒 Call up a youth player (free)</button><button class="small" onclick="go('trials')">📝 Go to Trials</button></div></div>`}
 function callYouth(){if(S.players.length>=22)return toast('Squad is full!');const have=p=>S.players.filter(x=>x.pos===p).length;
@@ -381,7 +395,7 @@ function callYouth(){if(S.players.length>=22)return toast('Squad is full!');cons
 let selSlot=null;
 function miniPitch(items,ro,col){return `<div class="mini">${ro?'':'<div class="zone" style="top:78%">GK</div><div class="zone" style="top:52.8%">DEF</div><div class="zone" style="top:24.8%">MID</div><div class="zone ztop">FWD</div>'}${items.map((it,i)=>{if(!it)return '';const o=ovrAt(it.p,it.role),off=it.p.pos!==it.role;
   return `<div class="spot ${!ro&&selSlot===i?'sel':''} ${!ro&&off?'off':''}" style="left:${ro?(1-it.y)*100:it.y*100}%;top:${ro?8+it.u*140:92-it.u*140}%" ${ro?'':`onpointerdown="dragStart(event,${i})"`}>
-   <div class="dot" style="background:${it.role==='GK'?(ro?'#ff922b':'#ffd43b'):(col||S.color)}">${it.p.num||''}</div><div class="lbl">${esc(it.p.name.split(' ').slice(-1)[0])}</div><div class="lo">${it.role} ${o}${!ro&&off?' ⚠️':''}${it.en!=null?' ⚡'+Math.round(it.en):''}</div></div>`}).join('')}</div>`}
+   <div class="dot" style="background:${it.role==='GK'?(ro?'#ff922b':'#ffd43b'):(col||S.color)}">${it.p.num||''}</div><div class="lbl">${stI(it.p)}${esc(it.p.name.split(' ').slice(-1)[0])}</div><div class="lo">${it.role} ${o}${!ro&&off?' ⚠️':''}${it.en!=null?' ⚡'+Math.round(it.en):''}</div></div>`}).join('')}</div>`}
 function lineupView(){const F=FORMS[formOf()],xi=bestXI(),inXI=new Set(xi.map(x=>x.p.id)),R=xi.length>=11?teamRating(xi):null;
  const bench=S.players.filter(p=>!inXI.has(p.id)).sort((a,b)=>ovr(b)-ovr(a));
  const spots=mySpots().map(([u,y,role],i)=>{const x=xi[i];if(!x)return '';const o=ovrAt(x.p,role),off=x.p.pos!==role;
@@ -469,7 +483,7 @@ function nextOpp(){let t,extra;if(S.phase==='league'){if(S.league.round>=S.leagu
  else if(S.phase==='wc'){t=S.wc.opps[S.wc.round];extra={label:'🌍 World Cup · '+WC_ROUNDS[S.wc.round]}}else return null;
  const sq=ensureSquad(t),r=oppRating(sq);return Object.assign({name:t.name,str:r.str,att:r.att,def:r.def,col:t.col||'#ccc',sq},extra)}
 // matchups: fast forwards against slow defenders get extra attack
-function avgOf(list,k){return list.length?list.reduce((a,p)=>a+p.s[k],0)/list.length:50}
+function avgOf(list,k){return list.length?list.reduce((a,p)=>a+p.s[k]+(k==='spd'&&p.st==='speedster'?8:0),0)/list.length:50}
 function matchup(xi,sq){const sp=FORMS[sq.form].pos,th=sq.xi.map((p,i)=>({p,pos:sp[i][2]}));
  const myF=xi.filter(x=>x.pos==='FWD').map(x=>x.p),myD=xi.filter(x=>x.pos==='DEF').map(x=>x.p),thF=th.filter(x=>x.pos==='FWD').map(x=>x.p),thD=th.filter(x=>x.pos==='DEF').map(x=>x.p);
  const a=avgOf(myF,'spd')-avgOf(thD,'spd'),b=avgOf(thF,'spd')-avgOf(myD,'spd'),c=avgOf(myF,'sho')-avgOf(th.filter(x=>x.pos==='GK').map(x=>x.p),'def');
@@ -504,6 +518,7 @@ function scoutView(o,xi,R){if(!o.sq)return '';const sq=o.sq,sp=FORMS[sq.form].po
   if(mu.spdB>=5)tips.push(`🏃 Their forwards are fast (SPD ${mu.thFs}) and your defenders are slower (${mu.myDs}). Put faster defenders in!`);
   if(mu.spdA>=5)tips.push(`⚡ Your forwards (SPD ${mu.myFs}) are faster than their defenders (${mu.thDs}). They will run past them!`);
   if(mu.spdA<=-5)tips.push(`🐢 Their defenders (SPD ${mu.thDs}) are faster than your forwards (${mu.myFs}). Try faster forwards.`);}
+ items.filter(x=>x.p.st).forEach(x=>tips.push(`${STYLES[x.p.st].i} Watch out: #${x.p.num} ${esc(x.p.name)} is a ${STYLES[x.p.st].n} (${STYLES[x.p.st].d.toLowerCase()}).`));
  if(sq.tac==='super')tips.push('🔥 They play Super Attack: their back is weak and they get tired. Attack them!');
  if(sq.tac==='defend')tips.push('🛡️ They play Defend: hard to score on. Be patient.');
  const weakD=items.filter(x=>x.role==='DEF').sort((a,b)=>ovrAt(a.p,'DEF')-ovrAt(b.p,'DEF'))[0];if(weakD)tips.push(`🎯 Their weakest defender is #${weakD.p.num} ${esc(weakD.p.name)} (${ovrAt(weakD.p,'DEF')}).`);
@@ -514,7 +529,7 @@ function scoutView(o,xi,R){if(!o.sq)return '';const sq=o.sq,sp=FORMS[sq.form].po
   <div class="muted" style="margin-top:8px">Their lineup (they attack downward ⬇️ toward you):</div>
   ${miniPitch(items,true,o.col)}
   <h3 style="margin-top:10px">Their players</h3>
-  ${items.map(x=>{const g=goodBad(x.p);return `<div class="benchrow" style="cursor:default"><span class="pos ${x.role}">${x.role}</span><span style="min-width:0;flex:1"><b>#${x.p.num} ${esc(x.p.name)}</b><br><span class="muted"><span class="good">👍 ${g.good.map(k=>SKN[k]).join(', ')}</span> · <span class="bad">👎 ${SKN[g.bad]}</span></span><br><span class="muted">SHO ${x.p.s.sho} · PAS ${x.p.s.pas} · DEF ${x.p.s.def} · SPD ${x.p.s.spd} · STA ${x.p.s.sta}</span></span><span class="ovrs">${ovrAt(x.p,x.role)}</span></div>`}).join('')}
+  ${items.map(x=>{const g=goodBad(x.p);return `<div class="benchrow" style="cursor:default"><span class="pos ${x.role}">${x.role}</span><span style="min-width:0;flex:1"><b>#${x.p.num} ${esc(x.p.name)}</b> ${stB(x.p)}<br><span class="muted"><span class="good">👍 ${g.good.map(k=>SKN[k]).join(', ')}</span> · <span class="bad">👎 ${SKN[g.bad]}</span></span><br><span class="muted">SHO ${x.p.s.sho} · PAS ${x.p.s.pas} · DEF ${x.p.s.def} · SPD ${x.p.s.spd} · STA ${x.p.s.sta}</span></span><span class="ovrs">${ovrAt(x.p,x.role)}</span></div>`}).join('')}
   <div class="row" style="justify-content:center;margin-top:8px"><button class="small" onclick="go('lineup')">📋 Change my lineup</button></div></div>`}
 function standings(){return S.league.teams.map((t,i)=>({...t,i})).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
 function tableView(){const st=standings();
@@ -527,7 +542,9 @@ function tableView(){const st=standings();
 
 /* ---------- TALKING WITH PLAYERS & SPONSORS (all on this device, nothing is sent) ---------- */
 const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rocket Juice','Splashy Water','Comet Chips','Twisty Gum','Turbo Toys','Sunny Shampoo','Mega Burger'];
-function ensureTalker(){if(!S||!S.trials)return;let ch=false;S.trials.forEach(t=>{if(t.talk===undefined){t.talk=Math.random()<.6;ch=true}});
+function ensureTalker(){if(!S||!S.trials)return;let ch=false;
+ [...S.players,...S.trials].forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}});
+ if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}})});S.trials.forEach(t=>{if(t.talk===undefined){t.talk=Math.random()<.6;ch=true}});
  if(S.trials.length&&!S.trials.some(t=>t.talk)){pick(S.trials).talk=true;ch=true}if(ch){save();if(!M&&S.tab==='trials')render()}}
 function newCall(){if(!S||S.call||!S.players.length)return;const star=[...S.players].sort((a,b)=>ovr(b)-ovr(a))[0];const amt=money2(rnd(20,45));
  S.call={co:pick(COMPANIES),pid:star.id,amt,max:Math.round(amt*(1.25+Math.random()*.3))};save();if(!M)render();
@@ -738,7 +755,7 @@ function hexDist(a,b){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));try
 function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need at least 11 players to play!');const o=on?on.o:nextOpp();if(!o)return;
  M={o,xi:xi.map(x=>({p:x.p,pos:x.pos})),min:0,my:0,op:0,done:false,pens:null,half:false,en:{},played:new Set(),subs:0};
  xi.forEach(x=>{M.en[x.p.id]=x.p.energy;M.played.add(x.p.id)});M.R=matchR();selSlot=null;
- if(!on&&o.sq){M.oppSpots=FORMS[o.sq.form].pos;M.oppNums=o.sq.xi.map(p=>p.num);M.oppNames=o.sq.xi.map(p=>p.name);M.oppSpd=o.sq.xi.map(p=>p.s.spd/100)}
+ if(!on&&o.sq){M.oppSt=o.sq.xi.map(p=>p.st||'');M.oppSpots=FORMS[o.sq.form].pos;M.oppNums=o.sq.xi.map(p=>p.num);M.oppNames=o.sq.xi.map(p=>p.name);M.oppSpd=o.sq.xi.map(p=>p.s.spd/100)}
  if(on){M.online=true;M.host=on.host;M.oppR=on.oppR;M.queue=[];M.oppNums=on.nums;M.oppSpots=on.spots}
  $('#app').innerHTML=`<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   <div class="sb"><div class="tm">${crest(S.teamName,S.color,40)}<br>${esc(S.teamName)}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
@@ -753,7 +770,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
   <div class="row" style="margin-top:10px;justify-content:center"><button id="contB" class="gold" style="display:none;font-size:1.15em" onclick="afterMatch()">Continue ▶</button></div></div>`;
  initPitch();say('🟢 Kick off! Let\'s go '+esc(S.teamName)+'!');if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
 function matchR(){return teamRating(M.xi.map(x=>({p:Object.assign({},x.p,{energy:M.en[x.p.id]}),pos:x.pos})))}
-function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(1.6-x.p.s.sta/100)*d,5,100)})}
+function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(1.6-x.p.s.sta/100)*d*(x.p.st==='engine'?.5:1),5,100)})}
 const inMatch=()=>M&&!M.done&&$('#mPanel')&&$('#mPanel').style.display!=='none';
 let panelMode='move';
 function openPanel(m){if(!M||M.done||!P)return;panelMode=m;P.paused=m==='sub'&&!M.online;selSlot=null;$('#mPanel').style.display='block';$('#liveCtl').style.display=m==='sub'?'none':'block';refreshPanel();$('#mPanel').scrollIntoView({block:'start',behavior:'smooth'})}
@@ -798,7 +815,7 @@ function initPitch(){const c=$('#pitch');if(!c)return;
  P={c,x:c.getContext('2d'),cols:[S.color,oc],teams:[[],[]],ball:{x:.5,y:.5,z:0,fly:null},poss:0,carrier:null,plan:null,wait:0,after:null,
   mode:'play',dribble:null,speed:1,f:0,last:null,reset:0,steps:0};
  for(let t=0;t<2;t++)(t===0?mySpots():(M.oppSpots||FORM)).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
-  P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):(M.oppNums?M.oppNums[i]:OPP_NUM[i]),name:t===0?xp.name:(M.oppNames?M.oppNames[i]:''),spd:t===0?xp.s.spd/100:(M.oppSpd?M.oppSpd[i]:M.o.str/100),dive:null})});
+  P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):(M.oppNums?M.oppNums[i]:OPP_NUM[i]),name:t===0?xp.name:(M.oppNames?M.oppNames[i]:''),spd:t===0?xp.s.spd/100:(M.oppSpd?M.oppSpd[i]:M.o.str/100),st:t===0?(xp.st||''):(M.oppSt?M.oppSt[i]:''),dive:null})});
  kickoff(0);P.after=nextChunk;P.wait=50;
  const loop=()=>{if(!P)return;for(let k=0;k<P.speed;k++)step();draw();anim=requestAnimationFrame(loop)};loop()}
 function stopAnim(){if(anim)cancelAnimationFrame(anim);anim=null;P=null}
@@ -816,7 +833,7 @@ function shape(p){const att=P.poss===p.t,b=P.ball,bu=p.t===0?b.x:1-b.x;
  const y=clamp(p.by+(b.y-p.by)*(att?.16:.32)+Math.sin(P.f/90+p.i*1.3)*.015,.05,.95);
  return{x:toX(p.t,u),y}}
 
-function step(){if(P.paused)return;P.f++;if(P.mode==='handshake')return handshakeStep();if(P.mode==='done')return;const b=P.ball;
+function step(){if(P.paused)return;P.f++;if(P.skill){P.skill.f++;if(P.skill.f>90)P.skill=null}if(P.mode==='handshake')return handshakeStep();if(P.mode==='done')return;const b=P.ball;
  // ball
  if(b.fly){const F=b.fly;F.k++;const q=Math.min(1,F.k/F.dur),e=1-Math.pow(1-q,1.6);
   b.x=F.fx+(F.tx-F.fx)*e;b.y=F.fy+(F.ty-F.fy)*e;b.z=Math.sin(Math.PI*q)*F.h;
@@ -867,12 +884,14 @@ function next(){const pl=P.plan,c=P.carrier;if(!pl)return endChunk();if(!c){P.wa
   return finishPlan()}
  const u=uOf(c),force=pl.steps>12;
  if(!force&&(pl.passes>0||u<.6)&&!pl.drib){if(pl.passes>0)pl.passes--;
-  if(Math.random()<.3&&u<.72&&c.role!=='GK')P.dribble={x:clamp(c.x+dirOf(c.t)*.1,.05,.95),y:clamp(c.y+(Math.random()-.5)*.1,.08,.92)};else passTo(c,pickTarget(c,true),false);return}
- if(!pl.drib&&u<.82){pl.drib=true;P.dribble={x:toX(c.t,.82+Math.random()*.06),y:.34+Math.random()*.32};return}
+  if(Math.random()<(c.st==='joker'?.65:.3)&&u<.72&&c.role!=='GK'){P.dribble={x:clamp(c.x+dirOf(c.t)*.1,.05,.95),y:clamp(c.y+(Math.random()-.5)*.1,.08,.92)};skillMove(c)}else passTo(c,pickTarget(c,true),false);return}
+ if(!pl.drib&&u<.82){pl.drib=true;P.dribble={x:toX(c.t,.82+Math.random()*.06),y:.34+Math.random()*.32};skillMove(c);return}
  shoot(c,pl.kind==='goal'?'goal':pl.result)}
 
 function keeper(t){return P.teams[t].find(p=>p.role==='GK')||P.teams[t].slice().sort((a,b)=>a.bu-b.bu)[0]}
-function shoot(c,res){const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=keeper(1-t),assist=P.last&&P.last.t===t&&P.last!==c?P.last:null;
+const MOVES=['a rainbow flick','a step-over','a crazy spin','a nutmeg','an elastico','a roulette','a heel flick'];
+function skillMove(c){if(c.st!=='joker'||Math.random()<.35)return;P.skill={p:c,f:0};say(`🃏 ${pname(c)} does ${pick(MOVES)}!${c.t===0?' 🔥':''}`)}
+function shoot(c,res){if(c.st==='sniper')say(`🎯 ${pname(c)} the Sniper shoots!`);const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=keeper(1-t),assist=P.last&&P.last.t===t&&P.last!==c?P.last:null;
  let tx,ty;
  if(res==='goal'){ty=Math.random()<.5?.44+Math.random()*.03:.53+Math.random()*.03;tx=gx+dir*.014;gk.dive={x:gk.x,y:ty>.5?ty-.07:ty+.07}}
  else if(res==='save'){ty=.43+Math.random()*.14;tx=gk.x;gk.dive={x:gk.x,y:ty}}
@@ -882,7 +901,7 @@ function shoot(c,res){const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=keeper(1-t),assis
   if(res==='goal'){if(t===0){M.my++;say(`⚽ GOAAAL! <b>${esc(c.name)}</b> scores!${assist?` Great pass from ${esc(assist.name)}.`:''} ${pick(['What a shot!','The crowd goes wild!','Amazing!'])}`,'g');flash('GOAL!')}
    else{M.op++;say(`😱 Goal for ${esc(M.o.name)} — ${pname(c)} scores. ${pick(['Our keeper had no chance.','A sneaky shot.','Ouch!'])}`,'b');flash('😱',true)}
    upd();P.ball.x=gx+dir*.03;P.mode='celebrate';P.celebT=t;P.celeb={x:toX(t,.82),y:.5};P.wait=110;P.after=()=>{kickoff(1-t);P.plan=null;P.wait=40;P.after=finishPlan}}
-  else if(res==='save'){say(t===0?`${pname(c)} shoots... saved by their keeper!`:`${esc(M.o.name)} shoot... ${pname(gk)} makes a big save! 🧤`);setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=45;P.after=next}
+  else if(res==='save'){say(gk.st==='cat'?`🐱 What a CAT save by ${pname(gk)}!`:t===0?`${pname(c)} shoots... saved by their keeper!`:`${esc(M.o.name)} shoot... ${pname(gk)} makes a big save! 🧤`);setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=45;P.after=next}
   else if(res==='wide'){say(t===0?`${pname(c)} shoots wide. So close!`:`${pname(c)} shoots wide. Phew!`);P.wait=40;P.after=()=>{P.ball.x=gk.x+dirOf(gk.t)*.02;P.ball.y=.5;gk.x=toX(gk.t,.05);gk.y=.5;setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=30;P.after=next}}
   else{say(t===0?`${pname(c)} hits the post! 😮`:`${pname(c)} hits the post! Lucky us!`);const dfn=P.teams[1-t][rnd(1,4)];
    fly(gx-dir*.14,clamp(.5+(Math.random()-.5)*.4,.1,.9),.012,.02,dfn,()=>{setCarrier(dfn);P.plan={team:dfn.t,kind:'keep',passes:1};P.wait=20;P.after=next})}})}
@@ -949,6 +968,7 @@ function draw(){const{x,c,ball}=P,W=c.width,H=c.height,mx=30,my=16,pw=W-2*mx,ph=
   if(p===P.carrier){x.strokeStyle='#ffe066';x.lineWidth=3;x.beginPath();x.arc(px,py,r+5,0,7);x.stroke()}
   x.fillStyle=col;x.strokeStyle=p.t===0?'#fff':'#111';x.lineWidth=2.5;x.beginPath();x.arc(px,py,r,0,7);x.fill();x.stroke();
   x.font='900 14px Nunito,sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineWidth=3;x.strokeStyle='#000a';x.strokeText(p.num,px,py+1);x.fillStyle='#fff';x.fillText(p.num,px,py+1);
+  if(P.skill&&P.skill.p===p&&P.skill.f<90){const f=P.skill.f;x.font='18px sans-serif';for(let k=0;k<3;k++){const a=f*.25+k*2.1;x.fillText('✨',px+Math.cos(a)*24,py+Math.sin(a)*24)}x.font='20px sans-serif';x.fillText('🃏',px,py-r-30)}
   if(p===P.carrier){x.font='900 17px Nunito,sans-serif';x.strokeText(short(p),px,py-r-12);x.fillText(short(p),px,py-r-12)}});
  if(P.fx&&P.fx.length){x.textAlign='center';x.textBaseline='middle';P.fx.forEach(f=>{x.globalAlpha=Math.max(0,1-f.t/60);x.font=`${22+f.t*.2}px sans-serif`;x.fillText('🤝',X(f.x),Y(f.y)-f.t*.8)});x.globalAlpha=1}
  if(P.mode==='handshake'||P.mode==='done'){if(P.hs&&P.hs.f<200){x.font='900 26px "Lilita One",sans-serif';x.textAlign='center';x.lineWidth=5;x.strokeStyle='#000a';x.strokeText('GOOD GAME!',W/2,Y(.2));x.fillStyle='#ffc83d';x.fillText('GOOD GAME!',W/2,Y(.2))}return}
