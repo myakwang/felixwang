@@ -129,7 +129,8 @@ const MAXP = 6;
 const maxFor = g => (g === 'sm' ? 2 : MAXP);
 export class Server {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
-  socks() { return this.ctx.getWebSockets().filter(s => { const t = this.ctx.getTags(s)[0]; return t && t[0] === 's'; }); }
+  // players still connected (a socket that is closing or closed no longer counts, so a server emptied by two players leaving at once is unlisted)
+  socks() { return this.ctx.getWebSockets().filter(s => { const t = this.ctx.getTags(s)[0]; return t && t[0] === 's' && s.readyState !== 2 && s.readyState !== 3; }); }
   idOf(s) { return +this.ctx.getTags(s)[0].slice(1); }
   joinT(s) { return +(this.ctx.getTags(s)[1] || 'j0').slice(1); }
   hostOf(list) { let h = null; for (const s of list) if (!h || this.joinT(s) < this.joinT(h)) h = s; return h ? this.idOf(h) : 0; }
