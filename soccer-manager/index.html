@@ -159,6 +159,11 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .bub.me{background:var(--gold);color:#3a2500;align-self:flex-end;border-bottom-right-radius:4px}
 .qs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .stb{display:inline-block;margin-top:3px;background:#1c1300;color:var(--gold);border-radius:999px;padding:1px 8px;font-size:.75em;font-weight:900;white-space:nowrap}
+#cpick{position:fixed;inset:0;background:#000c;z-index:56;display:none;align-items:center;justify-content:center;padding:10px}
+#cpick .nbox{background:linear-gradient(180deg,#164878,#0d2b4b);border:3px solid var(--gold);border-radius:20px;padding:14px;width:100%;max-width:520px;max-height:94vh;overflow:auto;text-align:center}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.cbtn{background:#ffffff14;box-shadow:none;padding:8px;font-size:.85em;display:flex;align-items:center;gap:6px;text-align:left}
+.cbtn span{font-size:1.6em}
 </style>
 </head>
 <body>
@@ -192,6 +197,19 @@ function levelTeams(L){const mine=(S.teamName||'').toLowerCase();const cities=sh
  return cities.map((c,i)=>L.short==='Full NT'&&c.startsWith('Team USA')?c:c+' '+suf[i])}
 const WC_TEAMS=[['Brazil Samba Stars','#f9d71c'],['Spain Royal FC','#c60b1e'],['Germany Iron Eagles','#eeeeee'],['Argentina Tango','#74acdf'],['France Blue Roosters','#1f3a93'],['England Lions','#ffffff'],['Japan Blue Samurai','#1b3f8b'],['Italy Azzurri','#2a7de1'],['Portugal Navigators','#a3001b'],['Netherlands Orange','#ff7f00']];
 const WC_BASE=[80,83,86,89];
+const COUNTRIES='US:USA|AR:Argentina|BR:Brazil|MX:Mexico|CA:Canada|FR:France|ES:Spain|DE:Germany|IT:Italy|PT:Portugal|NL:Netherlands|BE:Belgium|HR:Croatia|GB-ENG:England|GB-SCT:Scotland|GB-WLS:Wales|IE:Ireland|DK:Denmark|SE:Sweden|NO:Norway|FI:Finland|IS:Iceland|PL:Poland|CZ:Czechia|SK:Slovakia|AT:Austria|CH:Switzerland|HU:Hungary|RS:Serbia|SI:Slovenia|BA:Bosnia|AL:Albania|GR:Greece|TR:Turkey|RO:Romania|BG:Bulgaria|UA:Ukraine|GE:Georgia|UY:Uruguay|CO:Colombia|CL:Chile|PE:Peru|EC:Ecuador|PY:Paraguay|VE:Venezuela|BO:Bolivia|CR:Costa Rica|PA:Panama|HN:Honduras|SV:El Salvador|GT:Guatemala|JM:Jamaica|HT:Haiti|TT:Trinidad and Tobago|CU:Cuba|DO:Dominican Republic|JP:Japan|KR:South Korea|CN:China|AU:Australia|NZ:New Zealand|SA:Saudi Arabia|IR:Iran|QA:Qatar|AE:UAE|IQ:Iraq|JO:Jordan|UZ:Uzbekistan|IN:India|ID:Indonesia|TH:Thailand|VN:Vietnam|PH:Philippines|MY:Malaysia|MA:Morocco|SN:Senegal|NG:Nigeria|GH:Ghana|CM:Cameroon|CI:Ivory Coast|EG:Egypt|TN:Tunisia|DZ:Algeria|ZA:South Africa|ML:Mali|BF:Burkina Faso|CD:DR Congo|KE:Kenya|UG:Uganda|ET:Ethiopia|CV:Cape Verde|IL:Israel|LB:Lebanon|KZ:Kazakhstan|AM:Armenia|AZ:Azerbaijan|MT:Malta|CY:Cyprus|LU:Luxembourg|EE:Estonia|LV:Latvia|LT:Lithuania|MK:North Macedonia|ME:Montenegro|MD:Moldova|FJ:Fiji|PG:Papua New Guinea|NP:Nepal|BD:Bangladesh|PK:Pakistan|LK:Sri Lanka|MN:Mongolia|SG:Singapore'.split('|').map(x=>{const[c,n]=x.split(':');return{c,n,f:flagOf(c)}});
+function flagOf(c){if(c.startsWith('GB-')){const t={'GB-ENG':'eng','GB-SCT':'sct','GB-WLS':'wls'}[c];return '\u{1F3F4}'+[...('gb'+t)].map(ch=>String.fromCodePoint(0xE0000+ch.charCodeAt(0))).join('')+'\u{E007F}'}
+ return String.fromCodePoint(...[...c].map(ch=>127397+ch.charCodeAt(0)))}
+const inWC=()=>S&&S.phase==='wc'&&S.country;
+const TN=()=>inWC()?S.country.f+' '+S.country.n:S.teamName;
+const myCrest=sz=>inWC()?`<div style="font-size:${sz*.8}px;line-height:1">${S.country.f}</div>`:crest(S.teamName,S.color,sz);
+function pickCountry(){let el=$('#cpick');if(!el){el=document.createElement('div');el.id='cpick';document.body.appendChild(el)}
+ el.innerHTML=`<div class="nbox"><h2>🌍 Pick your country!</h2><p class="muted">At the World Cup, your team plays as a country. Which one?</p>
+  <input type="text" id="cq" placeholder="Search…" oninput="cFilter(this.value)" style="margin-bottom:8px"><div class="cgrid" id="cgrid"></div></div>`;el.style.display='flex';cFilter('')}
+function cFilter(q){q=q.toLowerCase();$('#cgrid').innerHTML=COUNTRIES.filter(c=>c.n.toLowerCase().includes(q)).map(c=>`<button class="cbtn" onclick="setCountry('${c.c}')"><span>${c.f}</span>${esc(c.n)}</button>`).join('')}
+function setCountry(code){const c=COUNTRIES.find(x=>x.c===code);if(!c)return;S.country=c;
+ if(S.wc){const others=shuffle(COUNTRIES.filter(x=>x.c!==code));S.wc.opps.forEach((o,i)=>{if(o.res)return;const k=others[i];o.name=k.f+' '+k.n})}
+ save();$('#cpick').style.display='none';render();confetti(150);toast(`${c.f} You are ${c.n} at the World Cup!`)}
 const WC_ROUNDS=['Round of 16','Quarterfinal','Semifinal','FINAL'];
 const DIFF={easy:4,normal:7,hard:9};
 const COLORS=['#1d6fe0','#e0393e','#18a457','#ff9f1c','#7b2ff7','#111827'];
@@ -234,7 +252,7 @@ function confetti(n=160){const c=$('#confetti'),x=c.getContext('2d');c.width=inn
   if(++f<220)requestAnimationFrame(step);else x.clearRect(0,0,c.width,c.height)})()}
 
 /* svg bits */
-function crest(name,col,size=58){return `<svg width="${size}" height="${size*1.15}" viewBox="0 0 100 115"><path d="M50 4 L94 16 V54 C94 82 74 101 50 111 C26 101 6 82 6 54 V16 Z" fill="${col}" stroke="#fff" stroke-width="6"/>
+function crest(name,col,size=58){const fm=String(name).match(/^((?:\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F})|(?:[\u{1F1E6}-\u{1F1FF}]{2}))/u);if(fm)return `<div style="font-size:${size*.8}px;line-height:1.15">${fm[1]}</div>`;return `<svg width="${size}" height="${size*1.15}" viewBox="0 0 100 115"><path d="M50 4 L94 16 V54 C94 82 74 101 50 111 C26 101 6 82 6 54 V16 Z" fill="${col}" stroke="#fff" stroke-width="6"/>
  <path d="M50 14 L84 23 V54 C84 76 69 91 50 99 Z" fill="#ffffff22"/><circle cx="50" cy="44" r="13" fill="#fff"/><path d="M50 33 l6 4 -2 7 h-8 l-2 -7z" fill="#222"/>
  <text x="50" y="86" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="22" fill="#fff">${esc(initials(name))}</text></svg>`}
 function jersey(col,num,size=46){return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"><path d="M30 8 L42 4 Q50 14 58 4 L70 8 L96 26 L84 46 L74 40 V94 H26 V40 L16 46 L4 26 Z" fill="${col}" stroke="#1c1300" stroke-width="4" stroke-linejoin="round"/>
@@ -346,7 +364,7 @@ function render(){const a=$('#app');stopAnim();if(!S){a.innerHTML=startScreen();
  keepLineup();
  document.documentElement.style.setProperty('--tc',S.color);
  const tc=S.trials.length;const prog=progress();
- a.innerHTML=`${homeBtn()}<div class="hdr" style="${SITE?'padding-left:56px':''}">${crest(S.teamName,S.color,54)}<div style="flex:1;min-width:0"><div class="tn">${esc(S.teamName)}</div>
+ a.innerHTML=`${homeBtn()}<div class="hdr" style="${SITE?'padding-left:56px':''}">${myCrest(54)}<div style="flex:1;min-width:0"><div class="tn">${esc(TN())}</div>
   <div class="chips"><span class="chip">Season ${S.season}</span><span class="chip">Week ${S.week}</span><span class="chip dayClock">${dayLabel()}</span><span class="chip m">💰 ${money(S.money)}</span><span class="chip">👥 ${S.players.length}</span>
   ${S.trophies.length?`<span class="chip m">${S.trophies.map(trophyIcon).join('')}</span>`:''}</div></div></div>
   <div class="goal"><span>🎯 ${prog.txt}</span></div>${ladder()}
@@ -498,14 +516,15 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
   if(avgE<55)tip='😴 Your starters are tired. Use more Rest hours in Training.';else if(R.str<o.str-3)tip='💡 They look stronger. Sign a better player in Trials or train more!';else if(!S.trained)tip="💡 You haven't trained this week yet.";else tip='💪 Your team is ready!'}
  const pct=R?Math.round(R.str/(R.str+o.str)*100):50,wc=R?winChance(R,o.str,o):null;
  return `<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
-  <div class="vs"><div>${crest(S.teamName,S.color,64)}<div class="disp">${esc(S.teamName)}</div>${R?`<div class="num">${R.str}</div><div class="muted">ATT ${R.att} · DEF ${R.def}</div>`:''}</div>
+  ${S.phase==='wc'&&!S.country?'<div class="tip">🌍 Pick your country for the World Cup first! <button class="small gold" onclick="pickCountry()">Pick country</button></div>':''}
+  <div class="vs"><div>${myCrest(64)}<div class="disp">${esc(TN())}</div>${R?`<div class="num">${R.str}</div><div class="muted">ATT ${R.att} · DEF ${R.def}</div>`:''}</div>
    <div class="disp" style="font-size:2em">VS</div>
    <div>${crest(o.name,o.col,64)}<div class="disp">${esc(o.name)}</div><div class="num">${o.str}</div><div class="muted">ATT ${o.att} · DEF ${o.def}</div></div></div>
   ${R?`<div class="meter"><i style="width:${pct}%;background:${S.color}"></i><i style="flex:1;background:${o.col}"></i></div>`:youthBtn()}
   ${wc?`<div style="text-align:center;margin-top:6px"><span class="chip m" style="font-size:.95em;white-space:nowrap">🎲 Win <b>${wc.w}%</b> · Draw ${wc.d}% · Lose ${wc.l}%</span><div class="muted" style="margin-top:4px">The stronger team almost always wins. Get stronger by training, resting and signing better players!</div></div>`:''}
   ${tip?`<div class="tip">${tip}</div>`:''}
   ${R?`<h3 style="margin-top:12px;text-align:center">How your team plays</h3>${tacButtons(true)}<div class="muted" style="text-align:center">${TACTICS[tacOf()].tip}</div>`:''}<br>
-  ${isMatchDay()?`<button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="startMatch()" ${R?'':'disabled'}>⚽ KICK OFF!</button>`:`<button class="gray" style="width:100%;font-size:1.1em;padding:14px" disabled>⏳ Not match day yet</button><div class="muted dayClock" style="text-align:center;margin-top:6px">${dayLabel()}</div><div class="muted" style="text-align:center">Use the time: train your team and scout the other team below!</div>`}</div>
+  ${isMatchDay()?`<button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="${S.phase==='wc'&&!S.country?'pickCountry()':'startMatch()'}" ${R?'':'disabled'}>⚽ KICK OFF!</button>`:`<button class="gray" style="width:100%;font-size:1.1em;padding:14px" disabled>⏳ Not match day yet</button><div class="muted dayClock" style="text-align:center;margin-top:6px">${dayLabel()}</div><div class="muted" style="text-align:center">Use the time: train your team and scout the other team below!</div>`}</div>
   ${callCard()}${scoutView(o,xi,R)}
   <div class="card" style="text-align:center"><h3>🌐 Play a real person</h3><div class="muted">Play your team against a friend or another player online. It doesn't count for your flight.</div><br><button onclick="go('online')">🌐 Play online</button></div>
   ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
@@ -770,7 +789,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
  if(!on&&o.sq){M.oppSt=o.sq.xi.map(p=>p.st||'');M.oppSpots=FORMS[o.sq.form].pos;M.oppNums=o.sq.xi.map(p=>p.num);M.oppNames=o.sq.xi.map(p=>p.name);M.oppSpd=o.sq.xi.map(p=>p.s.spd/100)}
  if(on){M.online=true;M.host=on.host;M.oppR=on.oppR;M.queue=[];M.oppNums=on.nums;M.oppSpots=on.spots}
  $('#app').innerHTML=`<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
-  <div class="sb"><div class="tm">${crest(S.teamName,S.color,40)}<br>${esc(S.teamName)}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
+  <div class="sb"><div class="tm">${M.online?crest(S.teamName,S.color,40):myCrest(40)}<br>${esc(M.online?S.teamName:TN())}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
   <div class="pitchwrap"><canvas id="pitch" width="720" height="460"></canvas><div class="flash" id="flash">GOAL!</div><div id="ftOv" class="ftov" style="display:none"><div class="disp" style="font-size:1.6em">FULL TIME</div><div class="disp" id="ftScore" style="font-size:2.4em;color:var(--gold)"></div><button class="gold" style="font-size:1.3em;padding:14px 30px" onclick="afterMatch()">Continue ▶</button></div></div>
   <div class="row" style="margin-top:10px;justify-content:center" id="ctrl">
    <span class="muted">Speed:</span>${[1,2,4].map(s=>`<button class="small ${s===1?'gold':'gray'}" data-sp="${s}" onclick="setSpeed(${s})">${s}x</button>`).join('')}
@@ -780,7 +799,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
   <div id="mPanel" style="display:none"></div>
   <div class="feed" id="feed"></div>
   <div class="row" style="margin-top:10px;justify-content:center"><button id="contB" class="gold" style="display:none;font-size:1.15em" onclick="afterMatch()">Continue ▶</button></div></div>`;
- initPitch();say('🟢 Kick off! Let\'s go '+esc(S.teamName)+'!');if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
+ initPitch();say('🟢 Kick off! Let\'s go '+esc(M.online?S.teamName:TN())+'!');if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
 function matchR(){return teamRating(M.xi.map(x=>({p:Object.assign({},x.p,{energy:M.en[x.p.id]}),pos:x.pos})))}
 function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(1.6-x.p.s.sta/100)*d*(x.p.st==='engine'?.5:1),5,100)})}
 const inMatch=()=>M&&!M.done&&$('#mPanel')&&$('#mPanel').style.display!=='none';
@@ -998,8 +1017,8 @@ function afterMatch(){if(!M||!M.done)return;if(M.online)return afterOnline();con
   S.league.fixtures[S.league.round].forEach(([a,b])=>{if(a===0||b===0)return;const A=S.league.teams[a].str,B=S.league.teams[b].str;record(a,b,pois(clamp(1.25*Math.pow(A/B,EXP),.05,6)),pois(clamp(1.25*Math.pow(B/A,EXP),.05,6)))});
   S.league.round++;if(S.league.round>=S.league.fixtures.length)after=endLeague}
  else{prize=money2(win?150:40);const o=S.wc.opps[S.wc.round];o.res=(win?'✅ ':'❌ ')+M.my+'-'+M.op+(M.pens?` (pens ${M.pens[0]}-${M.pens[1]})`:'');
-  if(win){S.wc.round++;if(S.wc.round<4)newCall();if(S.wc.round>=4){S.trophies.push({type:'wc',season:S.season});S.phase='over';S.resultIcon='🌍🏆';S.result='<b>YOU WON THE WORLD CUP!</b> You are the best team in the whole world!';
-    after=()=>{confetti(300);modal(`<div class="big">🌍🏆🎉</div><h1>WORLD CUP CHAMPIONS!</h1><p><b>${esc(S.teamName)}</b> beat everyone in the world! This is the BEST trophy there is!</p>`,[{t:'🎉 Yay!',c:'gold'}])}}
+  if(win){S.wc.round++;if(S.wc.round<4)newCall();if(S.wc.round>=4){S.trophies.push({type:'wc',season:S.season,name:'World Cup'+(S.country?' ('+S.country.f+' '+S.country.n+')':'')});S.phase='over';S.resultIcon='🌍🏆';S.result='<b>YOU WON THE WORLD CUP!</b> You are the best team in the whole world!';
+    after=()=>{confetti(300);modal(`<div class="big">🌍🏆🎉</div><h1>WORLD CUP CHAMPIONS!</h1><p><b>${esc(TN())}</b> beat everyone in the world! This is the BEST trophy there is!</p>`,[{t:'🎉 Yay!',c:'gold'}])}}
    else after=()=>modal(`<div class="big">🎉</div><h2>We're through!</h2><p>Next: the World Cup <b>${WC_ROUNDS[S.wc.round]}</b> vs ${esc(S.wc.opps[S.wc.round].name)}!</p>`)}
   else{S.phase='over';S.resultIcon='😢';S.result=`Knocked out of the World Cup in the <b>${WC_ROUNDS[S.wc.round]}</b>. Still, getting to the World Cup is awesome!`;
    after=()=>modal(`<div class="big">😢</div><h2>Out of the World Cup</h2><p>We lost in the ${WC_ROUNDS[S.wc.round]}. Train harder and come back next season!</p>`)}}
@@ -1017,8 +1036,8 @@ function endLeague(){const st=standings(),n=st.length,pos=st.findIndex(t=>t.i===
     ${S.level===TOP?'<h2>⭐ YOU MADE THE FULL NATIONAL TEAM! ⭐</h2><p>That\'s the goal! Now finish top 2 there to go to the World Cup 🌍.</p>':S.level===TOP-1?'<p>You made the <b>Half National Team</b>! One more step to the Full National Team!</p>':'<p>The teams there are better. Train hard and sign good players!</p>'}`,[{t:'⬆️ Awesome!',c:'gold'}])}
   else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in ${L.name}. You need the top 2 to move up. You stay in ${L.name} next season — try again!${S.level>0?' (Phew, you were not in the last '+RELEG+'!)':''}`;save();render();
    modal(`<div class="big">📅</div><h2>${L.name} finished: #${pos}</h2><p>You need top 2 to move up. Train hard and try again next season!</p>`)}return}
- if(pos<=2){setTimeout(newCall,4000);S.phase='wc';S.wc={round:0,opps:shuffle(WC_TEAMS).slice(0,4).map(([n,c],i)=>{const o={name:n,col:c,str:wcStr(i)};ensureSquad(o);return o})};save();render();confetti(pos===1?250:120);
-  modal(`<div class="big">${pos===1?'🏆':'🥈'}</div><h2>${pos===1?'NATIONAL CHAMPIONS!':'2nd place!'}</h2><p>${pos===1?'You won the Full National Team League! 🏆':'So close to the trophy!'}</p><p><b>You're going to the WORLD CUP! 🌍</b><br>Win 4 games in a row to become world champions!</p>`,[{t:'🌍 To the World Cup!',c:'gold'}])}
+ if(pos<=2){setTimeout(newCall,9000);S.phase='wc';S.wc={round:0,opps:shuffle(WC_TEAMS).slice(0,4).map(([n,c],i)=>{const o={name:n,col:c,str:wcStr(i)};ensureSquad(o);return o})};save();render();confetti(pos===1?250:120);
+  modal(`<div class="big">${pos===1?'🏆':'🥈'}</div><h2>${pos===1?'NATIONAL CHAMPIONS!':'2nd place!'}</h2><p>${pos===1?'You won the Full National Team League! 🏆':'So close to the trophy!'}</p><p><b>You're going to the WORLD CUP! 🌍</b><br>Win 4 games in a row to become world champions!</p>`,[{t:'🌍 To the World Cup!',c:'gold',f:pickCountry}])}
  else{S.phase='over';S.resultIcon='📅';S.result=`You finished <b>#${pos}</b> in the ${L.name}. You need the top 2 to go to the World Cup. Sign better players and train hard!`;save();render();
   modal(`<div class="big">📅</div><h2>League finished: #${pos}</h2><p>Not enough for the World Cup this time. Try again next season!</p>`)}}
 function endWeek(prize){const wage=S.players.reduce((a,p)=>a+p.salary,0);S.money+=money2(15)-wage;
@@ -1026,7 +1045,7 @@ function endWeek(prize){const wage=S.players.reduce((a,p)=>a+p.salary,0);S.money
  const left=[];S.trials.forEach(t=>{t.weeks++;if(t.weeks>=3)left.push(t)});left.forEach(t=>{S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Joined another team'})});
  const back=maybeComeBack();if(back)setTimeout(()=>toast(`😔 ${back.name} came back to say sorry!`),2600);const before=S.trials.length;addTrials(rnd(1,2));const nw=S.trials.length-before;S.week++;S.trained=false;S.day=1;S.dayStart=Date.now();
  const net=prize+money2(15)-wage;setTimeout(()=>toast(`💰 ${net>=0?'+':''}${money(net)} this week${nw?` · 📝 ${nw} new`:''}`),300)}
-function nextSeason(){S.season++;S.players.forEach(p=>{p.age++;p.energy=100});S.result='';setupLeague();addTrials(2);S.tab='team';save();render();
+function nextSeason(){S.season++;S.country=null;S.players.forEach(p=>{p.age++;p.energy=100});S.result='';setupLeague();addTrials(2);S.tab='team';save();render();
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
 function askReset(){modal('<h2>Start over?</h2><p>Your whole team, money and trophies will be deleted.</p>',[{t:'Yes, new game',c:'red',f:()=>{S=null;try{localStorage.removeItem('soccerMgrSave')}catch(e){}render()}},{t:'Cancel',c:'gray'}])}
 
