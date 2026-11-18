@@ -23,8 +23,28 @@ function roomKit(B,H,wp,LH){LH=LH||3.0;const cache={};const wm=c=>cache[c]||(cac
   const fl=(x,z,w,d,map)=>B.plane(w,d,x,0,z,HS.mat('#ffffff',{map}),{rx:-PI/2,solid:true});
   return {wm,wallX,wallZ,ow,fl};}
 function plantAt(B,x,z,y){y=y||0;const no={col:false};B.cyl(0.38,0.3,0.7,x,y+0.35,z,'#c8643b',{col:y+1.6});B.ball(0.6,x,y+1.2,z,'#4caf50',no);B.ball(0.45,x+0.35,y+1.55,z+0.1,'#5cbf60',no);B.ball(0.45,x-0.35,y+1.6,z-0.1,'#43a047',no);B.ball(0.4,x,y+1.95,z,'#66bb6a',no);}
-function tableAt(B,x,z,w,d,top,leg,h){h=h||0.9;B.box(w,0.12,d,x,h-0.06,z,top,{col:false});[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(s=>B.box(0.12,h-0.12,0.12,x+s[0]*(w/2-0.15),(h-0.12)/2,z+s[1]*(d/2-0.15),leg,{col:false,edges:false}));B.col(x-w/2,x+w/2,z-d/2,z+d/2,h);}
-function chairAt(B,x,z,face,c){B.box(0.7,0.5,0.7,x,0.25,z,c);const bx=face==='x'?0.3:face==='-x'?-0.3:0,bz=face==='z'?0.3:face==='-z'?-0.3:0;B.box(bx?0.12:0.7,1.0,bz?0.12:0.7,x+bx,1.0,z+bz,c,{col:false});}
+function tableAt(B,x,z,w,d,top,leg,h){h=h||0.9;const no={col:false,edges:false};B.box(w,0.12,d,x,h-0.06,z,top,{col:false});
+  B.box(w-0.3,0.1,d-0.3,x,h-0.17,z,leg,no);
+  const nx=Math.max(1,Math.round(w/3)),nz=Math.max(1,Math.round(d/3));
+  for(let a=0;a<=nx;a++)for(let b=0;b<=nz;b++){if(a>0&&a<nx&&b>0&&b<nz)continue;
+    B.box(0.16,h-0.12,0.16,x-w/2+0.2+(w-0.4)*a/nx,(h-0.12)/2,z-d/2+0.2+(d-0.4)*b/nz,leg,no);}
+  B.col(x-w/2,x+w/2,z-d/2,z+d/2,h);}
+function benchAt(B,x,z,w,d,c,leg,ax){leg=leg||'#5a3a1f';ax=ax||'x';const no={col:false,edges:false};B.box(ax==='x'?w:d,0.1,ax==='x'?d:w,x,0.45,z,c,{col:0.5});
+  const n=Math.max(1,Math.round(w/2.5));for(let a=0;a<=n;a++){const o=-w/2+0.2+(w-0.4)*a/n;[-1,1].forEach(sd=>{const lx=ax==='x'?o:sd*(d/2-0.12),lz=ax==='x'?sd*(d/2-0.12):o;B.box(0.14,0.4,0.14,x+lx,0.2,z+lz,leg,no);});}}
+function bikeAt(B,x,z,ry,c){const g='#2b2b2b',m='#bdc3c7',no={col:false,edges:false};const P=(lx,ly,lz)=>{const co=Math.cos(ry||0),si=Math.sin(ry||0);return [x+lx*co+lz*si,ly,z-lx*si+lz*co];};
+  const bx=(w,h,d,lx,ly,lz,col,o)=>{const p=P(lx,ly,lz);B.box(w,h,d,p[0],p[1],p[2],col,Object.assign({ry:ry||0},o||no));};
+  [-0.65,0.65].forEach(o=>{const p=P(o,0.4,0);B.cyl(0.4,0.4,0.07,p[0],p[1],p[2],g,{col:false,rx:PI/2,ry:ry||0});const q=P(o,0.4,0);B.cyl(0.07,0.07,0.1,q[0],q[1],q[2],m,{col:false,rx:PI/2,ry:ry||0,edges:false});});
+  bx(1.3,0.07,0.07,0,0.7,0,c);bx(0.07,0.5,0.07,-0.3,0.55,0,c);bx(0.06,0.7,0.06,0.62,0.75,0,c,no);bx(0.06,0.06,0.5,0.7,1.12,0,m);bx(0.5,0.07,0.1,-0.35,1.0,0,g);bx(0.06,0.3,0.06,-0.35,0.88,0,m);
+  bx(0.09,0.09,0.09,0,0.35,0,m);bx(0.25,0.05,0.06,0,0.3,0.1,g);bx(0.25,0.05,0.06,0,0.4,-0.1,g);
+  B.col(x-0.9,x+0.9,z-0.5,z+0.5,1.0);}
+function couchAt(B,x,z,w,c,c2,ry){ry=ry||0;const co=Math.cos(ry),si=Math.sin(ry),no={col:false,edges:true};const bx=(bw,bh,bd,lx,ly,lz,col,o)=>B.box(bw,bh,bd,x+lx*co+lz*si,ly,z-lx*si+lz*co,col,Object.assign({ry:ry},o||{}));
+  bx(w,0.3,1.1,0,0.35,0,c,{col:false});bx(w,0.75,0.28,0,0.8,-0.4,c,no);bx(0.3,0.6,1.1,-w/2+0.15,0.6,0,c,no);bx(0.3,0.6,1.1,w/2-0.15,0.6,0,c,no);
+  const n=Math.max(2,Math.round((w-0.6)/1.0));for(let i=0;i<n;i++)bx((w-0.6)/n-0.05,0.18,0.85,-(w-0.6)/2+(i+0.5)*(w-0.6)/n,0.58,0.08,c2,no);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(q=>bx(0.12,0.2,0.12,q[0]*(w/2-0.1),0.1,q[1]*0.45,'#3d2b1f',{col:false,edges:false}));
+  const hx=Math.abs(co)*w/2+Math.abs(si)*0.55,hz=Math.abs(si)*w/2+Math.abs(co)*0.55;B.col(x-hx,x+hx,z-hz,z+hz,0.7);}
+function chairAt(B,x,z,face,c){const no={col:false,edges:false};B.box(0.7,0.1,0.7,x,0.5,z,c,{col:0.55});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(q=>B.box(0.1,0.45,0.1,x+q[0]*0.28,0.225,z+q[1]*0.28,c,no));
+  const bx=face==='x'?0.3:face==='-x'?-0.3:0,bz=face==='z'?0.3:face==='-z'?-0.3:0;B.box(bx?0.1:0.7,0.9,bz?0.1:0.7,x+bx,1.0,z+bz,c,{col:false});}
 
 /* the rest of Felix's House: 8 more rooms around the living room */
 function houseRooms(B){
@@ -124,7 +144,7 @@ function houseRooms(B){
   B.box(1,1,1,-29.45,0.5,22.9,'#ffffff');B.cyl(0.3,0.3,0.05,-28.93,0.55,22.9,'#aed6f1',{col:false,rz:PI/2});
   B.box(1.4,0.8,1.4,-12,0.4,22.5,'#d4a373');B.box(1.1,0.7,1.1,-12.1,1.15,22.6,'#c8963e');B.box(0.8,0.5,0.8,-12,1.75,22.5,'#d4a373');
   B.openable({kind:'chest',x:-15.5,z:23.45,ry:PI,color:'#c0392b',lid:'#7b241c',label:'inside the tool chest'});
-  B.cyl(0.35,0.35,0.05,-25,0.4,10,'#2b2b2b',{col:false,rx:PI/2});B.cyl(0.35,0.35,0.05,-26.3,0.4,10,'#2b2b2b',{col:false,rx:PI/2});B.box(1.3,0.06,0.06,-25.65,0.7,10,'#2ecc71',no);
+  bikeAt(B,-25.65,10,0,'#2ecc71');
 
   /* ---- FRONT HALL (south) ---- */
   B.plane(2.2,3.4,4,1.7,23.96,'#7a4a24',{ry:PI});B.box(2.6,0.2,0.2,4,3.5,23.9,'#d4a017',no);B.ball(0.08,4.7,1.6,23.88,'#f1c40f',no);
@@ -140,7 +160,7 @@ function houseRooms(B){
   tableAt(B,21,15,2.8,1.6,'#16a085','#2b2b2b',0.8);B.box(0.05,0.18,1.7,21,0.89,15,'#ffffff',no);
   B.box(1,2,1.1,29.4,1,12.6,'#e84393');B.box(1,2,1.1,29.4,1,15,'#00b894');B.box(0.05,0.6,0.8,28.88,1.4,12.6,'#2b2b2b',no);B.box(0.05,0.6,0.8,28.88,1.4,15,'#2b2b2b',no);
   B.cyl(0.45,0.45,0.5,27,0.25,21.5,'#e74c3c',{col:0.6});B.cyl(0.3,0.3,0.4,27.9,0.6,21,'#ecf0f1',{col:false});B.cyl(0.3,0.3,0.4,26.1,0.6,21,'#ecf0f1',{col:false});B.cyl(0.35,0.35,0.04,27.7,1.3,22.2,'#f1c40f',no);
-  B.box(3.4,0.45,1.0,15,0.225,20,'#6c5ce7');B.box(3.4,0.75,0.25,15,0.82,19.6,'#6c5ce7');
+  couchAt(B,15,20,3.6,'#6c5ce7','#8e7df0');
   B.box(3,1.7,0.12,15,1.6,23.9,'#2b2b2b');B.basic(2.8,1.5,15,1.6,23.83,HS.tex.tv(),{ry:PI});
   B.openable({kind:'chest',x:25,z:8.78,color:'#8e44ad',lid:'#f1c40f',label:'inside the costume chest'});
   B.ball(0.6,13,0.35,10.5,'#f1c40f',{sy:0.6,col:0.7});
@@ -203,9 +223,7 @@ HS.defineMap({
     B.box(0.3,0.25,0.25,-1.3,2.62,7.5,'#e74c3c');
     // couch + rug
     B.plane(5,3.6,-3,0.012,5.2,HS.mat('#ffffff',{map:HS.tex.rug()}),{rx:-PI/2});
-    const cc='#3fa7a0';B.box(3.6,0.45,1.1,-3,0.225,3.85,cc);B.box(3.6,0.75,0.28,-3,0.82,3.39,cc);
-    B.box(0.28,0.4,1.1,-4.66,0.65,3.85,cc);B.box(0.28,0.4,1.1,-1.34,0.65,3.85,cc);
-    [-4.0,-3.0,-2.0].forEach(x=>B.box(0.95,0.16,0.85,x,0.53,3.95,'#57c1b9'));
+    couchAt(B,-3,3.85,3.8,'#3fa7a0','#57c1b9');
     B.box(0.5,0.5,0.15,-4.2,0.85,3.6,'#f1c40f',{rx:-0.2,col:false});
     // potted plant
     B.cyl(0.38,0.3,0.7,1.4,0.35,7.2,'#c8643b',{col:1.8});
@@ -333,7 +351,7 @@ function yardMore(B){
   B.box(4.3,0.15,0.15,-9,2.8,16,'#e74c3c',no);B.box(4.3,0.15,0.15,-9,2.8,19,'#e74c3c',no);B.box(0.15,0.15,3.2,-11,2.8,17.5,'#e74c3c',no);B.box(0.15,0.15,3.2,-7,2.8,17.5,'#e74c3c',no);
   [-10,-8].forEach(x=>{B.box(0.03,2.2,0.03,x-0.3,1.7,17.5,'#7f8c8d',{col:false,edges:false});B.box(0.03,2.2,0.03,x+0.3,1.7,17.5,'#7f8c8d',{col:false,edges:false});B.box(0.8,0.08,0.4,x,0.6,17.5,'#2b2b2b',no);});
   B.col(-11.1,-10.9,15.9,16.1,2.8);B.col(-7.1,-6.9,15.9,16.1,2.8);B.col(-11.1,-10.9,18.9,19.1,2.8);B.col(-7.1,-6.9,18.9,19.1,2.8);
-  tableAt(B,-9,24.5,3,1.4,'#b98552','#7a5230',0.8);B.box(3,0.45,0.4,-9,0.225,23.3,'#b98552');B.box(3,0.45,0.4,-9,0.225,25.7,'#b98552');
+  tableAt(B,-9,24.5,3,1.4,'#b98552','#7a5230',0.8);benchAt(B,-9,23.3,3,0.4,'#b98552','#7a5230');benchAt(B,-9,25.7,3,0.4,'#b98552','#7a5230');
   B.box(1.2,1,0.7,-13,0.5,32.5,'#2b2b2b');B.box(1.2,0.6,0.7,-13,1.3,32.3,'#3d3d3d',no);
   hut(B,{x:-5,z:31,w:4.5,d:4,h:2.6,wall:'#f8c8dc',roof:'#e84393',door:'n',floor:'#fdebd0'});
   B.openable({kind:'closet',x:-6.58,z:32,ry:PI/2,w:1.3,h:2.1,color:'#f1948a',label:'inside the playhouse cupboard'});
@@ -461,7 +479,7 @@ function castleMore(B){
   B.box(6.5,6,0.5,18.25,3,0,wallM);B.box(6,6,0.5,26.5,3,0,wallM);B.box(2,1.8,0.5,22.5,5.1,0,wallM,{col:false});
   // ---- GREAT HALL ----
   B.plane(2,22,-22,0.012,0,HS.mat('#ffffff',{map:HS.tex.carpet()}),{rx:-PI/2});
-  tableAt(B,-22,0,2.4,14,wood,'#5a3a1f',0.9);B.box(0.6,0.45,14,-24,0.225,0,'#7a4a24');B.box(0.6,0.45,14,-20,0.225,0,'#7a4a24');
+  tableAt(B,-22,0,2.4,14,wood,'#5a3a1f',0.9);benchAt(B,-24,0,14,0.6,'#7a4a24','#4a2e16','z');benchAt(B,-20,0,14,0.6,'#7a4a24','#4a2e16','z');
   for(let z=-6;z<=6;z+=2){B.cyl(0.25,0.2,0.1,-22.5,0.95,z,'#d4a017',no);B.ball(0.12,-21.5,1.0,z+0.5,'#e74c3c',no);}
   tableAt(B,-22,-9.5,6,1.2,wood,'#5a3a1f',0.9);B.box(1,1.8,0.3,-22,0.9,-11.2,'#d4a017');
   B.box(1,2.4,3.2,-29,1.2,0,'#7f7468');B.plane(0.1,1.2,-28.49,0.6,0,'#2b2b2b',{ry:PI/2});B.ball(0.35,-28.6,0.4,0,flame,{col:false,cast:false});B.light(0xffa040,0.5,10,-27.5,1.5,0);
@@ -916,7 +934,7 @@ function schoolMore(B){
   windowZ(B,-21,2.6,-23.97,3,1.6);windowZ(B,0,2.6,-23.97,3,1.6);windowZ(B,21,2.6,-23.97,3,1.6);windowX(B,-29.97,2.4,0,3,1.6);windowX(B,29.97,2.4,0,3,1.6);windowZ(B,0,2.6,23.97,3,1.6);
   const panel=HS.mat('#ffffff',{emissive:'#fff4d6'});[[-21,0],[-21,-16],[0,-16],[21,-16],[21,0],[-20,12],[0,12],[20,12],[-21,19.5],[0,19.5],[21,19.5]].forEach(p=>B.box(2.2,0.06,0.8,p[0],5.97,p[1],panel,{col:false,cast:false}));
   // ---- CAFETERIA ----
-  [-4,3].forEach(z=>{tableAt(B,-21,z,8,1.4,'#f5cba7','#7f8c8d',0.8);B.box(8,0.45,0.4,-21,0.225,z-1.2,'#3498db');B.box(8,0.45,0.4,-21,0.225,z+1.2,'#3498db');for(let i=0;i<4;i++)B.box(0.4,0.05,0.3,-24+i*2,0.83,z,BLK[i],no);});
+  [-4,3].forEach(z=>{tableAt(B,-21,z,8,1.4,'#f5cba7','#7f8c8d',0.8);benchAt(B,-21,z-1.2,8,0.4,'#3498db','#7f8c8d');benchAt(B,-21,z+1.2,8,0.4,'#3498db','#7f8c8d');for(let i=0;i<4;i++)B.box(0.4,0.05,0.3,-24+i*2,0.83,z,BLK[i],no);});
   B.box(1,1,10,-29.3,0.5,0,'#bdc3c7');B.box(0.05,0.6,10,-28.75,1.35,0,HS.mat('#d6eaf8',{opacity:0.4}),{col:false,solid:false});[-3,-1,1,3].forEach(z=>B.cyl(0.3,0.25,0.15,-29.3,1.08,z,'#e67e22',no));
   B.openable({kind:'closet',x:-25.5,z:-8.52,w:1.4,h:2.4,color:'#e59866',label:'inside the lunch cupboard'});
   [[-13.2,7.8],[-14,7.8]].forEach(p=>B.cyl(0.3,0.27,0.9,p[0],0.45,p[1],'#7f8c8d',{col:true}));
@@ -963,7 +981,7 @@ function schoolMore(B){
   // ---- PRINCIPAL'S OFFICE ----
   B.box(3,0.9,1.2,21,0.45,20,'#7a4a24');B.box(0.7,1.1,0.7,21,0.55,21.2,'#2b2b2b');B.box(0.6,0.5,0.6,21,0.25,18.4,'#a04000');
   B.box(0.7,1.4,0.9,29.5,0.7,17,'#85929e');B.box(0.7,1.4,0.9,29.5,0.7,17.95,'#85929e');
-  B.box(3,0.45,0.9,15,0.225,23.4,'#16a085');B.box(3,0.7,0.2,15,0.8,23.85,'#16a085');plantAt(B,29,23);
+  couchAt(B,15,23.4,3.2,'#16a085','#1abc9c');plantAt(B,29,23);
   B.openable({kind:'closet',x:25.5,z:23.52,ry:PI,w:1.4,h:2.4,color:'#6e4b2a',label:'inside the principal\'s closet'});
 }
 
@@ -982,13 +1000,13 @@ HS.defineMap({
     // chalkboard
     B.box(6.3,2.4,0.1,-4,2.1,-8.95,'#9a6a3f',{col:false});B.basic(6,2.2,-4,2.1,-8.89,chalkTex());B.box(6,0.08,0.18,-4,0.95,-8.85,'#9a6a3f',{col:false});
     // teacher's desk
-    B.box(2.6,0.8,1.2,-4,0.4,-6.5,'#9a6a3f');B.ball(0.12,-3.3,0.92,-6.4,'#e74c3c',{col:false});B.ball(0.25,-4.7,1.15,-6.6,HS.mat('#ffffff',{map:HS.tex.globe()}),{col:false});
-    B.box(0.6,0.5,0.6,-2.6,0.25,-7.6,'#555');B.box(0.6,0.7,0.08,-2.6,0.85,-7.9,'#555',{col:false});
+    tableAt(B,-4,-6.5,2.6,1.2,'#b07d4f','#7a4a24',0.85);B.ball(0.12,-3.3,0.92,-6.4,'#e74c3c',{col:false});B.ball(0.25,-4.7,1.15,-6.6,HS.mat('#ffffff',{map:HS.tex.globe()}),{col:false});
+    chairAt(B,-2.6,-7.6,'-z','#555');
     // student desks
     const chairs=['#e74c3c','#3498db','#2ecc71','#f1c40f'];
     [-3,0,3].forEach((z,r)=>[-8,-5.5,-3,-0.5].forEach((x,c)=>{B.box(1.1,0.06,0.75,x,0.75,z,'#e8c27a',{col:0.78});
       [[-0.48,-0.3],[0.48,-0.3],[-0.48,0.3],[0.48,0.3]].forEach(l=>B.box(0.05,0.72,0.05,x+l[0],0.36,z+l[1],'#7f8c8d',{col:false,edges:false}));
-      const ch=chairs[(r+c)%4];B.box(0.5,0.06,0.5,x,0.45,z+0.6,ch,{col:0.9});B.box(0.5,0.5,0.06,x,0.7,z+0.85,ch,{col:false});}));
+      const ch=chairs[(r+c)%4];B.box(0.5,0.06,0.5,x,0.45,z+0.6,ch,{col:0.9});[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(q=>B.box(0.05,0.42,0.05,x+q[0]*0.2,0.21,z+0.6+q[1]*0.2,'#7f8c8d',{col:false,edges:false}));B.box(0.5,0.5,0.06,x,0.7,z+0.85,ch,{col:false});}));
     // lockers
     for(let k=0;k<7;k++){const z=-8+k;B.box(0.6,2.2,0.98,11.7,1.1,z,'#4a90d9');for(let v=0;v<3;v++)B.box(0.02,0.04,0.5,11.39,1.9-v*0.1,z,'#2c5f99',{col:false,edges:false});B.box(0.03,0.2,0.05,11.39,1.1,z+0.3,'#cfd8dc',{col:false,edges:false});}
     // bookshelves
@@ -1077,7 +1095,7 @@ function backroomsMore(B,wm){
   for(let gx=-28;gx<=28;gx+=4)for(let gz=-24;gz<24;gz+=4){if(Math.abs(gx)<=16&&gz>=-16&&gz<16)continue;seg(gx,gz,gx,gz+4);}
   for(let gz=-20;gz<=20;gz+=4)for(let gx=-28;gx<28;gx+=4){if(Math.abs(gz)<=16&&gx>=-16&&gx<16)continue;seg(gx,gz,gx+4,gz);}
   [[-22,-18],[22,18],[18,-22],[-18,22],[-26,6],[26,-14]].forEach(p=>B.box(1,3.2,1,p[0],1.6,p[1],wm));
-  B.box(2.4,0.5,0.9,-18,0.25,-22,'#7d6b3a');B.box(2.4,0.6,0.25,-18,0.8,-22.4,'#7d6b3a');
+  benchAt(B,-18,-22,2.4,0.9,'#7d6b3a','#4a3f20');B.box(2.4,0.6,0.15,-18,0.85,-22.4,'#7d6b3a',{col:false});
   B.box(0.9,2,1.2,26,1,-6,'#2e86de');B.box(0.05,1.2,0.8,25.54,1.2,-6,HS.mat('#9fd3ff',{emissive:'#335577'}),{col:false});
   B.plane(3.4,3.4,18,0.012,-18,HS.mat('#ffffff',{map:checker('#ffffff','#d6eaf8',6,6)}),{rx:-Math.PI/2});B.plane(2.6,2.6,18,0.025,-18,HS.mat('#5cc6ee',{opacity:0.7}),{rx:-Math.PI/2});
   [[18,6,1.2],[19.1,6.2,0.9],[18.4,5.1,0.8]].forEach(b=>B.box(b[2],b[2],b[2],b[0],b[2]/2,b[1],'#c89b5a'));
@@ -1516,7 +1534,7 @@ HS.defineMap({
     B.cyl(0.05,0.05,2,-6,1,22.8,'#7a4a24',{col:1.9});B.ball(0.35,-6,1.6,22.8,'#e74c3c',{sy:1.4,col:false});B.ball(0.35,-6,1.2,23.0,'#2e86de',{sy:1.4,col:false});  // coat rack
     plant(-3,23);plant(3,23);
     B.box(1.4,0.9,1.4,-7.5,0.45,11,'#d9473b');B.box(1.0,0.7,1.0,-7.5,1.25,11,'#f1c40f');B.box(0.6,0.5,0.6,-7.5,1.85,11,'#3498db');  // stack of presents
-    B.box(4,0.45,1,6.5,0.225,10.2,'#3fa7a0');B.box(4,0.7,0.25,6.5,0.8,9.8,'#3fa7a0');                 // bench
+    benchAt(B,6.5,10.2,4,1,'#3fa7a0','#2c6e6a');B.box(4,0.6,0.15,6.5,0.85,9.75,'#3fa7a0',{col:false});                 // bench
 
     /* ---- LIBRARY (north middle) ---- */
     const bt=booksTex();const sm=HS.mat('#ffffff',{map:bt}),br='#6b4226';
@@ -1524,7 +1542,7 @@ HS.defineMap({
     shelf(-8.6,-2.4,-11.8);shelf(2.4,8.6,-11.8);shelf(-6,6,-15.8);shelf(-8.6,-1.6,-19.8);shelf(1.6,8.6,-19.8);
     B.box(0.7,3,6,-9.5,1.5,-20.5,[br,sm,br,br,br,br]);
     B.plane(5,3.5,0,0.012,-22,HS.mat('#ffffff',{map:HS.tex.rug()}),{rx:-PI2});
-    const ch=(x,z,ry,c)=>{B.box(1.2,0.5,1.1,x,0.25,z,c);B.box(1.2,0.8,0.25,x,0.9,z+ (ry?0.45:-0.45),c);};
+    const ch=(x,z,ry,c)=>{couchAt(B,x,z,1.5,c,c,ry?PI:0);};
     ch(-2,-22.6,0,'#8f1d24');ch(2,-22.6,0,'#8f1d24');
     B.box(2.6,0.9,1.3,6.5,0.45,-22.6,'#7a4a24');B.ball(0.5,6.5,1.5,-22.6,HS.mat('#ffffff',{map:HS.tex.globe()}),no);
     B.box(0.9,0.6,0.9,-6,0.3,-22.8,'#9b59b6');B.box(0.7,0.5,0.7,-6,0.85,-22.8,'#f1c40f');
