@@ -379,7 +379,7 @@ function fixLineup(){if(!S.lineup)S.lineup=bestXI().map(x=>x.p.id)}
 function tapSlot(i){if(inMatch()){if(selSlot===null)selSlot=i;else if(selSlot===i)selSlot=null;else return matchSwap(selSlot,i);return refreshPanel()}
  if(selSlot===null){selSlot=i;return render()}
  if(selSlot!==i){fixLineup();const a=S.lineup[selSlot];S.lineup[selSlot]=S.lineup[i];S.lineup[i]=a;save()}selSlot=null;render()}
-function tapBench(id){if(selSlot===null)return toast('First tap a player on the field!');if(inMatch())return matchSub(selSlot,id);fixLineup();S.lineup[selSlot]=id;selSlot=null;save();render()}
+function tapBench(id){if(selSlot===null)return toast('First tap a player on the field!');if(inMatch())return panelMode==='sub'?matchSub(selSlot,id):null;fixLineup();S.lineup[selSlot]=id;selSlot=null;save();render()}
 function autoLineup(){S.lineup=null;S.lineup=bestXI().map(x=>x.p.id);selSlot=null;save();render();toast('✨ Best players picked!')}
 function setForm(k){const ids=bestXI().map(x=>x.p.id);S.form=k;S.spots=null;if(S.lineup)S.lineup=ids;selSlot=null;save();render()}
 function askKick(id){const p=S.players.find(x=>x.id===id);if(!p)return;
@@ -474,7 +474,7 @@ function startMatch(){const xi=bestXI();if(xi.length<11)return toast('You need a
    <span class="muted">Speed:</span>${[1,2,4].map(s=>`<button class="small ${s===1?'gold':'gray'}" data-sp="${s}" onclick="setSpeed(${s})">${s}x</button>`).join('')}
    <button id="skipB" class="small red" onclick="skipMatch()">⏩ Skip</button></div>
   <div id="liveCtl"><div class="row" style="margin-top:8px;justify-content:center"><span class="muted">How we play:</span></div>${tacButtons(true)}<div class="muted" id="tacTip" style="text-align:center">${TACTICS[tacOf()].tip}</div>
-   <div class="row" style="justify-content:center;margin-top:8px"><button class="small gold" onclick="openPanel()">⏸ Pause: subs &amp; move players</button></div></div>
+   <div class="row" style="justify-content:center;margin-top:8px;gap:8px"><button class="small" onclick="openPanel('move')">↔️ Move players</button><button class="small gold" onclick="openPanel('sub')">🔄 Substitute</button></div></div>
   <div id="mPanel" style="display:none"></div>
   <div class="feed" id="feed"></div>
   <div class="row" style="margin-top:10px;justify-content:center"><button id="contB" class="gold" style="display:none;font-size:1.15em" onclick="afterMatch()">Continue ▶</button></div></div>`;
@@ -482,18 +482,19 @@ function startMatch(){const xi=bestXI();if(xi.length<11)return toast('You need a
 function matchR(){return teamRating(M.xi.map(x=>({p:Object.assign({},x.p,{energy:M.en[x.p.id]}),pos:x.pos})))}
 function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(1.6-x.p.s.sta/100)*d,5,100)})}
 const inMatch=()=>M&&!M.done&&$('#mPanel')&&$('#mPanel').style.display!=='none';
-function openPanel(){if(!M||M.done||!P)return;P.paused=true;selSlot=null;$('#mPanel').style.display='block';$('#liveCtl').style.display='none';refreshPanel();$('#mPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+let panelMode='move';
+function openPanel(m){if(!M||M.done||!P)return;panelMode=m;P.paused=m==='sub';selSlot=null;$('#mPanel').style.display='block';$('#liveCtl').style.display=m==='sub'?'none':'block';refreshPanel();$('#mPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 function closePanel(){if(!P)return;P.paused=false;selSlot=null;$('#mPanel').style.display='none';$('#liveCtl').style.display='block';$('.pitchwrap').scrollIntoView({block:'center',behavior:'smooth'})}
 function refreshPanel(){const el=$('#mPanel');if(!el||el.style.display==='none')return;const ids=new Set(M.xi.map(x=>x.p.id)),R=M.R;
  const bench=S.players.filter(p=>!ids.has(p.id)).sort((a,b)=>ovr(b)-ovr(a));
  const items=M.xi.map((x,i)=>({p:x.p,role:x.pos,u:P.teams[0][i].bu,y:P.teams[0][i].by,en:M.en[x.p.id]}));
- el.innerHTML=`<div class="card" style="margin:10px 0 0;border-color:var(--gold)"><div class="row"><h3 class="sp">⏸ Paused · ${M.min}'</h3><button class="gold" onclick="closePanel()">▶ Resume</button></div>
-  <div class="row"><span class="chip m">Power ${R.str} · ATT ${R.att} · DEF ${R.def}</span><span class="chip">🔄 Subs ${M.subs}/5</span></div>
-  ${tacButtons(true)}<div class="muted" style="text-align:center">${TACTICS[tacOf()].tip}</div>
-  <div class="muted" style="margin-top:6px"><b>Drag</b> players to move them. <b>Tap</b> a player, then tap a bench player to sub him out (or another field player to swap).</div>
+ const sub=panelMode==='sub';
+ el.innerHTML=`<div class="card" style="margin:10px 0 0;border-color:var(--gold)"><div class="row"><h3 class="sp">${sub?`⏸ Substitute · ${M.min}'`:'↔️ Move players'}</h3><button class="${sub?'gold':'gray'} small" onclick="closePanel()">${sub?'▶ Resume':'✖ Close'}</button></div>
+  <div class="row"><span class="chip m">Power ${R.str} · ATT ${R.att} · DEF ${R.def}</span>${sub?`<span class="chip">🔄 Subs ${M.subs}/5</span>`:'<span class="chip">⚽ Game is still going!</span>'}</div>
+  <div class="muted" style="margin-top:6px">${sub?'<b>Tap</b> the player coming off, then tap who comes on from the bench.':'<b>Drag</b> players to move them right now. <b>Tap</b> two players to swap them.'}</div>
   ${R.noGK?'<div class="tip" style="background:#ff7a7a22;border-color:#ff7a7a88">🧤 <b>No goalkeeper!</b> Your goal is empty!</div>':''}
   ${miniPitch(items)}
-  <h3 style="margin-top:10px">🪑 Bench</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">No players on the bench.</div>'}</div>`}
+  ${sub?`<h3 style="margin-top:10px">🪑 Bench</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">No players on the bench.</div>'}`:''}</div>`}
 function matchSub(slot,id){if(M.subs>=5)return toast('You already made 5 subs!');const np=S.players.find(p=>p.id===id);if(!np)return;const out=M.xi[slot].p;
  M.xi[slot]={p:np,pos:M.xi[slot].pos};M.en[np.id]=np.energy;M.played.add(np.id);M.subs++;const pp=P.teams[0][slot];pp.name=np.name;pp.num=np.num||slot+1;pp.spd=np.s.spd/100;
  M.R=matchR();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);selSlot=null;refreshPanel()}
