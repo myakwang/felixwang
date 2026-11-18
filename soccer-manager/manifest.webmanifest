@@ -1,0 +1,16 @@
+{
+  "name": "Felix's Soccer Manager",
+  "short_name": "Soccer Manager",
+  "description": "Manage your soccer team from Flight 4 all the way up to the Full National Team and the World Cup: train, sign trial players, kick players out and watch every match.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "background_color": "#0b2a47",
+  "theme_color": "#0b2a47",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
