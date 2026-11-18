@@ -128,6 +128,10 @@ input[type=text]{font:inherit;padding:12px;border-radius:14px;border:3px solid v
 .ftov{position:absolute;inset:0;background:#04101dcc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;animation:fadein .4s}
 .mini{position:relative;margin-top:10px;width:100%;aspect-ratio:3/4;max-height:560px;border-radius:16px;overflow:hidden;border:3px solid #24496f;
  background:repeating-linear-gradient(0deg,#37b24d 0 10%,#40c057 10% 20%)}
+.zone{position:absolute;left:0;right:0;height:0;border-top:2px dashed #ffffff40;font-size:.7em;font-weight:900;color:#ffffffaa;padding:2px 8px;pointer-events:none}
+.zone.ztop{top:0;border-top:none}
+.spot{touch-action:none;user-select:none;-webkit-user-select:none}
+.spot.dragging{z-index:3;opacity:.9}.spot.dragging .dot{transform:scale(1.25);border-color:var(--gold)}
 .mini:before{content:"";position:absolute;left:6%;right:6%;top:4%;bottom:4%;border:2px solid #ffffffaa;border-radius:4px}
 .mini:after{content:"";position:absolute;left:30%;right:30%;bottom:4%;height:14%;border:2px solid #ffffffaa;border-bottom:none}
 .spot{position:absolute;transform:translate(-50%,-50%);text-align:center;cursor:pointer;z-index:1;width:76px}
@@ -149,7 +153,8 @@ input[type=text]{font:inherit;padding:12px;border-radius:14px;border:3px solid v
 <canvas id="confetti"></canvas>
 <script>
 const SITE=(location.protocol==='http:'||location.protocol==='https:');
-const homeBtn=()=>SITE?`<button class="small gray" style="position:absolute;top:10px;left:10px;z-index:5" onclick="location.href=new URL('../',location.href).href" aria-label="All games">🏠</button>`:'';
+const homeBtn=()=>SITE?`<button class="small gray" style="position:absolute;top:10px;left:10px;z-index:5" onclick="goHome()" aria-label="All games">🏠</button>`:'';
+function goHome(){location.href=new window.URL('../',location.href).href}
 addEventListener('error',e=>{try{toast('Oops: '+(e.message||'error'))}catch(_){}});
 const SK=['sho','pas','def','spd','sta'];
 const SKN={sho:'Shooting',pas:'Passing',def:'Defending',spd:'Speed',sta:'Stamina'};
@@ -172,9 +177,10 @@ function levelTeams(L){const mine=(S.teamName||'').toLowerCase();const cities=sh
 const WC_TEAMS=[['Brazil Samba Stars','#f9d71c'],['Spain Royal FC','#c60b1e'],['Germany Iron Eagles','#eeeeee'],['Argentina Tango','#74acdf'],['France Blue Roosters','#1f3a93'],['England Lions','#ffffff'],['Japan Blue Samurai','#1b3f8b'],['Italy Azzurri','#2a7de1'],['Portugal Navigators','#a3001b'],['Netherlands Orange','#ff7f00']];
 const WC_BASE=[80,83,86,89];
 const WC_ROUNDS=['Round of 16','Quarterfinal','Semifinal','FINAL'];
-const DIFF={easy:3,normal:7,hard:11};
+const DIFF={easy:4,normal:7,hard:9};
 const COLORS=['#1d6fe0','#e0393e','#18a457','#ff9f1c','#7b2ff7','#111827'];
 const HOURS=10;
+const EXP=6; // how much team strength matters (higher = the better team wins more)
 let S=null,M=null,timer=null,anim=null,setupColor=COLORS[0],setupDiff='easy';
 
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
@@ -190,7 +196,7 @@ function save(){try{localStorage.setItem('soccerMgrSave',JSON.stringify(S))}catc
 function load(){try{const t=localStorage.getItem('soccerMgrSave');if(t)S=JSON.parse(t)}catch(e){S=null}
  if(S&&(S.v||0)<3){S.v=3;S.diff=S.diff||'easy';S.color=S.color||COLORS[0];S.level=0;
   S.players.forEach(p=>p.energy=Math.max(p.energy,70));setupLeague();S.trials=S.trials||[];S.migrated=true;save()}
- if(S&&S.v<4){S.v=4;S.league.teams.forEach((t,i)=>{if(i>0)t.str=leagueStr(i-1)});if(S.wc)S.wc.opps.forEach((o,i)=>o.str=wcStr(i));save()}}
+ if(S&&S.v<5){S.v=5;S.league.teams.forEach((t,i)=>{if(i>0)t.str=leagueStr(i-1)});if(S.wc)S.wc.opps.forEach((o,i)=>o.str=wcStr(i));save()}}
 
 function leagueStr(i){return clamp(LEVELS[S.level].base[i]+DIFF[S.diff]+rnd(-1,1),30,92)}
 function wcStr(i){return clamp(WC_BASE[i]+DIFF[S.diff],40,95)}
@@ -244,7 +250,11 @@ const FORMS={
  '3-4-3':{att:3,def:-3,tip:'Attack! (weaker defense)',pos:[[.04,.5,'GK'],[.18,.25,'DEF'],[.16,.5,'DEF'],[.18,.75,'DEF'],[.38,.12,'MID'],[.35,.38,'MID'],[.35,.62,'MID'],[.38,.88,'MID'],[.58,.2,'FWD'],[.6,.5,'FWD'],[.58,.8,'FWD']]},
  '5-3-2':{att:-3,def:3,tip:'Defend! (weaker attack)',pos:[[.04,.5,'GK'],[.24,.1,'DEF'],[.18,.3,'DEF'],[.16,.5,'DEF'],[.18,.7,'DEF'],[.24,.9,'DEF'],[.38,.25,'MID'],[.35,.5,'MID'],[.38,.75,'MID'],[.58,.38,'FWD'],[.58,.62,'FWD']]}};
 const formOf=()=>FORMS[S.form]?S.form:'4-3-3';
-function bestXI(){const slots=FORMS[formOf()].pos.map(p=>p[2]),used=new Set(),xi=new Array(11).fill(null),ids=S.lineup||[];
+const zoneRole=u=>u<.1?'GK':u<.28?'DEF':u<.48?'MID':'FWD';
+function spotsOf(){return FORMS[formOf()].pos.map((p,i)=>S.spots&&S.spots[i]?[S.spots[i][0],S.spots[i][1]]:[p[0],p[1]])}
+const slotRoles=()=>spotsOf().map(([u])=>zoneRole(u));
+const mySpots=()=>{const r=slotRoles();return spotsOf().map(([u,y],i)=>[u,y,r[i]])};
+function bestXI(){const slots=slotRoles(),used=new Set(),xi=new Array(11).fill(null),ids=S.lineup||[];
  slots.forEach((pos,i)=>{const p=S.players.find(x=>x.id===ids[i]);if(p&&!used.has(p.id)){used.add(p.id);xi[i]={p,pos}}});
  slots.forEach((pos,i)=>{if(xi[i])return;let c=S.players.filter(p=>!used.has(p.id)&&p.pos===pos);if(!c.length)c=S.players.filter(p=>!used.has(p.id));if(!c.length)return;
   c.sort((a,b)=>eff(b,pos)-eff(a,pos));used.add(c[0].id);xi[i]={p:c[0],pos}});
@@ -252,7 +262,8 @@ function bestXI(){const slots=FORMS[formOf()].pos.map(p=>p[2]),used=new Set(),xi
 function teamRating(xi){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
  const str=avg(xi.map(x=>eff(x.p,x.pos)));const fw=avg(xi.filter(x=>x.pos==='FWD').map(x=>eff(x.p,'FWD')));
  const df=avg(xi.filter(x=>x.pos==='DEF'||x.pos==='GK').map(x=>eff(x.p,x.pos)));
- const F=FORMS[formOf()];return{str:Math.round(str),att:Math.round((str+fw)/2+F.att),def:Math.round((str+df)/2+F.def)}}
+ const F=FORMS[formOf()],gks=xi.filter(x=>x.pos==='GK').length,noGK=gks===0?14:0,extra=Math.max(0,gks-1)*4;
+ return{str:Math.round(str),att:Math.round((str+fw)/2+F.att-extra),def:Math.round((str+df)/2+F.def-noGK),noGK:!gks}}
 
 function makeFixtures(n){let t=[...Array(n).keys()],r=[];for(let k=0;k<n-1;k++){const ms=[];for(let i=0;i<n/2;i++)ms.push([t[i],t[n-1-i]]);r.push(ms);t=[t[0],t[n-1],...t.slice(1,n-1)]}
  return r.concat(r.map(ms=>ms.map(([a,b])=>[b,a])))}
@@ -268,7 +279,7 @@ function addTrials(n){for(let i=0;i<n&&S.trials.length<4;i++){
  S.trials.push(p)}}
 
 function newGame(name){name=(name||'').trim()||'Irvine Strikers';
- S={v:4,level:0,teamName:name.slice(0,22),color:setupColor,diff:setupDiff,money:200,week:1,season:1,players:[],trials:[],gone:[],usedNames:[],nextId:1,tab:'team',
+ S={v:5,level:0,teamName:name.slice(0,22),color:setupColor,diff:setupDiff,money:200,week:1,season:1,players:[],trials:[],gone:[],usedNames:[],nextId:1,tab:'team',
   plan:{sho:2,pas:2,def:2,spd:1,sta:1,rest:2},trained:false,trophies:[],phase:'league',result:''};
  ['GK','GK','DEF','DEF','DEF','DEF','DEF','MID','MID','MID','MID','FWD','FWD','FWD','FWD','MID'].forEach(pos=>S.players.push(makePlayer(rnd(50,60),pos)));
  setupLeague();addTrials(3);save();render();confetti(90);
@@ -297,7 +308,7 @@ function startScreen(){return `${homeBtn()}<div class="card" style="text-align:c
  <p>Name your team:</p><input type="text" id="tname" maxlength="22" placeholder="Irvine Strikers">
  <div class="opts" style="margin-top:8px">${TEAM_IDEAS.map(c=>`<button class="small gray" onclick="pickName('${c}')">${c}</button>`).join('')}</div>
  <p>Team color:</p><div class="opts">${COLORS.map(c=>`<button class="sw ${c===setupColor?'on':''}" style="background:${c}" onclick="setupColor='${c}';keepName()"></button>`).join('')}</div>
- <p>How hard?</p><div class="opts">${[['easy','😊 Easy'],['normal','😐 Normal'],['hard','😈 Hard']].map(([k,l])=>`<button class="small ${k===setupDiff?'gold on':'gray'}" onclick="setupDiff='${k}';keepName()">${l}</button>`).join('')}</div><br>
+ <p>How strong are the other teams?</p><div class="opts">${[['easy','😊 Easy (weaker)'],['normal','😐 Normal'],['hard','😈 Hard (stronger)']].map(([k,l])=>`<button class="small ${k===setupDiff?'gold on':'gray'}" onclick="setupDiff='${k}';keepName()">${l}</button>`).join('')}</div><br>
  <button class="gold" style="font-size:1.2em;padding:14px 28px" onclick="newGame($('#tname').value)">Start Managing!</button></div>`}
 function pickName(c){$('#tname').value=c+' '+pick(SUFFIX)}
 function keepName(){const v=$('#tname').value;render();$('#tname').value=v}
@@ -325,24 +336,36 @@ function callYouth(){if(S.players.length>=22)return toast('Squad is full!');cons
 let selSlot=null;
 function lineupView(){const F=FORMS[formOf()],xi=bestXI(),inXI=new Set(xi.map(x=>x.p.id)),R=xi.length>=11?teamRating(xi):null;
  const bench=S.players.filter(p=>!inXI.has(p.id)).sort((a,b)=>ovr(b)-ovr(a));
- const spots=F.pos.map(([u,y,role],i)=>{const x=xi[i];if(!x)return '';const o=ovrAt(x.p,role),off=x.p.pos!==role;
-  return `<div class="spot ${selSlot===i?'sel':''} ${off?'off':''}" style="left:${y*100}%;top:${92-u*140}%" onclick="tapSlot(${i})">
+ const spots=mySpots().map(([u,y,role],i)=>{const x=xi[i];if(!x)return '';const o=ovrAt(x.p,role),off=x.p.pos!==role;
+  return `<div class="spot ${selSlot===i?'sel':''} ${off?'off':''}" style="left:${y*100}%;top:${92-u*140}%" onpointerdown="dragStart(event,${i})">
    <div class="dot" style="background:${role==='GK'?'#ffd43b':S.color}">${x.p.num||''}</div><div class="lbl">${esc(x.p.name.split(' ').slice(-1)[0])}</div><div class="lo">${role} ${o}${off?' ⚠️':''}</div></div>`}).join('');
  return `<div class="card"><div class="row"><h2 class="sp">📋 Lineup</h2>${R?`<span class="chip m">Power ${R.str} · ATT ${R.att} · DEF ${R.def}</span>`:''}</div>
-  <div class="muted">Pick a formation, then tap a player on the field and tap someone else to swap them.</div>
+  <div class="muted">Pick a formation. <b>Drag</b> a player to move him anywhere (even the keeper up front!). <b>Tap</b> a player, then tap someone else to swap them.</div>
   <div class="opts" style="justify-content:flex-start">${Object.keys(FORMS).map(k=>`<button class="small ${k===formOf()?'gold':'gray'}" onclick="setForm('${k}')">${k}</button>`).join('')}</div>
   <div class="muted">${formOf()}: ${F.tip}</div>
   ${S.players.length<11?youthBtn():''}
-  <div class="mini">${spots}</div>
+  ${R&&R.noGK?'<div class="tip" style="background:#ff7a7a22;border-color:#ff7a7a88">🧤 <b>No goalkeeper!</b> Your goal is empty — you will let in lots of goals. Drag someone into the GK zone.</div>':''}
+  <div class="mini"><div class="zone" style="top:78%">GK</div><div class="zone" style="top:52.8%">DEF</div><div class="zone" style="top:24.8%">MID</div><div class="zone ztop">FWD</div>${spots}</div>
+  <div class="row" style="margin-top:8px;gap:6px"><button class="small gray" onclick="shiftAll(.05,0)">⬆️ Push up</button><button class="small gray" onclick="shiftAll(-.05,0)">⬇️ Drop back</button><button class="small gray" onclick="shiftAll(0,-.15)">🤏 Compact</button><button class="small gray" onclick="shiftAll(0,.15)">↔️ Spread out</button><button class="small red" onclick="resetSpots()">↺ Reset</button></div>
   <div class="row" style="margin-top:10px"><span class="chip">${S.lineup?'✋ Your lineup':'✨ Auto lineup (best players)'}</span><span class="sp"></span><button class="small" onclick="autoLineup()">✨ Auto pick best</button></div>
   <div class="muted" style="margin-top:6px">⚠️ = playing out of position (a bit worse). ${selSlot!==null&&xi[selSlot]?`<b style="color:var(--gold)">Now tap a bench player or another player to swap with ${esc(xi[selSlot].p.name)}.</b>`:''}</div></div>
   <div class="card"><h3>🪑 Bench (${bench.length})</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">Everyone is playing!</div>'}</div>`}
+let drag=null;
+function dragStart(e,i){e.preventDefault();const el=e.currentTarget;drag={i,el,mini:el.parentElement.getBoundingClientRect(),x0:e.clientX,y0:e.clientY,moved:false};
+ addEventListener('pointermove',dragMove);addEventListener('pointerup',dragEnd,{once:true})}
+function dragMove(e){if(!drag)return;if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)>8)drag.moved=true;if(!drag.moved)return;
+ drag.lx=clamp((e.clientX-drag.mini.left)/drag.mini.width*100,4,96);drag.ty=clamp((e.clientY-drag.mini.top)/drag.mini.height*100,5,89);
+ drag.el.style.left=drag.lx+'%';drag.el.style.top=drag.ty+'%';drag.el.classList.add('dragging');drag.el.querySelector('.lo').textContent=zoneRole((92-drag.ty)/140)}
+function dragEnd(){removeEventListener('pointermove',dragMove);const d=drag;drag=null;if(!d)return;if(!d.moved)return tapSlot(d.i);
+ fixLineup();if(!S.spots)S.spots=spotsOf();S.spots[d.i]=[(92-d.ty)/140,d.lx/100];selSlot=null;save();render()}
+function shiftAll(du,dy){fixLineup();const sp=spotsOf();S.spots=sp.map(([u,y])=>zoneRole(u)==='GK'?[u,y]:[clamp(u+du,.1,.62),clamp(.5+(y-.5)*(1+dy),.04,.96)]);save();render()}
+function resetSpots(){S.spots=null;save();render();toast('↺ Back to normal '+formOf()+' positions')}
 function fixLineup(){if(!S.lineup)S.lineup=bestXI().map(x=>x.p.id)}
 function tapSlot(i){if(selSlot===null){selSlot=i;return render()}
  if(selSlot!==i){fixLineup();const a=S.lineup[selSlot];S.lineup[selSlot]=S.lineup[i];S.lineup[i]=a;save()}selSlot=null;render()}
 function tapBench(id){if(selSlot===null)return toast('First tap a player on the field!');fixLineup();S.lineup[selSlot]=id;selSlot=null;save();render()}
 function autoLineup(){S.lineup=null;selSlot=null;save();render();toast('✨ Best players picked!')}
-function setForm(k){const ids=bestXI().map(x=>x.p.id);S.form=k;if(S.lineup)S.lineup=ids;selSlot=null;save();render()}
+function setForm(k){const ids=bestXI().map(x=>x.p.id);S.form=k;S.spots=null;if(S.lineup)S.lineup=ids;selSlot=null;save();render()}
 function askKick(id){const p=S.players.find(x=>x.id===id);if(!p)return;
  modal(`<div class="big">🚫</div><h2>Kick out ${esc(p.name)}?</h2><p>He leaves <b>forever</b> and can't play anymore. He will never come back.</p>${S.players.length<=11?'<p style="color:var(--bad)"><b>⚠️ You will have less than 11 players!</b></p>':''}`,
   [{t:'🚫 Kick out',c:'red',f:()=>{S.players=S.players.filter(x=>x.id!==id);S.gone.push({name:p.name,why:'Kicked out'});save();render();toast(p.name+' is gone forever.')}},{t:'Keep him',c:'gray'}])}
@@ -386,6 +409,8 @@ function haggle(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const r=Mat
 function declineT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;leave(p,'Declined');toast(p.name+' is gone and will never come back.')}
 function leave(p,why){S.trials=S.trials.filter(x=>x.id!==p.id);S.gone.push({name:p.name,why});save();render()}
 
+function winChance(R,os){let w=0,d=0;const N=400;for(let i=0;i<N;i++){let a=0,b=0;for(let t=0;t<18;t++){const pA=clamp(.072*Math.pow(R.att/os,EXP),.004,.36),pB=clamp(.068*Math.pow(os/R.def,EXP),.004,.36),x=Math.random();if(x<pA)a++;else if(x<pA+pB)b++}if(a>b)w++;else if(a===b)d++}
+ w=Math.round(w/N*100);d=Math.round(d/N*100);return{w,d,l:Math.max(0,100-w-d)}}
 function nextOpp(){if(S.phase==='league'){if(S.league.round>=S.league.fixtures.length)return null;const m=S.league.fixtures[S.league.round].find(m=>m.includes(0));const oi=m[0]===0?m[1]:m[0];const t=S.league.teams[oi];return{name:t.name,str:t.str,col:t.col||'#ccc',idx:oi,label:`${LEVELS[S.level].name} · Match ${S.league.round+1} of ${S.league.fixtures.length}`}}
  if(S.phase==='wc'){const o=S.wc.opps[S.wc.round];return{name:o.name,str:o.str,col:o.col||'#ddd',label:'🌍 World Cup · '+WC_ROUNDS[S.wc.round]}}return null}
 
@@ -395,12 +420,13 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
  const o=nextOpp();if(!o){setTimeout(endLeague,0);return '<div class="card">Season finished!</div>'}const xi=bestXI(),R=xi.length>=11?teamRating(xi):null;
  let tip='';if(R){const avgE=xi.reduce((a,x)=>a+x.p.energy,0)/11;
   if(avgE<55)tip='😴 Your starters are tired. Use more Rest hours in Training.';else if(R.str<o.str-3)tip='💡 They look stronger. Sign a better player in Trials or train more!';else if(!S.trained)tip="💡 You haven't trained this week yet.";else tip='💪 Your team is ready!'}
- const pct=R?Math.round(R.str/(R.str+o.str)*100):50;
+ const pct=R?Math.round(R.str/(R.str+o.str)*100):50,wc=R?winChance(R,o.str):null;
  return `<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   <div class="vs"><div>${crest(S.teamName,S.color,64)}<div class="disp">${esc(S.teamName)}</div>${R?`<div class="num">${R.str}</div><div class="muted">ATT ${R.att} · DEF ${R.def}</div>`:''}</div>
    <div class="disp" style="font-size:2em">VS</div>
    <div>${crest(o.name,o.col,64)}<div class="disp">${esc(o.name)}</div><div class="num">${o.str}</div><div class="muted">Team power</div></div></div>
   ${R?`<div class="meter"><i style="width:${pct}%;background:${S.color}"></i><i style="flex:1;background:${o.col}"></i></div>`:youthBtn()}
+  ${wc?`<div style="text-align:center;margin-top:6px"><span class="chip m" style="font-size:1em">🎲 Win chance: <b>${wc.w}%</b> · Draw ${wc.d}% · Lose ${wc.l}%</span><div class="muted" style="margin-top:4px">The stronger team almost always wins. Get stronger by training, resting and signing better players!</div></div>`:''}
   ${tip?`<div class="tip">${tip}</div>`:''}<br>
   <button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="startMatch()" ${R?'':'disabled'}>⚽ KICK OFF!</button></div>
   ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
@@ -439,7 +465,7 @@ function flash(t,sad){const f=$('#flash');if(!f)return;f.textContent=t;f.style.c
 
 // What happens in the next 5 minutes (decided by team strength)
 function decideEvent(){const{R,o}=M;
- const pA=clamp(.075*Math.pow(R.att/o.str,2.4),.015,.32),pB=clamp(.068*Math.pow(o.str/R.def,2.4),.012,.3),r=Math.random();
+ const pA=clamp(.072*Math.pow(R.att/o.str,EXP),.004,.36),pB=clamp(.068*Math.pow(o.str/R.def,EXP),.004,.36),r=Math.random();
  if(r<pA)return{team:0,kind:'goal'};if(r<pA+pB)return{team:1,kind:'goal'};
  if(r<pA+pB+.32){const t=Math.random()<R.str/(R.str+o.str)?0:1;return{team:t,kind:'chance',result:pick(['save','save','wide','post'])}}
  return{team:Math.random()<R.str/(R.str+o.str)?0:1,kind:Math.random()<.5?'keep':'lose'}}
@@ -457,7 +483,7 @@ function initPitch(){const c=$('#pitch');if(!c)return;
  let oc=M.o.col||'#cccccc';if(hexDist(oc,S.color)<110)oc=hexDist('#f1f3f5',S.color)<110?'#212529':'#f1f3f5';
  P={c,x:c.getContext('2d'),cols:[S.color,oc],teams:[[],[]],ball:{x:.5,y:.5,z:0,fly:null},poss:0,carrier:null,plan:null,wait:0,after:null,
   mode:'play',dribble:null,speed:1,f:0,last:null,reset:0,steps:0};
- for(let t=0;t<2;t++)(t===0?FORMS[formOf()].pos:FORM).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
+ for(let t=0;t<2;t++)(t===0?mySpots():FORM).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
   P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):OPP_NUM[i],name:t===0?xp.name:'',spd:t===0?xp.s.spd/100:M.o.str/100,dive:null})});
  kickoff(0);P.after=nextChunk;P.wait=50;
  const loop=()=>{if(!P)return;for(let k=0;k<P.speed;k++)step();draw();anim=requestAnimationFrame(loop)};loop()}
@@ -472,7 +498,7 @@ function shape(p){const att=P.poss===p.t,b=P.ball,bu=p.t===0?b.x:1-b.x;
  if(p.role==='GK')return{x:toX(p.t,.035+(bu<.3?.02:0)),y:.5+(b.y-.5)*.35};
  const spread=att?.85:.58;let u=bu+(p.bu-.38)*spread+(att?.04:-.04);
  if(att&&p.role==='FWD')u=Math.max(u,bu+.05);
- u=clamp(u,UCL[p.role][0],UCL[p.role][1]);
+ u=clamp(u,Math.min(UCL[p.role][0],p.bu),Math.max(UCL[p.role][1],p.bu));
  const y=clamp(p.by+(b.y-p.by)*(att?.16:.32)+Math.sin(P.f/90+p.i*1.3)*.015,.05,.95);
  return{x:toX(p.t,u),y}}
 
@@ -531,7 +557,8 @@ function next(){const pl=P.plan,c=P.carrier;if(!pl)return endChunk();if(!c){P.wa
  if(!pl.drib&&u<.82){pl.drib=true;P.dribble={x:toX(c.t,.82+Math.random()*.06),y:.34+Math.random()*.32};return}
  shoot(c,pl.kind==='goal'?'goal':pl.result)}
 
-function shoot(c,res){const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=P.teams[1-t][0],assist=P.last&&P.last.t===t&&P.last!==c?P.last:null;
+function keeper(t){return P.teams[t].find(p=>p.role==='GK')||P.teams[t].slice().sort((a,b)=>a.bu-b.bu)[0]}
+function shoot(c,res){const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=keeper(1-t),assist=P.last&&P.last.t===t&&P.last!==c?P.last:null;
  let tx,ty;
  if(res==='goal'){ty=Math.random()<.5?.44+Math.random()*.03:.53+Math.random()*.03;tx=gx+dir*.014;gk.dive={x:gk.x,y:ty>.5?ty-.07:ty+.07}}
  else if(res==='save'){ty=.43+Math.random()*.14;tx=gk.x;gk.dive={x:gk.x,y:ty}}
@@ -604,7 +631,7 @@ function pois(l){let L=Math.exp(-l),k=0,p=1;do{k++;p*=Math.random()}while(p>L);r
 function afterMatch(){if(!M||!M.done)return;const win=M.my>M.op||(M.pens&&M.pens[0]>M.pens[1]),draw=!M.pens&&M.my===M.op;let prize,after=null;
  M.xi.forEach(x=>x.p.energy=clamp(x.p.energy-(rnd(10,15)-Math.floor(x.p.s.sta/25)),5,100));
  if(S.phase==='league'){prize=money2(win?60:draw?30:15);record(0,M.o.idx,M.my,M.op);
-  S.league.fixtures[S.league.round].forEach(([a,b])=>{if(a===0||b===0)return;const A=S.league.teams[a].str,B=S.league.teams[b].str;record(a,b,pois(1.3*Math.pow(A/B,2.2)),pois(1.3*Math.pow(B/A,2.2)))});
+  S.league.fixtures[S.league.round].forEach(([a,b])=>{if(a===0||b===0)return;const A=S.league.teams[a].str,B=S.league.teams[b].str;record(a,b,pois(clamp(1.25*Math.pow(A/B,EXP),.05,6)),pois(clamp(1.25*Math.pow(B/A,EXP),.05,6)))});
   S.league.round++;if(S.league.round>=S.league.fixtures.length)after=endLeague}
  else{prize=money2(win?150:40);const o=S.wc.opps[S.wc.round];o.res=(win?'✅ ':'❌ ')+M.my+'-'+M.op+(M.pens?` (pens ${M.pens[0]}-${M.pens[1]})`:'');
   if(win){S.wc.round++;if(S.wc.round>=4){S.trophies.push({type:'wc',season:S.season});S.phase='over';S.resultIcon='🌍🏆';S.result='<b>YOU WON THE WORLD CUP!</b> You are the best team in the whole world!';
