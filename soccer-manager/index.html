@@ -158,7 +158,7 @@ function levelTeams(L){const mine=(S.teamName||'').toLowerCase();const cities=sh
 const WC_TEAMS=[['Brazil Samba Stars','#f9d71c'],['Spain Royal FC','#c60b1e'],['Germany Iron Eagles','#eeeeee'],['Argentina Tango','#74acdf'],['France Blue Roosters','#1f3a93'],['England Lions','#ffffff'],['Japan Blue Samurai','#1b3f8b'],['Italy Azzurri','#2a7de1'],['Portugal Navigators','#a3001b'],['Netherlands Orange','#ff7f00']];
 const WC_BASE=[80,83,86,89];
 const WC_ROUNDS=['Round of 16','Quarterfinal','Semifinal','FINAL'];
-const DIFF={easy:-6,normal:0,hard:5};
+const DIFF={easy:3,normal:7,hard:11};
 const COLORS=['#1d6fe0','#e0393e','#18a457','#ff9f1c','#7b2ff7','#111827'];
 const HOURS=10;
 let S=null,M=null,timer=null,anim=null,setupColor=COLORS[0],setupDiff='easy';
@@ -175,7 +175,8 @@ const initials=n=>n.split(/\s+/).map(w=>w[0]).join('').slice(0,3).toUpperCase();
 function save(){try{localStorage.setItem('soccerMgrSave',JSON.stringify(S))}catch(e){}}
 function load(){try{const t=localStorage.getItem('soccerMgrSave');if(t)S=JSON.parse(t)}catch(e){S=null}
  if(S&&(S.v||0)<3){S.v=3;S.diff=S.diff||'easy';S.color=S.color||COLORS[0];S.level=0;
-  S.players.forEach(p=>p.energy=Math.max(p.energy,70));setupLeague();S.trials=S.trials||[];S.migrated=true;save()}}
+  S.players.forEach(p=>p.energy=Math.max(p.energy,70));setupLeague();S.trials=S.trials||[];S.migrated=true;save()}
+ if(S&&S.v<4){S.v=4;S.league.teams.forEach((t,i)=>{if(i>0)t.str=leagueStr(i-1)});if(S.wc)S.wc.opps.forEach((o,i)=>o.str=wcStr(i));save()}}
 
 function leagueStr(i){return clamp(LEVELS[S.level].base[i]+DIFF[S.diff]+rnd(-1,1),30,92)}
 function wcStr(i){return clamp(WC_BASE[i]+DIFF[S.diff],40,95)}
@@ -245,7 +246,7 @@ function addTrials(n){for(let i=0;i<n&&S.trials.length<4;i++){
  S.trials.push(p)}}
 
 function newGame(name){name=(name||'').trim()||'Irvine Strikers';
- S={v:3,level:0,teamName:name.slice(0,22),color:setupColor,diff:setupDiff,money:200,week:1,season:1,players:[],trials:[],gone:[],usedNames:[],nextId:1,tab:'team',
+ S={v:4,level:0,teamName:name.slice(0,22),color:setupColor,diff:setupDiff,money:200,week:1,season:1,players:[],trials:[],gone:[],usedNames:[],nextId:1,tab:'team',
   plan:{sho:2,pas:2,def:2,spd:1,sta:1,rest:2},trained:false,trophies:[],phase:'league',result:''};
  ['GK','GK','DEF','DEF','DEF','DEF','DEF','MID','MID','MID','MID','FWD','FWD','FWD','FWD','MID'].forEach(pos=>S.players.push(makePlayer(rnd(50,60),pos)));
  setupLeague();addTrials(3);save();render();confetti(90);
