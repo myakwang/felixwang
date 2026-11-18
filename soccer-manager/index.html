@@ -635,7 +635,7 @@ function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
   :[['more','💰 Can you pay more?'],['why','🤔 Why our player?'],['fans','📣 He has lots of fans!']];
  $('#ngAct').innerHTML=`<div class="qs">${q.map(([k,t])=>`<button class="small gray" onclick="ngAsk('${k}')">${t}</button>`).join('')}</div>
   <div class="row" style="margin-top:8px"><input type="range" min="${lo}" max="${hi}" value="${NG.offer}" style="flex:1" oninput="NG.offer=+this.value;$('#ngOv').textContent=money(NG.offer)"><button class="small" onclick="ngOffer()">${pl?'Offer':'Ask for'} <span id="ngOv">${money(NG.offer)}</span></button></div>
-  <div class="row" style="margin-top:8px"><input type="text" id="ngTxt" maxlength="80" enterkeyhint="send" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:.95em;padding:9px;text-align:left" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();ngTyped()}"><button type="button" class="small" onclick="ngTyped()">💬 Say</button></div>
+  <div class="row" style="margin-top:8px"><input type="text" id="ngTxt" maxlength="80" enterkeyhint="send" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:16px;padding:9px;text-align:left" autocomplete="off" autocorrect="on" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();sayNow()}"><button type="button" class="small" style="touch-action:manipulation" ontouchend="event.preventDefault();sayNow()" onmousedown="event.preventDefault()" onclick="sayNow()">💬 Say</button></div>
   <div class="muted" style="font-size:.78em;margin-top:2px">📱 Tip: on a phone, tap the 🎤 on your keyboard to say it out loud.</div>
   <div class="row" style="margin-top:8px;justify-content:center"><button class="small green" onclick="ngDeal()">✅ Deal at ${money(NG.ask)}</button><button class="small red" onclick="ngBye()">👋 No thanks</button></div>`}
 function ngAngry(by,line){NG.pat-=by;ngSay('him',line);if(G3)G3.play('grr')}
@@ -648,6 +648,7 @@ function ngAsk(k){if(!NG||NG.busy)return;const pl=NG.kind==='player',t=pl?S.tria
  else if(k==='more'){if(u>2)ngAngry(1,'Please stop asking!');else if(Math.random()<.6&&NG.ask<NG.floor){NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.12));ngSay('him',`Okay, okay. ${money(NG.ask)}!`)}else ngAngry(1,"Sorry, that's all the money we have.")}
  else if(k==='fans'){if(u>1)ngAngry(1,'Yes, yes, we know.');else{NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.08));ngSay('him',`That's true! We can pay ${money(NG.ask)}.`)}}
  ngAfter()}
+let lastSay=0;function sayNow(){const n=Date.now();if(n-lastSay<400)return;lastSay=n;ngTyped()}
 function ngTyped(){if(!NG||NG.busy)return;const el=$('#ngTxt'),raw=(el&&el.value||'').trim();if(!raw)return;const q=raw.toLowerCase(),pl=NG.kind==='player';
  const num=q.match(/\$?\s*(\d{1,4})\s*(k|thousand)?/);
  const has=(...w)=>w.some(x=>q.includes(x));
