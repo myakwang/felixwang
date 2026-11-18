@@ -135,7 +135,9 @@ export class Server {
   joinT(s) { return +(this.ctx.getTags(s)[1] || 'j0').slice(1); }
   hostOf(list) { let h = null; for (const s of list) if (!h || this.joinT(s) < this.joinT(h)) h = s; return h ? this.idOf(h) : 0; }
   async info() { return (await this.ctx.storage.get('info')) || null; }
-  async publish(exclude) {
+  // list updates run one after another, so a late "1 player" update can never land after the "empty" one
+  publish(exclude) { this.pubChain = (this.pubChain || Promise.resolve()).then(() => this.publishNow(exclude)).catch(() => {}); return this.pubChain; }
+  async publishNow(exclude) {
     const n = this.socks().filter(s => s !== exclude).length; const info = await this.info();
     try { await this.env.STATS.get(this.env.STATS.idFromName('global')).fetch('https://stats/report', { method: 'POST', body: JSON.stringify({ room: (info && info.g === 'sm' ? 'sm:' : 'hs:') + this.ctx.id.toString(), n }) }); } catch (e) {}
     try { if (info) await this.env.LISTING.get(this.env.LISTING.idFromName('global')).fetch('https://list/set', { method: 'POST', body: JSON.stringify({ code: info.code, pub: !!info.pub && n > 0, n, m: info.m, h: info.h, ph: info.ph, g: info.g || 'hs' }) }); } catch (e) {}
