@@ -273,7 +273,7 @@ const tier=o=>o>=70?'gold':o>=60?'silver':'bronze';
 const STYLES={joker:{i:'🃏',n:'Joker',d:'Knows lots of special dribbling moves',att:1.5},sniper:{i:'🎯',n:'Sniper',d:'Super accurate shots',att:1.5},
  speedster:{i:'🚀',n:'Speedster',d:'Runs past defenders',att:.5},playmaker:{i:'🧠',n:'Playmaker',d:'Amazing passes',att:1,def:.5},wall:{i:'🧱',n:'Wall',d:'Nobody gets past him',def:1.5},
  cat:{i:'🐱',n:'Cat Keeper',d:'Crazy saves',def:2},engine:{i:'🔋',n:'Engine',d:'Almost never gets tired',att:.5,def:.5},captain:{i:'©️',n:'Captain',d:'Makes the whole team better',att:1,def:1}};
-function assignStyle(p){const o=ovr(p),ch=o>=75?1:o>=68?.6:o>=62?.25:.04;p.st='';if(Math.random()>=ch)return p;
+function assignStyle(p){const o=ovr(p),ch=o>=80?.75:o>=74?.45:o>=68?.22:o>=63?.08:0;p.st='';if(Math.random()>=ch)return p;
  const top=[...SK].sort((a,b)=>p.s[b]-p.s[a])[0];let st;
  if(p.pos==='GK')st='cat';else if(o>=74&&Math.random()<.22)st='captain';
  else if(top==='sho'&&p.pos!=='DEF')st='sniper';else if(top==='spd')st=(p.pos!=='DEF'&&p.s.pas>=55&&Math.random()<.6)?'joker':'speedster';
@@ -282,13 +282,15 @@ function assignStyle(p){const o=ovr(p),ch=o>=75?1:o>=68?.6:o>=62?.25:.04;p.st=''
 const stB=p=>p&&p.st&&STYLES[p.st]?`<span class="stb" title="${STYLES[p.st].d}">${STYLES[p.st].i} ${STYLES[p.st].n}</span>`:'';
 const stI=p=>p&&p.st&&STYLES[p.st]?STYLES[p.st].i:'';
 function styleBonus(xi){let a=0,d=0;xi.forEach(x=>{const st=STYLES[x.p.st];if(!st)return;if(x.p.st==='cat'&&x.pos!=='GK')return;if(x.p.st!=='cat'&&x.pos==='GK')return;a+=st.att||0;d+=st.def||0});return{att:Math.min(6,a),def:Math.min(6,d)}}
+function givePot(p){const a=p.age||22;p.pot=a<=20?rnd(2,5):a<=24?rnd(2,4):a<=29?rnd(1,4):rnd(1,2);return p}
+const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 function makePlayer(t,pos){const s={};SK.forEach(k=>s[k]=t+rnd(-6,6));
  if(pos==='GK'){s.def+=8;s.sho-=15}if(pos==='DEF'){s.def+=7;s.sho-=6}if(pos==='MID'){s.pas+=7}if(pos==='FWD'){s.sho+=8;s.spd+=4;s.def-=10}
  const ks=shuffle(SK);s[ks[0]]+=rnd(5,12);s[ks[1]]+=rnd(3,9);s[ks[4]]-=rnd(8,16);
  SK.forEach(k=>s[k]=clamp(Math.round(s[k]),15,97));
  const p={id:S.nextId++,name:newName(),pos,age:rnd(17,33),s,energy:100,num:rnd(2,99)};
  if(pos==='GK')p.num=pick([1,12,23]);
- p.salary=Math.max(1,Math.round((ovr(p)-40)/8));assignStyle(p);return p}
+ p.salary=Math.max(1,Math.round((ovr(p)-40)/8));assignStyle(p);givePot(p);return p}
 function goodBad(p){const ks=[...SK].sort((a,b)=>p.s[b]-p.s[a]);return{good:ks.slice(0,2),bad:ks[4]}}
 
 const FORMS={
@@ -339,7 +341,7 @@ function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(
 function addTrials(n){setTimeout(ensureTalker,0);for(let i=0;i<n&&S.trials.length<4;i++){
  let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
  const p=makePlayer(t,pick(['GK','DEF','DEF','MID','MID','FWD','FWD']));const o=ovr(p);
- p.fee=Math.max(5,Math.round(((o-45)*2.6+rnd(-4,6))*(p.st?1.15:1)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.6;
+ p.fee=Math.max(5,Math.round(((o-45)*2.6+rnd(-4,6))*(p.st?1.15:1)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=true;
  p.msg=pick(["I completed the trial! ","Trial done, coach! ","I finished the trial and I'm ready! ","That trial was easy! "])+`I want ${money(p.fee)} to join, and ${money(p.salary)} every week.`;
  S.trials.push(p)}}
 
@@ -392,7 +394,7 @@ function keepName(){const v=$('#tname').value;render();$('#tname').value=v}
 function pcard(p,{xi=false,trial=false}={}){const o=ovr(p),g=goodBad(p),ec=p.energy>=70?'#18b85f':p.energy>=40?'#e3a008':'#e0393e';
  return `<div class="pc ${tier(o)}">${xi?'<span class="xi">⭐ STARTER</span>':''}
   <div class="top"><div class="ov">${o}<small><span class="pos ${p.pos}">${p.pos}</span></small></div>${jersey(trial?'#8a8f98':S.color,p.num||'?')}
-   <div style="min-width:0"><div class="nm">${esc(p.name)}</div><div style="font-size:.8em">Age ${p.age} · ${money(p.salary)}/wk</div>${stB(p)}</div></div>
+   <div style="min-width:0"><div class="nm">${esc(p.name)}</div><div style="font-size:.8em">Age ${p.age} · ${money(p.salary)}/wk</div><div style="font-size:.75em">Potential ${trial&&!p.tried?'<b>???</b>':`<b style="color:#7a5200">${stars(p.pot||3)}</b>`}</div>${stB(p)}</div></div>
   <div class="sks">${SK.map(k=>`<div><span>${SKS[k]}</span><b style="color:${p.s[k]>=70?'#0b6b33':p.s[k]<45?'#a3121a':'inherit'}">${p.s[k]}</b></div>`).join('')}
    ${trial?'':`<div><span>⚡ NRG</span><b>${Math.round(p.energy)}</b></div>`}</div>
   ${trial?'':`<div class="en"><i style="width:${p.energy}%;background:${ec}"></i></div>`}
@@ -469,7 +471,7 @@ function trainView(){if(Object.values(S.plan).reduce((a,b)=>a+b,0)>HOURS)S.plan=
   <p class="muted">Young players (22 and under) learn the fastest.</p></div>`}
 function plan(k,d){if(S.trained)return;const used=Object.values(S.plan).reduce((a,b)=>a+b,0);if(d>0&&used>=HOURS)return;S.plan[k]=clamp(S.plan[k]+d,0,HOURS);save();render()}
 function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const th=SK.reduce((a,k)=>a+S.plan[k],0);let best=null,bestN=0;
- S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(p.energy>30?1:.5)*(p.s[k]>85?.4:1);
+ S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(.6+.16*(p.pot||3))*(p.energy>30?1:.5)*(p.s[k]>85?.4:1);
    if(Math.random()<ch&&p.s[k]<99){p.s[k]++;g[k]++;n++}}});if(n>bestN){bestN=n;best=p}
   p.energy=clamp(p.energy-th*2+S.plan.rest*8,5,100)});
  S.trained=true;save();render();
@@ -479,13 +481,14 @@ function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const
 function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
  <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`${p.back?'<div class="stb" style="background:#5cf29a;color:#06351b">😔 Came back to say sorry</div>':''}<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
+  ${p.tried?`<div class="tip" style="margin-top:6px;font-size:.85em">${p.liked?'😊 He liked training with you! (asks less now)':''} 🏃 Try-out: ${p.tryTxt||''}</div>`:`<div class="act"><button class="small" style="flex:1" onclick="openTryout(${p.id})">🏃 Try him out first</button></div>`}
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
  ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.why==='Declined'?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
 function acceptT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;
  if(S.players.length>=22)return toast('Your squad is full (22). Kick someone out first!');
  if(S.money<p.fee)return toast(`Not enough money! You have ${money(S.money)}.`);
- S.money-=p.fee;S.trials=S.trials.filter(x=>x.id!==id);p.energy=100;['fee','weeks','final','msg','talk'].forEach(k=>delete p[k]);S.players.push(p);save();render();confetti(70);
+ S.money-=p.fee;S.trials=S.trials.filter(x=>x.id!==id);p.energy=100;['fee','weeks','final','msg','talk','tryTxt','liked','back'].forEach(k=>delete p[k]);S.players.push(p);save();render();confetti(70);
  modal(`${jersey(S.color,p.num,90)}<h2>${esc(p.name)} joined!</h2><p>"Thanks coach! I'll play my best for ${esc(S.teamName)}!"</p>`)}
 function haggle(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const r=Math.random();
  if(p.final||r<.12){madLeave(p);leave(p,'Got mad and left');modal(`<div class="big">😠</div><h2>${esc(p.name)} left!</h2><p>"${p.final?"I said that was my FINAL offer!":"That's rude! I'm going to another team!"}"<br>He's gone forever.</p>`);return}
@@ -564,11 +567,13 @@ const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rock
 function madLeave(p){if(p.back)return;S.angry=S.angry||[];S.angry.push(JSON.parse(JSON.stringify(p)))}
 function maybeComeBack(){if(!S.angry||!S.angry.length||S.trials.length>=4||Math.random()>.2)return false;const i=rnd(0,S.angry.length-1),p=S.angry.splice(i,1)[0];
  p.back=true;p.weeks=0;p.final=false;p.fee=Math.max(3,Math.round(p.fee*.6));p.salary=Math.max(1,p.salary-1);
- p.msg=`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;
+ p.msg=p.disliked?`I thought about it again... your team is actually cool! 😊 Can I join for ${money(p.fee)} and ${money(p.salary)} a week?`:`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;p.tried=false;p.liked=false;
  const g=S.gone.findIndex(x=>x.name===p.name);if(g>=0)S.gone.splice(g,1);S.trials.push(p);return p}
 function ensureTalker(){if(!S||!S.trials)return;let ch=false;
+ if((S.stv||0)<2){S.stv=2;[...S.players,...S.trials].forEach(p=>assignStyle(p));if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(assignStyle)});ch=true}
+ [...S.players,...S.trials].forEach(p=>{if(!p.pot){givePot(p);ch=true}});
  [...S.players,...S.trials].forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}});
- if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}})});S.trials.forEach(t=>{if(t.talk===undefined){t.talk=Math.random()<.6;ch=true}});
+ if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}})});S.trials.forEach(t=>{if(!t.talk){t.talk=true;ch=true}});
  if(S.trials.length&&!S.trials.some(t=>t.talk)){pick(S.trials).talk=true;ch=true}if(ch){save();if(!M&&S.tab==='trials')render()}}
 function newCall(){if(!S||S.call||!S.players.length)return;const star=[...S.players].sort((a,b)=>ovr(b)-ovr(a))[0];const amt=money2(rnd(20,45));
  S.call={co:pick(COMPANIES),pid:star.id,amt,max:Math.round(amt*(1.25+Math.random()*.3))};save();if(!M)render();
@@ -577,17 +582,37 @@ function callCard(){if(!S.call)return '';const p=S.players.find(x=>x.id===S.call
  return `<div class="card" style="border-color:var(--gold);text-align:center"><div class="big">📞</div><h3>${esc(S.call.co)} is calling!</h3><div class="muted">They want an ad with ${esc(p.name)}.</div><br><button class="gold" onclick="openSponsor()">📞 Answer</button></div>`}
 let NG=null,G3=null;
 const SKINS=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac','#a0662f'];
+let TRY=null;
+function openTryout(id){const t=S.trials.find(x=>x.id===id);if(!t||t.tried)return;
+ const res={spd:t.s.spd,shots:[0,1,2].map(()=>Math.random()<.2+t.s.sho/110),passes:[0,1].map(()=>Math.random()<.3+t.s.pas/120)};res.time=(2.6+(100-t.s.spd)/40).toFixed(1);
+ TRY={id,res,lines:[`${t.name} came to train with your team!`]};let el=$('#nego');if(!el){el=document.createElement('div');el.id='nego';document.body.appendChild(el)}
+ el.innerHTML=`<div class="nbox"><div class="row"><h3 class="sp">🏃 Try-out: ${esc(t.name)}</h3></div><div class="ng3d" id="tr3d" style="height:240px"></div><div class="chat" id="trLog" style="height:110px"></div><div id="trAct"></div></div>`;el.style.display='flex';trDraw();
+ const done=()=>trDone(t);
+ loadThree().then(()=>{if(!TRY||!$('#tr3d'))return;G3&&G3.dispose();const mate=S.players.find(p=>p.pos==='MID')||S.players[0];
+  G3=makeTryout($('#tr3d'),{shirt:'#8a8f98',skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:t.num||9},{shirt:S.color,skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:mate?mate.num:8},res,txt=>{if(TRY){TRY.lines.push(txt);trDraw()}},done)})
+ .catch(()=>{res.shots.forEach((ok,i)=>TRY.lines.push(`⚽ Shot ${i+1}: ${ok?'GOAL!':'missed'}`));setTimeout(done,600)})}
+function trDraw(){const c=$('#trLog');if(!c||!TRY)return;c.innerHTML=TRY.lines.map(l=>`<div class="bub him">${esc(l)}</div>`).join('');c.scrollTop=c.scrollHeight}
+function trDone(t){if(!TRY)return;const r=TRY.res,sh=r.shots.filter(Boolean).length,pa=r.passes.filter(Boolean).length;t.tried=true;t.tryTxt=`sprint ${r.time}s · shots ${sh}/3 · passes ${pa}/2`;
+ const my=bestXI().length>=11?teamRating(bestXI()).str:40,pos=S.league?standings().findIndex(x=>x.i===0)+1:6;
+ const likes=Math.random()<clamp(.45+(my-ovr(t))/25+(pos<=3?.15:0),.15,.92);
+ TRY.lines.push(`📋 Sprint ${r.time}s · Shots ${sh}/3 · Passes ${pa}/2`,`🌟 Potential: ${stars(t.pot||3)}`);
+ if(likes){t.liked=true;t.fee=Math.max(3,Math.round(t.fee*.9));t.msg=`I really liked training with you! I'll join for ${money(t.fee)} and ${money(t.salary)} a week.`;TRY.lines.push(`😊 "${t.msg}"`)}
+ else{TRY.lines.push(`😕 "Hmm... I don't really like it here. Bye!"`);t.disliked=true;madLeave(t);S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:"Didn't like your team"})}
+ save();trDraw();const a=$('#trAct');
+ a.innerHTML=likes?`<div class="row" style="margin-top:8px;justify-content:center;gap:6px"><button class="small green" onclick="trClose();acceptT(${t.id})">✅ Sign him (${money(t.fee)})</button>${t.talk?`<button class="small gold" onclick="trClose();openTalk(${t.id})">💬 Talk with him</button>`:''}<button class="small red" onclick="trClose();declineT(${t.id})">❌ Too bad, send him home</button><button class="small gray" onclick="trClose()">Later</button></div>`
+  :`<div class="row" style="margin-top:8px;justify-content:center"><button class="small gray" onclick="trClose()">OK</button></div><div class="muted" style="text-align:center">He might come back some day...</div>`}
+function trClose(){G3&&G3.dispose();G3=null;TRY=null;const el=$('#nego');if(el)el.style.display='none';render()}
 function openTalk(id){const t=S.trials.find(x=>x.id===id);if(!t)return;const g=goodBad(t);
- NG={kind:'player',id,name:t.name,ask:t.fee,floor:Math.round(t.fee*(.6+Math.random()*.22)),pat:rnd(3,5),max:5,used:{},offer:Math.round(t.fee*.8),busy:false,
-  log:[{w:'him',t:t.back?`Hi coach... I'm sorry about the bottles. I can join for ${money(t.fee)}.`:`Hi coach! I'm ${t.name}. I'm good at ${SKN[g.good[0]]}. I want ${money(t.fee)} to join.`}],look:{shirt:'#8a8f98',skin:pick(SKINS)}};openNego()}
+ NG={kind:'player',id,name:t.name,ask:t.fee,floor:Math.round(t.fee*(.6+Math.random()*.22)),pat:rnd(3,5)+(t.liked?1:0),max:5+(t.liked?1:0),used:{},offer:Math.round(t.fee*.8),busy:false,
+  log:[{w:'him',t:t.back?`Hi coach... I'm sorry about the bottles. I can join for ${money(t.fee)}.`:`Hi coach! I'm ${t.name}. I'm good at ${SKN[g.good[0]]}. I want ${money(t.fee)} to join.`}],look:{shirt:'#8a8f98',skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:t.num||9}};openNego()}
 function openSponsor(){const c=S.call;if(!c)return;const p=S.players.find(x=>x.id===c.pid);if(!p){S.call=null;save();return render()}
  NG={kind:'sponsor',name:c.co,player:p.name,ask:c.amt,floor:c.max,pat:rnd(3,4),max:4,used:{},offer:Math.round(c.amt*1.2),busy:false,
-  log:[{w:'him',t:`Hello! This is ${c.co}. We want ${p.name} in our TV ad! We will pay you ${money(c.amt)}.`}],look:{shirt:'#2d3436',skin:pick(SKINS),suit:true}};openNego()}
+  log:[{w:'him',t:`Hello! This is ${c.co}. We want ${p.name} in our TV ad! We will pay you ${money(c.amt)}.`}],look:{shirt:'#2d3436',skin:pick(SKINS),hair:pick(HAIRS),hs:0,suit:true}};openNego()}
 let VOICE_ON=true;try{VOICE_ON=localStorage.getItem('soccerMgrVoice')!=='0'}catch(e){}
-function pickVoice(kind){try{if(!window.speechSynthesis)return null;const vs=speechSynthesis.getVoices().filter(v=>v.localService&&/^en/i.test(v.lang));if(!vs.length)return null;
+function pickVoice(kind){try{if(!window.speechSynthesis)return null;const all=speechSynthesis.getVoices();if(!all.length)return 'default';const vs=all.filter(v=>v.localService&&/^en/i.test(v.lang));if(!vs.length)return 'default';
  const m=vs.filter(v=>/male|david|daniel|alex|fred|tom|aaron|arthur|gordon|rishi|guy|mark|james|oliver/i.test(v.name)&&!/female/i.test(v.name));return pick(m.length?m:vs)}catch(e){return null}}
 function speak(text){if(!VOICE_ON||!NG)return;try{const ss=window.speechSynthesis;if(!ss)return;if(!NG.voice)NG.voice=pickVoice(NG.kind);if(!NG.voice)return;
- const say=String(text).replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[^\w\s.,!?'’-]/g,' ');const u=new SpeechSynthesisUtterance(say);u.voice=NG.voice;u.lang=NG.voice.lang;
+ const say=String(text).replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[^\w\s.,!?'’-]/g,' ');const u=new SpeechSynthesisUtterance(say);if(NG.voice==='default'){u.lang='en-US';NG.voice=null}else{u.voice=NG.voice;u.lang=NG.voice.lang}
  const mad=NG.pat<=1||/!!|WHAT|THAT'S IT|RIDICULOUS/.test(text);u.pitch=NG.kind==='player'?(mad?1.35:1.15):(mad?1.1:.85);u.rate=mad?1.25:1.02;u.volume=1;ss.cancel();ss.speak(u)}catch(e){}}
 function toggleVoice(){VOICE_ON=!VOICE_ON;try{localStorage.setItem('soccerMgrVoice',VOICE_ON?'1':'0')}catch(e){}if(!VOICE_ON)try{speechSynthesis.cancel()}catch(e){}const b=$('#vBtn');if(b)b.textContent=VOICE_ON?'🔊':'🔇'}
 function moodFace(){const r=NG.pat/NG.max;return r>.7?'😊':r>.45?'😐':r>.2?'😠':'🤬'}
@@ -607,10 +632,12 @@ function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
   :[['more','💰 Can you pay more?'],['why','🤔 Why our player?'],['fans','📣 He has lots of fans!']];
  $('#ngAct').innerHTML=`<div class="qs">${q.map(([k,t])=>`<button class="small gray" onclick="ngAsk('${k}')">${t}</button>`).join('')}</div>
   <div class="row" style="margin-top:8px"><input type="range" min="${lo}" max="${hi}" value="${NG.offer}" style="flex:1" oninput="NG.offer=+this.value;$('#ngOv').textContent=money(NG.offer)"><button class="small" onclick="ngOffer()">${pl?'Offer':'Ask for'} <span id="ngOv">${money(NG.offer)}</span></button></div>
+  <form class="row" style="margin-top:8px" onsubmit="event.preventDefault();ngTyped()"><input type="text" id="ngTxt" maxlength="80" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:.95em;padding:9px;text-align:left" autocomplete="off"><button class="small">Say</button></form>
+  <div class="muted" style="font-size:.78em;margin-top:2px">📱 Tip: on a phone, tap the 🎤 on your keyboard to say it out loud.</div>
   <div class="row" style="margin-top:8px;justify-content:center"><button class="small green" onclick="ngDeal()">✅ Deal at ${money(NG.ask)}</button><button class="small red" onclick="ngBye()">👋 No thanks</button></div>`}
 function ngAngry(by,line){NG.pat-=by;ngSay('him',line);if(G3)G3.play('grr')}
 function ngAsk(k){if(!NG||NG.busy)return;const pl=NG.kind==='player',t=pl?S.trials.find(x=>x.id===NG.id):null,u=NG.used[k]=(NG.used[k]||0)+1;
- const me={less:'Can you take a little less money?',why:pl?'Why do you want so much?':'Why do you want our player?',starter:"If you join, you'll be a starter!",league:'Our team is doing great this season!',more:'Can you pay us a bit more?',fans:'He has lots and lots of fans!'}[k];ngSay('me',me);
+ const me=NG.custom?NG.custom:{less:'Can you take a little less money?',why:pl?'Why do you want so much?':'Why do you want our player?',starter:"If you join, you'll be a starter!",league:'Our team is doing great this season!',more:'Can you pay us a bit more?',fans:'He has lots and lots of fans!'}[k];NG.custom=null;ngSay('me',me);
  if(k==='why'){if(u>1)ngAngry(1,'I already told you!');else if(pl){const g=goodBad(t);ngSay('him',`Because I'm really good at ${SKN[g.good[0]]} (${t.s[g.good[0]]}) and ${SKN[g.good[1]]} (${t.s[g.good[1]]})!`)}else ngSay('him',`Because ${NG.player} is a star! Kids love watching him play.`)}
  else if(k==='less'){if(u>2)ngAngry(1,'Stop asking me that!');else if(Math.random()<.55&&NG.ask>NG.floor){NG.ask=Math.max(NG.floor,Math.round(NG.ask*.9));ngSay('him',`Hmm... okay. ${money(NG.ask)} then.`)}else ngAngry(1,pick(["No! I'm worth it!","No way!","Hmm, no."]))}
  else if(k==='starter'){if(u>1)ngAngry(1,'You said that already!');else{const would=wouldStart(t);if(would){NG.ask=Math.max(NG.floor,Math.round(NG.ask*.88));ngSay('him',`A starter? Cool! Then ${money(NG.ask)} is okay.`)}else ngAngry(1,'A starter? You have better players than me... I don\'t believe you.')}}
@@ -618,23 +645,45 @@ function ngAsk(k){if(!NG||NG.busy)return;const pl=NG.kind==='player',t=pl?S.tria
  else if(k==='more'){if(u>2)ngAngry(1,'Please stop asking!');else if(Math.random()<.6&&NG.ask<NG.floor){NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.12));ngSay('him',`Okay, okay. ${money(NG.ask)}!`)}else ngAngry(1,"Sorry, that's all the money we have.")}
  else if(k==='fans'){if(u>1)ngAngry(1,'Yes, yes, we know.');else{NG.ask=Math.min(NG.floor,Math.round(NG.ask*1.08));ngSay('him',`That's true! We can pay ${money(NG.ask)}.`)}}
  ngAfter()}
+function ngTyped(){if(!NG||NG.busy)return;const el=$('#ngTxt'),raw=(el&&el.value||'').trim();if(!raw)return;const q=raw.toLowerCase(),pl=NG.kind==='player';
+ const num=q.match(/\$?\s*(\d{1,4})\s*(k|thousand)?/);
+ const has=(...w)=>w.some(x=>q.includes(x));
+ if(num&&+num[1]>0){NG.offer=+num[1];NG.log.push({w:'me',t:raw});NG.log.pop();return ngOfferText(raw,+num[1])}
+ let k=null;
+ if(has('bye','no thanks','go away','leave','not interested'))return ngBye();
+ if(has('deal','yes','okay','ok ','ok!','accept','sure','fine','agree')||q==='ok')return ngDeal();
+ if(has('why'))k='why';
+ else if(pl&&has('start','play every','first team','lineup','starter'))k='starter';
+ else if(pl&&has('win','winning','league','champion','best team','top'))k='league';
+ else if(!pl&&has('fan','famous','star','popular'))k='fans';
+ else if(has('less','lower','cheaper','too high','too much','expensive','discount','down'))k=pl?'less':'more';
+ else if(!pl&&has('more','higher','raise','not enough','too low'))k='more';
+ if(el)el.value='';
+ if(k){NG.custom=raw;return ngAsk(k)}
+ ngSay('me',raw);
+ const nice=has('please','thank','cool','awesome','great','good','love','nice','amazing','sorry');
+ if(nice){NG.pat=Math.min(NG.max,NG.pat+1);ngSay('him',pick(['Aww, thanks coach! 😊','That\'s nice of you!','Haha, thanks!']))}
+ else if(has('stupid','dumb','bad','hate','ugly','loser','idiot','shut up'))ngAngry(2,'HEY! That\'s mean!');
+ else ngSay('him',pick(["Huh? I don't understand.","What do you mean?","Hmm... so what's your offer?",`I still want ${money(NG.ask)}.`]));
+ ngAfter()}
+function ngOfferText(raw,v){const el=$('#ngTxt');if(el)el.value='';NG.offer=v;NG.custom=raw;ngOffer()}
 function wouldStart(t){const keep=S.lineup;S.lineup=null;S.players.push(t);const yes=bestXI().some(x=>x.p.id===t.id);S.players.pop();S.lineup=keep;return yes}
-function ngOffer(){if(!NG||NG.busy)return;const v=NG.offer,pl=NG.kind==='player';ngSay('me',pl?`How about ${money(v)}?`:`Can you pay ${money(v)}?`);
+function ngOffer(){if(!NG||NG.busy)return;const v=NG.offer,pl=NG.kind==='player';ngSay('me',NG.custom||(pl?`How about ${money(v)}?`:`Can you pay ${money(v)}?`));NG.custom=null;
  if(pl){if(v>=NG.ask)return ngDone(v);if(v>=NG.floor){if(Math.random()<.5)return ngDone(v);NG.ask=Math.max(v,Math.round((NG.ask+v)/2));ngSay('him',`Let's meet in the middle: ${money(NG.ask)}.`)}
   else ngAngry((NG.floor-v)/NG.floor>.3?2:1,(NG.floor-v)/NG.floor>.3?'WHAT?! That is WAY too low!':'Too low!')}
  else{if(v<=NG.ask)return ngDone(v);if(v<=NG.floor){if(Math.random()<.5)return ngDone(v);NG.ask=Math.min(v,Math.round((NG.ask+v)/2));ngSay('him',`How about ${money(NG.ask)}?`)}
   else ngAngry((v-NG.floor)/NG.floor>.3?2:1,(v-NG.floor)/NG.floor>.3?'WHAT?! We are not a bank!':'That is too much for us.')}
  ngAfter()}
-function ngDeal(){if(!NG||NG.busy)return;ngSay('me','Deal!');ngDone(NG.ask)}
+function ngDeal(){if(!NG||NG.busy)return;const el=$('#ngTxt');ngSay('me',el&&el.value.trim()?el.value.trim():'Deal!');ngDone(NG.ask)}
 function ngDone(v){const pl=NG.kind==='player';
  if(pl){const t=S.trials.find(x=>x.id===NG.id);if(!t)return closeNego();if(S.players.length>=22){ngSay('him','Your team is full! Kick someone out first.');return ngUpdate()}
   if(S.money<v){ngSay('him',`You only have ${money(S.money)}... come back with more money!`);return ngUpdate()}
-  S.money-=v;S.trials=S.trials.filter(x=>x.id!==t.id);t.energy=100;['fee','weeks','final','msg','talk'].forEach(k=>delete t[k]);S.players.push(t);ngSay('him',"YES! Thank you coach! I'll play my best!")}
+  S.money-=v;S.trials=S.trials.filter(x=>x.id!==t.id);t.energy=100;['fee','weeks','final','msg','talk','tryTxt','liked','back'].forEach(k=>delete t[k]);S.players.push(t);ngSay('him',"YES! Thank you coach! I'll play my best!")}
  else{const p=S.players.find(x=>x.id===S.call.pid);S.money+=v;if(p)p.energy=clamp(p.energy-10,5,100);S.call=null;ngSay('him',`Great! Here is ${money(v)}. The ad will be awesome!`)}
  save();NG.busy=true;ngUpdate();fx('👏');confetti(120);
  const end=()=>{const done=NG;NG.busy=false;closeNego();toast(done.kind==='player'?`🤝 ${done.name} joined for ${money(v)}!`:`💰 +${money(v)} from ${done.name}!`)};
  if(G3)G3.play('clap',end);else setTimeout(end,1800)}
-function ngBye(){if(!NG||NG.busy)return;ngSay('me','No thanks. Goodbye!');ngSay('him',NG.kind==='player'?'Okay... bye.':'Okay, maybe another time.');
+function ngBye(){if(!NG||NG.busy)return;const el=$('#ngTxt');ngSay('me',el&&el.value.trim()?el.value.trim():'No thanks. Goodbye!');ngSay('him',NG.kind==='player'?'Okay... bye.':'Okay, maybe another time.');
  if(NG.kind==='player'){const t=S.trials.find(x=>x.id===NG.id);if(t)leave(t,'Declined')}else{S.call=null;save()}NG.busy=true;ngUpdate();
  const end=()=>{NG.busy=false;closeNego()};if(G3)G3.play('walk',end);else setTimeout(end,1200)}
 function ngAfter(){if(NG.pat>0)return ngUpdate();
@@ -644,59 +693,149 @@ function ngAfter(){if(NG.pat>0)return ngUpdate();
 function fx(e){const f=$('#ngfx');if(!f)return;const d=document.createElement('div');d.className='pop';d.textContent=e;f.appendChild(d);setTimeout(()=>d.remove(),1500)}
 function loadThree(){if(window.THREE)return Promise.resolve();if(loadThree.p)return loadThree.p;
  return loadThree.p=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='three.min.js';sc.onload=res;sc.onerror=()=>{loadThree.p=null;rej()};document.head.appendChild(sc)})}
-function makeScene(host,look){const T=THREE,W=host.clientWidth||340,H=host.clientHeight||220;
- const r=new T.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.setSize(W,H);host.prepend(r.domElement);
- const sc=new T.Scene(),cam=new T.PerspectiveCamera(36,W/H,.1,50);cam.position.set(0,1.75,4.6);cam.lookAt(0,1.05,0);
- sc.add(new T.HemisphereLight(0xffffff,0x334455,.9));const dl=new T.DirectionalLight(0xffffff,.7);dl.position.set(2,4,3);sc.add(dl);
- const mat=c=>new T.MeshLambertMaterial({color:c});
- const floor=new T.Mesh(new T.PlaneGeometry(12,8),mat(0x2b5f8a));floor.rotation.x=-Math.PI/2;sc.add(floor);
- const wall=new T.Mesh(new T.PlaneGeometry(12,6),mat(0x184066));wall.position.set(0,3,-2.2);sc.add(wall);
- // table + bottles
- const table=new T.Group();const top=new T.Mesh(new T.BoxGeometry(2,.08,.8),mat(0x8b5a2b));top.position.y=.8;table.add(top);
- [[-.9,-.32],[.9,-.32],[-.9,.32],[.9,.32]].forEach(([x,z])=>{const l=new T.Mesh(new T.BoxGeometry(.07,.8,.07),mat(0x6b4420));l.position.set(x,.4,z);table.add(l)});
- table.position.set(0,0,.85);sc.add(table);
- const glass=new T.MeshLambertMaterial({color:0x2ecc71,transparent:true,opacity:.75});
- const mkBottle=x=>{const b=new T.Group();const body=new T.Mesh(new T.CylinderGeometry(.07,.07,.28,12),glass);body.position.y=.14;const neck=new T.Mesh(new T.CylinderGeometry(.025,.04,.12,10),glass);neck.position.y=.34;b.add(body,neck);b.position.set(x,.84,.85);sc.add(b);return b};
- const bottles=[mkBottle(-.6),mkBottle(.55),mkBottle(.75)];
- // person
- const P=new T.Group();sc.add(P);const shirt=mat(new T.Color(look.shirt)),skin=mat(new T.Color(look.skin)),pants=mat(0x22313f);
- const body=new T.Mesh(new T.BoxGeometry(.6,.75,.32),shirt);body.position.y=1.32;P.add(body);
- if(look.suit){const tie=new T.Mesh(new T.BoxGeometry(.08,.4,.02),mat(0xd63031));tie.position.set(0,1.42,.17);P.add(tie)}
- else{const num=new T.Mesh(new T.BoxGeometry(.22,.22,.02),mat(0xffffff));num.position.set(0,1.38,.17);P.add(num)}
- const headG=new T.Group();headG.position.y=1.92;P.add(headG);const head=new T.Mesh(new T.SphereGeometry(.24,20,16),skin);headG.add(head);
- const hair=new T.Mesh(new T.SphereGeometry(.25,20,16,0,Math.PI*2,0,Math.PI/2.2),mat(0x2d1b0e));hair.position.y=.03;headG.add(hair);
- const eyeM=mat(0x111111);[-.08,.08].forEach(x=>{const e=new T.Mesh(new T.SphereGeometry(.03,8,8),eyeM);e.position.set(x,.03,.21);headG.add(e)});
- const brows=[-.08,.08].map(x=>{const b=new T.Mesh(new T.BoxGeometry(.09,.02,.02),eyeM);b.position.set(x,.1,.22);headG.add(b);return b});
- const mouth=new T.Mesh(new T.BoxGeometry(.12,.03,.02),mat(0x7a1f1f));mouth.position.set(0,-.09,.22);headG.add(mouth);
- const limb=(w,h,m,x,y)=>{const g=new T.Group();g.position.set(x,y,0);const l=new T.Mesh(new T.BoxGeometry(w,h,w),m);l.position.y=-h/2;g.add(l);P.add(g);return g};
- const armL=limb(.15,.62,shirt,-.39,1.66),armR=limb(.15,.62,shirt,.39,1.66),legL=limb(.2,.92,pants,-.16,.94),legR=limb(.2,.92,pants,.16,.94);
- [armL,armR].forEach(a=>{const h=new T.Mesh(new T.SphereGeometry(.08,10,8),skin);h.position.y=-.66;a.add(h)});
- let anim='idle',t0=0,cb=null,raf=0,shards=[],held=null,alive=true,headCol=new T.Color(look.skin);const red=new T.Color(0xff4d4d);
- function play(a,done){anim=a;t0=performance.now();cb=done||null;if(a!=='talk'){armL.rotation.set(0,0,0);armR.rotation.set(0,0,0)}}
+// ---- 3D people (three.js r128, loaded from the game's own folder) ----
+const HAIRS=['#2d1b0e','#4a2c17','#111111','#7a4a1f','#d9a441','#a0522d'];
+function numTex(T,num,shirt){const c=document.createElement('canvas');c.width=128;c.height=128;const x=c.getContext('2d');x.fillStyle=shirt;x.fillRect(0,0,128,128);
+ x.fillStyle='#fff';x.font='bold 74px Arial';x.textAlign='center';x.textBaseline='middle';x.lineWidth=6;x.strokeStyle='rgba(0,0,0,.35)';x.strokeText(String(num),64,70);x.fillText(String(num),64,70);
+ const t=new T.CanvasTexture(c);return t}
+function buildPerson(T,look){const g=new T.Group(),std=(c,r=.7)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:r,metalness:0});
+ const skin=std(look.skin,.55),shirt=std(look.shirt,.75),dark=std(look.suit?'#2d3436':'#1e272e',.8),sock=std(look.suit?'#111':look.shirt,.8),shoe=std('#111',.4),white=std('#ffffff',.5);
+ const cast=m=>{m.castShadow=true;return m};
+ const cyl=(rt,rb,h,m)=>cast(new T.Mesh(new T.CylinderGeometry(rt,rb,h,20),m)),sph=(r,m)=>cast(new T.Mesh(new T.SphereGeometry(r,24,18),m));
+ // torso
+ const torso=new T.Group();torso.position.y=1.2;g.add(torso);
+ const chest=cyl(.27,.23,.62,look.suit?dark:shirt);chest.position.y=.12;torso.add(chest);
+ const sh1=sph(.27,look.suit?dark:shirt);sh1.scale.set(1,.45,.85);sh1.position.y=.42;torso.add(sh1);
+ if(look.suit){const v=new T.Mesh(new T.PlaneGeometry(.16,.3),white);v.position.set(0,.3,.255);torso.add(v);const tie=new T.Mesh(new T.BoxGeometry(.06,.32,.02),std('#d63031'));tie.position.set(0,.22,.265);torso.add(tie)}
+ else{const tex=numTex(T,look.num||9,look.shirt);const pl=new T.Mesh(new T.PlaneGeometry(.26,.26),new T.MeshStandardMaterial({map:tex,roughness:.8}));pl.position.set(0,.12,.262);torso.add(pl);
+  const col=cast(new T.Mesh(new T.TorusGeometry(.1,.025,8,20),white));col.rotation.x=Math.PI/2;col.position.y=.5;torso.add(col)}
+ const hips=cyl(.24,.25,.26,dark);hips.position.y=-.27;torso.add(hips);
+ // neck + head
+ const neck=cyl(.07,.08,.12,skin);neck.position.y=.58;torso.add(neck);
+ const headG=new T.Group();headG.position.set(0,.86,0);torso.add(headG);
+ const head=sph(.22,skin);head.scale.set(1,1.1,1);headG.add(head);
+ [-1,1].forEach(s=>{const e=sph(.05,skin);e.position.set(.215*s,0,0);e.scale.set(.6,1,1);headG.add(e)});
+ const eyes=[-1,1].map(s=>{const w=sph(.042,white);w.position.set(.08*s,.04,.18);w.scale.set(1,1.1,.6);headG.add(w);const pu=sph(.022,std('#1b1b1b',.2));pu.position.set(.08*s,.04,.205);headG.add(pu);return pu});
+ const brows=[-1,1].map(s=>{const b=new T.Mesh(new T.BoxGeometry(.08,.018,.02),std(look.hair||'#2d1b0e'));b.position.set(.08*s,.115,.2);headG.add(b);return b});
+ const nose=sph(.03,std(look.skin,.5));nose.position.set(0,-.01,.22);nose.scale.set(1,1.2,1);headG.add(nose);
+ const mouthG=new T.Group();mouthG.position.set(0,-.09,.195);headG.add(mouthG);
+ const mouth=new T.Mesh(new T.TorusGeometry(.055,.012,8,20,Math.PI),std('#7a1f1f',.5));mouth.rotation.z=Math.PI;mouthG.add(mouth);
+ const hairM=std(look.hair||'#2d1b0e',.9);const hc=sph(.235,hairM);hc.scale.set(1.02,.75,1.02);hc.position.y=.07;headG.add(hc);
+ const style=look.hs|0;if(style===1){const top=sph(.12,hairM);top.position.set(0,.24,0);top.scale.set(1.3,.7,1.6);headG.add(top)}
+ if(style===2){for(let i=0;i<5;i++){const sp=cast(new T.Mesh(new T.ConeGeometry(.045,.13,8),hairM));sp.position.set(-.12+i*.06,.25,-.02);headG.add(sp)}}
+ // arms
+ const arm=s=>{const a=new T.Group();a.position.set(.33*s,.4,0);torso.add(a);const sl=cyl(.085,.075,.24,look.suit?dark:shirt);sl.position.y=-.1;a.add(sl);
+  const fa=cyl(.065,.058,.32,look.suit?dark:skin);fa.position.y=-.36;a.add(fa);const h=sph(.07,skin);h.position.y=-.55;a.add(h);a.rotation.z=.1*s;return a};
+ const armL=arm(-1),armR=arm(1);
+ // legs
+ const leg=s=>{const l=new T.Group();l.position.set(.12*s,.95,0);g.add(l);const th=cyl(.095,.085,.36,look.suit?dark:skin);th.position.y=-.18;l.add(th);
+  const sk=cyl(.08,.07,.4,look.suit?dark:sock);sk.position.y=-.56;l.add(sk);const sh=cast(new T.Mesh(new T.BoxGeometry(.13,.08,.26),shoe));sh.position.set(0,-.79,.05);l.add(sh);return l};
+ const legL=leg(-1),legR=leg(1);
+ return{g,torso,headG,head,mouth,mouthG,brows,eyes,armL,armR,legL,legR,skinCol:new T.Color(look.skin)}}
+function sceneBase(host){const T=THREE,W=host.clientWidth||340,H=host.clientHeight||220;
+ const r=new T.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.setSize(W,H);r.shadowMap.enabled=true;r.shadowMap.type=T.PCFSoftShadowMap;
+host.prepend(r.domElement);
+ const sc=new T.Scene(),cam=new T.PerspectiveCamera(34,W/H,.1,80);
+ sc.add(new T.HemisphereLight(0xffffff,0x445566,.75));const dl=new T.DirectionalLight(0xffffff,.85);dl.position.set(2.5,5,4);dl.castShadow=true;dl.shadow.mapSize.set(1024,1024);
+ Object.assign(dl.shadow.camera,{left:-4,right:4,top:4,bottom:-4,near:.5,far:20});sc.add(dl);const fill=new T.PointLight(0xffe0b0,.35,12);fill.position.set(-2,2.5,2);sc.add(fill);
+ return{T,r,sc,cam,W,H}}
+function makeScene(host,look){const {T,r,sc,cam}=sceneBase(host);cam.position.set(0,1.85,5);cam.lookAt(0,1.45,0);
+ const std=(c,ro=.8)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:ro});
+ const floor=new T.Mesh(new T.PlaneGeometry(14,10),std('#6b4f3a',.9));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;sc.add(floor);
+ const wall=new T.Mesh(new T.PlaneGeometry(14,7),std('#2f6fa8',.95));wall.position.set(0,3.2,-2.4);wall.receiveShadow=true;sc.add(wall);
+ const win=new T.Mesh(new T.PlaneGeometry(1.6,1.1),new T.MeshBasicMaterial({color:0xbfe6ff}));win.position.set(-1.7,2.3,-2.38);sc.add(win);
+ [[0,.58,1.7,.06],[0,-.58,1.7,.06],[-.82,0,.06,1.2],[.82,0,.06,1.2],[0,0,.04,1.2]].forEach(([x,y,w,h])=>{const f=new T.Mesh(new T.BoxGeometry(w,h,.05),std('#f5f5f5'));f.position.set(-1.7+x,2.3+y,-2.36);sc.add(f)});
+ const shelf=new T.Mesh(new T.BoxGeometry(1.2,.06,.3),std('#8b5a2b'));shelf.position.set(1.7,2.1,-2.25);sc.add(shelf);
+ const gold=new T.MeshStandardMaterial({color:0xffc83d,metalness:.8,roughness:.25});const cup=new T.Mesh(new T.CylinderGeometry(.13,.06,.25,16),gold);cup.position.set(1.55,2.3,-2.2);sc.add(cup);
+ const base=new T.Mesh(new T.BoxGeometry(.16,.08,.16),gold);base.position.set(1.55,2.16,-2.2);sc.add(base);
+ const ball=new T.Mesh(new T.SphereGeometry(.12,20,16),std('#ffffff',.5));ball.position.set(1.9,2.25,-2.2);sc.add(ball);
+ const pot=new T.Mesh(new T.CylinderGeometry(.18,.14,.35,16),std('#c0392b'));pot.position.set(2.2,.18,-1.6);sc.add(pot);
+ for(let i=0;i<6;i++){const lf=new T.Mesh(new T.SphereGeometry(.16,10,8),std('#27ae60'));lf.position.set(2.2+Math.cos(i)*.12,.5+i*.05,-1.6+Math.sin(i)*.12);lf.scale.set(1,1.4,1);sc.add(lf)}
+ // desk
+ const desk=new T.Group();const top=new T.Mesh(new T.BoxGeometry(2.2,.08,.9),std('#9c6b3c',.6));top.position.y=.82;top.castShadow=top.receiveShadow=true;desk.add(top);
+ const front=new T.Mesh(new T.BoxGeometry(2.1,.7,.05),std('#7d5330',.7));front.position.set(0,.45,.4);front.castShadow=true;desk.add(front);
+ desk.position.set(0,0,.85);sc.add(desk);
+ const glass=new T.MeshStandardMaterial({color:0x2ecc71,transparent:true,opacity:.72,roughness:.1,metalness:.1});
+ const mkBottle=x=>{const b=new T.Group();const body=new T.Mesh(new T.CylinderGeometry(.065,.065,.27,16),glass);body.position.y=.135;const nk=new T.Mesh(new T.CylinderGeometry(.022,.04,.12,12),glass);nk.position.y=.33;
+  const cap=new T.Mesh(new T.CylinderGeometry(.025,.025,.03,10),std('#e74c3c'));cap.position.y=.405;b.add(body,nk,cap);b.traverse(m=>m.castShadow=true);b.position.set(x,.86,.75);sc.add(b);return b};
+ const bottles=[mkBottle(-.65),mkBottle(.55),mkBottle(.75)];
+ const P=buildPerson(T,look);sc.add(P.g);P.g.position.z=0;
+ const {armL,armR,legL,legR,headG,head,mouth,brows}=P;const red=new T.Color(0xff5a5a);
+ let anim='idle',t0=0,cb=null,raf=0,shards=[],held=null,alive=true;
+ function play(a,done){anim=a;t0=performance.now();cb=done||null;if(a!=='talk'){armL.rotation.set(0,0,.1*-1);armR.rotation.set(0,0,.1)}}
  function finish(){const c=cb;cb=null;anim='idle';c&&c()}
+ const smile=v=>{mouth.rotation.z=v>0?Math.PI:0;mouth.position.y=v>0?0:-.03};
  function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,k=now/1000;
-  if(anim!=='smash'&&anim!=='walk'){P.position.y=Math.sin(k*2)*.01;P.rotation.y=Math.sin(k*.7)*.08}
-  if(anim==='idle'){armL.rotation.z=.08;armR.rotation.z=-.08;head.material.color.lerp(headCol,.05);mouth.scale.set(1,1,1);brows.forEach((b,i)=>b.rotation.z=0)}
-  if(anim==='talk'){mouth.scale.y=1+Math.abs(Math.sin(t*18))*2;headG.rotation.x=Math.sin(t*9)*.08;if(t>.9){mouth.scale.y=1;headG.rotation.x=0;anim='idle'}}
-  if(anim==='grr'){head.material.color.lerp(red,.08);brows[0].rotation.z=-.5;brows[1].rotation.z=.5;headG.rotation.z=Math.sin(t*30)*.08;armL.rotation.z=.5;armR.rotation.z=-.5;if(t>1.1){headG.rotation.z=0;anim='idle'}}
-  if(anim==='clap'){const c=Math.abs(Math.sin(t*9));armL.rotation.x=armR.rotation.x=-1.25;armL.rotation.z=-.5+c*.5;armR.rotation.z=.5-c*.5;mouth.scale.set(1.6,2.5,1);P.position.y=Math.abs(Math.sin(t*4.5))*.08;if(t>2.6){armL.rotation.set(0,0,0);armR.rotation.set(0,0,0);finish()}}
-  if(anim==='walk'||(anim==='smash'&&t>2.7)){const w=anim==='walk'?t:t-2.7;P.rotation.y=Math.min(Math.PI,w*4);const s=Math.sin(w*10)*.6;legL.rotation.x=s;legR.rotation.x=-s;armL.rotation.x=-s*.8;armR.rotation.x=s*.8;
-   if(w>.6){P.position.z-=.035;P.position.x+=.012}if(w>2.4){finish()}}
-  if(anim==='smash'&&t<=2.7){head.material.color.lerp(red,.1);brows[0].rotation.z=-.6;brows[1].rotation.z=.6;mouth.scale.set(1.5,3,1);
-   const b=bottles[0];
-   if(t<.5){headG.rotation.z=Math.sin(t*40)*.1;armL.rotation.z=.6;armR.rotation.z=-.6}
-   else if(t<1){armR.rotation.set(-1.1,0,.25);if(!held&&b.parent){held=b;armR.add(b);b.position.set(0,-.7,.05);b.rotation.set(0,0,0)}}
-   else if(t<1.5){armR.rotation.set(-2.9,0,.2)}
-   else if(t<1.75){armR.rotation.set(-2.9+(t-1.5)*8,0,.2)}
+  if(anim!=='smash'&&anim!=='walk'){P.g.position.y=Math.sin(k*2)*.008;P.torso.rotation.y=Math.sin(k*.7)*.06}
+  P.eyes.forEach(e=>e.scale.y=(Math.sin(k*1.3)>.985)?.2:1);
+  if(anim==='idle'){head.material.color.lerp(P.skinCol,.05);mouth.scale.set(1,1,1);smile(1);brows.forEach(b=>b.rotation.z=0);armL.rotation.z=-.1;armR.rotation.z=.1}
+  if(anim==='talk'){mouth.scale.set(1,1+Math.abs(Math.sin(t*16))*1.8,1);headG.rotation.x=Math.sin(t*8)*.07;if(t>1){mouth.scale.set(1,1,1);headG.rotation.x=0;anim='idle'}}
+  if(anim==='grr'){head.material.color.lerp(red,.08);smile(-1);brows[0].rotation.z=-.45;brows[1].rotation.z=.45;headG.rotation.z=Math.sin(t*30)*.07;armL.rotation.z=-.5;armR.rotation.z=.5;if(t>1.1){headG.rotation.z=0;anim='idle'}}
+  if(anim==='clap'){const c=Math.abs(Math.sin(t*9));smile(1);mouth.scale.set(1.4,2.2,1);armL.rotation.set(-1.3,0,.55-c*.5);armR.rotation.set(-1.3,0,-.55+c*.5);P.g.position.y=Math.abs(Math.sin(t*4.5))*.08;
+   if(t>2.6){armL.rotation.set(0,0,-.1);armR.rotation.set(0,0,.1);finish()}}
+  if(anim==='walk'||(anim==='smash'&&t>2.7)){const w=anim==='walk'?t:t-2.7;P.g.rotation.y=Math.min(Math.PI,w*4);const s=Math.sin(w*10)*.6;legL.rotation.x=s;legR.rotation.x=-s;armL.rotation.x=-s*.8;armR.rotation.x=s*.8;
+   if(w>.6){P.g.position.z-=.035;P.g.position.x+=.012}if(w>2.4)finish()}
+  if(anim==='smash'&&t<=2.7){head.material.color.lerp(red,.1);smile(-1);brows[0].rotation.z=-.55;brows[1].rotation.z=.55;mouth.scale.set(1.4,2.4,1);const b=bottles[0];
+   if(t<.5){headG.rotation.z=Math.sin(t*40)*.08;armL.rotation.z=-.6;armR.rotation.z=.6}
+   else if(t<1){armR.rotation.set(-1.1,0,-.25);if(!held&&b.parent===sc){held=b;armR.add(b);b.position.set(0,-.62,.06);b.rotation.set(0,0,0)}}
+   else if(t<1.5)armR.rotation.set(-2.9,0,-.2);
+   else if(t<1.75)armR.rotation.set(-2.9+(t-1.5)*8,0,-.2);
    else{if(held){const wp=new T.Vector3();held.getWorldPosition(wp);armR.remove(held);held=null;bottles[0].visible=false;
-     for(let i=0;i<18;i++){const sh=new T.Mesh(new T.TetrahedronGeometry(.03+Math.random()*.04),glass);sh.position.copy(wp);sh.position.y=Math.max(.9,wp.y);sh.v=new T.Vector3((Math.random()-.5)*.09,.05+Math.random()*.08,(Math.random()-.2)*.08);sc.add(sh);shards.push(sh)}
+     for(let i=0;i<20;i++){const sh=new T.Mesh(new T.TetrahedronGeometry(.025+Math.random()*.04),glass);sh.position.copy(wp);sh.position.y=Math.max(.9,wp.y);sh.v=new T.Vector3((Math.random()-.5)*.09,.05+Math.random()*.08,(Math.random()-.2)*.08);sc.add(sh);shards.push(sh)}
      bottles[1].v=new T.Vector3(.03,.04,.02);bottles[2].v=new T.Vector3(.045,.05,.03)}
-    table.position.x=Math.sin(t*60)*.03*Math.max(0,2.4-t);armR.rotation.set(-1,0,.2)}}
+    desk.position.x=Math.sin(t*60)*.03*Math.max(0,2.4-t);armR.rotation.set(-1,0,-.2)}}
   shards.forEach(sh=>{sh.position.add(sh.v);sh.v.y-=.006;sh.rotation.x+=.2;sh.rotation.y+=.15;if(sh.position.y<.03){sh.position.y=.03;sh.v.set(sh.v.x*.5,0,sh.v.z*.5)}});
   [bottles[1],bottles[2]].forEach(b=>{if(!b.v)return;b.position.add(b.v);b.v.y-=.006;b.rotation.z-=.12;if(b.position.y<.08){b.position.y=.08;b.v.set(0,0,0);b.rotation.z=-Math.PI/2}});
   r.render(sc,cam)}
  raf=requestAnimationFrame(loop);
  return{play,dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
+
+// ---- try-out training session: sprint through cones, 3 shots, 2 passes ----
+function makeTryout(host,look,mateLook,res,onText,onDone){const {T,r,sc,cam}=sceneBase(host);cam.position.set(-1.5,4.2,7.2);cam.lookAt(0.6,.4,0);
+ const std=(c,ro=.85)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:ro});
+ const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');for(let i=0;i<8;i++){x.fillStyle=i%2?'#3fae4a':'#4cc257';x.fillRect(i*64,0,64,512)}
+ const gt=new T.CanvasTexture(c);const grass=new T.Mesh(new T.PlaneGeometry(26,18),new T.MeshStandardMaterial({map:gt,roughness:1}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;sc.add(grass);
+ const sky=new T.Mesh(new T.PlaneGeometry(60,20),new T.MeshBasicMaterial({color:0x8fd3ff}));sky.position.set(0,8,-9);sc.add(sky);
+ const line=(w,h,px,pz)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:0xffffff}));m.rotation.x=-Math.PI/2;m.position.set(px,.01,pz);sc.add(m)};
+ line(.06,8,6.5,0);line(2.4,.06,5.3,-1.6);line(2.4,.06,5.3,1.6);line(.06,3.2,4.1,0);
+ // goal
+ const post=std('#ffffff',.4),gx=6.6;[[0,-1.2],[0,1.2]].forEach(([dx,z])=>{const p=new T.Mesh(new T.CylinderGeometry(.05,.05,1.6,10),post);p.position.set(gx,.8,z);p.castShadow=true;sc.add(p)});
+ const bar=new T.Mesh(new T.CylinderGeometry(.05,.05,2.4,10),post);bar.rotation.x=Math.PI/2;bar.position.set(gx,1.6,0);sc.add(bar);
+ const net=new T.Mesh(new T.PlaneGeometry(2.4,1.6,12,8),new T.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.5}));net.rotation.y=Math.PI/2;net.position.set(gx+.7,.8,0);sc.add(net);
+ // cones
+ const cones=[];for(let i=0;i<5;i++){const cn=new T.Mesh(new T.ConeGeometry(.13,.32,14),std('#ff7a1a',.6));cn.position.set(-3.6+i*1.1,.16,0);cn.castShadow=true;sc.add(cn);cones.push(cn)}
+ const P=buildPerson(T,look);sc.add(P.g);P.g.position.set(-5,0,0);P.g.rotation.y=Math.PI/2;
+ const Mt=buildPerson(T,mateLook);sc.add(Mt.g);Mt.g.position.set(3.2,0,-3);Mt.g.rotation.y=Math.PI;
+ const ball=new T.Mesh(new T.SphereGeometry(.11,20,16),std('#ffffff',.45));ball.castShadow=true;sc.add(ball);ball.position.set(-5,.11,.4);
+ const steps=[];let t0=performance.now(),alive=true,raf=0,cur=0,said={};
+ const runPose=(p,s)=>{const a=Math.sin(s)*.7;p.legL.rotation.x=a;p.legR.rotation.x=-a;p.armL.rotation.x=-a*.8;p.armR.rotation.x=a*.8};
+ const stand=p=>{p.legL.rotation.x=p.legR.rotation.x=0;p.armL.rotation.x=p.armR.rotation.x=0};
+ // timeline (seconds)
+ const sprintT=2.6+(100-res.spd)/40; // faster players finish quicker
+ const tl=[];let at=0;tl.push({k:'sprint',a:at,b:at+sprintT});at+=sprintT+.4;
+ for(let i=0;i<3;i++){tl.push({k:'shot',i,a:at,b:at+2});at+=2.2}
+ for(let i=0;i<2;i++){tl.push({k:'pass',i,a:at,b:at+1.8});at+=2}
+ const total=at+.6;
+ function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,g=P.g;
+  const seg=tl.find(s=>t>=s.a&&t<s.b);
+  if(seg&&seg.k==='sprint'){const q=(t-seg.a)/(seg.b-seg.a),xx=-5+q*6.2,zz=Math.sin(q*Math.PI*5)*.45;g.position.set(xx,0,zz);g.rotation.y=Math.PI/2-Math.cos(q*Math.PI*5)*.5;runPose(P,t*14);ball.position.set(-5,.11,.4);
+   if(!said.s){said.s=1;onText('🏃 Sprint through the cones!')}}
+  else if(seg&&seg.k==='shot'){const q=(t-seg.a)/(seg.b-seg.a),key='sh'+seg.i;
+   if(q<.45){const bx=1.2+q*4.5;g.position.set(bx-.35,0,-.1);g.rotation.y=Math.PI/2;runPose(P,t*12);ball.position.set(bx,.11,0);if(!said[key+'a']){said[key+'a']=1;onText(`⚽ Shot ${seg.i+1} of 3…`)}}
+   else{stand(P);if(q<.55){P.legR.rotation.x=-1.1}const s=(q-.45)/.55,ok=res.shots[seg.i];const tz=ok?(seg.i%2?.7:-.75):(seg.i%2?1.7:-1.8),ty=ok?.6+seg.i*.15:1.9;
+    ball.position.set(3.2+s*3.6,.11+Math.sin(Math.min(1,s)*Math.PI)*ty*.7+s*ty*.3,s*tz);
+    if(s>.8&&!said[key]){said[key]=1;onText(ok?'✅ GOAL!':'❌ Missed!');if(ok)net.position.x=gx+.8}}}
+  else if(seg&&seg.k==='pass'){const q=(t-seg.a)/(seg.b-seg.a),key='pa'+seg.i,ok=res.passes[seg.i];g.position.set(1.8,0,0);g.rotation.y=Math.PI*.82;stand(P);if(q<.15)P.legR.rotation.x=-.9;
+   const tx=ok?3.2:4.6,tz=ok?-2.6:-1.4;ball.position.set(2.1+(tx-2.1)*Math.min(1,q*1.4),.11,(tz)*Math.min(1,q*1.4));
+   Mt.g.rotation.y=Math.PI*.7;if(ok&&q>.7){Mt.armL.rotation.z=-2.6;Mt.armR.rotation.z=2.6}else{Mt.armL.rotation.z=-.1;Mt.armR.rotation.z=.1}
+   if(q>.75&&!said[key]){said[key]=1;onText(ok?'✅ Great pass!':'❌ Bad pass!')}}
+  else if(t<total){stand(P);net.position.x+=(gx+.7-net.position.x)*.1}
+  else{stand(P);if(!said.end){said.end=1;onDone&&onDone()}}
+  P.eyes.forEach(e=>e.scale.y=(Math.sin(now/770)>.985)?.2:1);
+  cam.position.x+=((g.position.x-1.8)-cam.position.x)*.03;cam.lookAt(cam.position.x+2.1,.4,0);
+  r.render(sc,cam)}
+ raf=requestAnimationFrame(loop);
+ return{dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
 
 /* ---------- ONLINE (this site's own server relay /api/server/CODE?g=sm, 2 players; fixed nicknames, no chat) ---------- */
 const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
