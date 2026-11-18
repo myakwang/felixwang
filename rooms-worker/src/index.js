@@ -130,7 +130,7 @@ const maxFor = g => (g === 'sm' ? 2 : MAXP);
 export class Server {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
   // players still connected (a socket that is closing or closed no longer counts, so a server emptied by two players leaving at once is unlisted)
-  socks() { return this.ctx.getWebSockets().filter(s => { const t = this.ctx.getTags(s)[0]; return t && t[0] === 's' && s.readyState !== 2 && s.readyState !== 3; }); }
+  socks() { return this.ctx.getWebSockets().filter(s => { const t = this.ctx.getTags(s)[0]; let gone = false; try { gone = !!(s.deserializeAttachment() || {}).gone; } catch (e) {} return t && t[0] === 's' && !gone && s.readyState !== 2 && s.readyState !== 3; }); }
   idOf(s) { return +this.ctx.getTags(s)[0].slice(1); }
   joinT(s) { return +(this.ctx.getTags(s)[1] || 'j0').slice(1); }
   hostOf(list) { let h = null; for (const s of list) if (!h || this.joinT(s) < this.joinT(h)) h = s; return h ? this.idOf(h) : 0; }
@@ -185,7 +185,7 @@ export class Server {
     for (const s of list) { if (s === ws || (to && this.idOf(s) !== to)) continue; try { s.send(out); } catch (e) {} }
   }
   async webSocketClose(ws) {
-    const tag = this.ctx.getTags(ws)[0]; try { ws.close(1000, 'bye'); } catch (e) {}
+    const tag = this.ctx.getTags(ws)[0]; try { ws.serializeAttachment({ gone: 1 }); } catch (e) {} try { ws.close(1000, 'bye'); } catch (e) {}
     if (!tag || tag[0] !== 's') return;
     const id = this.idOf(ws), list = this.socks().filter(s => s !== ws), host = this.hostOf(list);
     for (const s of list) { try { s.send(JSON.stringify({ t: 'leave', id, host })); } catch (e) {} }

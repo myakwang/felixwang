@@ -461,10 +461,10 @@ function trainView(){if(Object.values(S.plan).reduce((a,b)=>a+b,0)>HOURS)S.plan=
   <button class="small gray" onclick="plan('${k}',-1)" ${S.trained||!S.plan[k]?'disabled':''}>−</button><span class="h">${S.plan[k]}</span>
   <button class="small" onclick="plan('${k}',1)" ${S.trained||left<=0?'disabled':''}>+</button></div>`).join('');
  const ec=avgE>=70?'var(--good)':avgE>=45?'var(--gold)':'var(--bad)';
- return `<div class="card"><h2>🏋️ Training — Week ${S.week}</h2>
-  <p class="muted">You get <b>${HOURS} hours</b> each week. Training makes players better but tires them. Rest gives energy back. Tired players play worse!</p>
+ return `<div class="card"><h2>🏋️ Training — Week ${S.week}, ${isMatchDay()?'Match day':'Day '+S.day}</h2><div class="muted">You can train once <b>every day</b>, even on match day.</div>
+  <p class="muted">You get <b>${HOURS} hours</b> each day. Training makes players better but tires them. Rest gives energy back. Tired players play worse!</p>
   <div class="row"><span class="chip">Hours left: <b style="color:var(--gold)">${left}</b></span><span class="chip">Team energy: <b style="color:${ec}">${avgE}</b></span></div>${rows}
-  ${S.trained?'<div class="tip">✅ Training is done this week. Go play your match!</div>':`<button class="gold" style="width:100%;margin-top:8px;font-size:1.1em" onclick="doTraining()" ${S.players.length?'':'disabled'}>Start Training!</button>`}
+  ${S.trained?`<div class="tip">✅ Done for today! ${isMatchDay()?'Now go play your match! ⚽':'You can train again tomorrow.'}<div class="dayClock" style="margin-top:4px">${dayLabel()}</div></div>`:`<button class="gold" style="width:100%;margin-top:8px;font-size:1.1em" onclick="doTraining()" ${S.players.length?'':'disabled'}>Start Training!</button>`}
   ${avgE<55&&!S.trained?'<div class="tip">💡 Your team is tired. Add more Rest hours this week!</div>':''}
   <p class="muted">Young players (22 and under) learn the fastest.</p></div>`}
 function plan(k,d){if(S.trained)return;const used=Object.values(S.plan).reduce((a,b)=>a+b,0);if(d>0&&used>=HOURS)return;S.plan[k]=clamp(S.plan[k]+d,0,HOURS);save();render()}
