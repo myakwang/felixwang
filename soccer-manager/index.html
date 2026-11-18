@@ -305,10 +305,10 @@ function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(
  teams.forEach(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
  S.league={teams,fixtures:makeFixtures(teams.length),round:0};S.phase='league';S.wc=null;S.week=1}
 
-function addTrials(n){for(let i=0;i<n&&S.trials.length<4;i++){
+function addTrials(n){setTimeout(ensureTalker,0);for(let i=0;i<n&&S.trials.length<4;i++){
  let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
  const p=makePlayer(t,pick(['GK','DEF','DEF','MID','MID','FWD','FWD']));const o=ovr(p);
- p.fee=Math.max(5,Math.round((o-45)*2.6+rnd(-4,6)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.5;
+ p.fee=Math.max(5,Math.round((o-45)*2.6+rnd(-4,6)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=Math.random()<.6;
  p.msg=pick(["I completed the trial! ","Trial done, coach! ","I finished the trial and I'm ready! ","That trial was easy! "])+`I want ${money(p.fee)} to join, and ${money(p.salary)} every week.`;
  S.trials.push(p)}}
 
@@ -446,7 +446,7 @@ function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const
 
 function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
- <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`<div class="quote">"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
+ <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
  ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why).join('<br>')}</div></div>`:''}`}
@@ -527,6 +527,8 @@ function tableView(){const st=standings();
 
 /* ---------- TALKING WITH PLAYERS & SPONSORS (all on this device, nothing is sent) ---------- */
 const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rocket Juice','Splashy Water','Comet Chips','Twisty Gum','Turbo Toys','Sunny Shampoo','Mega Burger'];
+function ensureTalker(){if(!S||!S.trials)return;let ch=false;S.trials.forEach(t=>{if(t.talk===undefined){t.talk=Math.random()<.6;ch=true}});
+ if(S.trials.length&&!S.trials.some(t=>t.talk)){pick(S.trials).talk=true;ch=true}if(ch){save();if(!M&&S.tab==='trials')render()}}
 function newCall(){if(!S||S.call||!S.players.length)return;const star=[...S.players].sort((a,b)=>ovr(b)-ovr(a))[0];const amt=money2(rnd(20,45));
  S.call={co:pick(COMPANIES),pid:star.id,amt,max:Math.round(amt*(1.25+Math.random()*.3))};save();if(!M)render();
  setTimeout(()=>{if(!M&&S.call)modal(`<div class="big">📞</div><h2>Ring ring!</h2><p><b>${esc(S.call.co)}</b> is calling! They want to make an ad with <b>${esc(star.name)}</b>.</p>`,[{t:'📞 Answer',c:'gold',f:openSponsor},{t:'Later',c:'gray'}])},300)}
@@ -996,7 +998,7 @@ function nextSeason(){S.season++;S.players.forEach(p=>{p.age++;p.energy=100});S.
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
 function askReset(){modal('<h2>Start over?</h2><p>Your whole team, money and trophies will be deleted.</p>',[{t:'Yes, new game',c:'red',f:()=>{S=null;try{localStorage.removeItem('soccerMgrSave')}catch(e){}render()}},{t:'Cancel',c:'gray'}])}
 
-load();render();if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
+load();ensureTalker();render();if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
