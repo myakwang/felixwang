@@ -632,7 +632,7 @@ function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
   :[['more','💰 Can you pay more?'],['why','🤔 Why our player?'],['fans','📣 He has lots of fans!']];
  $('#ngAct').innerHTML=`<div class="qs">${q.map(([k,t])=>`<button class="small gray" onclick="ngAsk('${k}')">${t}</button>`).join('')}</div>
   <div class="row" style="margin-top:8px"><input type="range" min="${lo}" max="${hi}" value="${NG.offer}" style="flex:1" oninput="NG.offer=+this.value;$('#ngOv').textContent=money(NG.offer)"><button class="small" onclick="ngOffer()">${pl?'Offer':'Ask for'} <span id="ngOv">${money(NG.offer)}</span></button></div>
-  <form class="row" style="margin-top:8px" onsubmit="event.preventDefault();ngTyped()"><input type="text" id="ngTxt" maxlength="80" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:.95em;padding:9px;text-align:left" autocomplete="off"><button class="small">Say</button></form>
+  <div class="row" style="margin-top:8px"><input type="text" id="ngTxt" maxlength="80" enterkeyhint="send" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:.95em;padding:9px;text-align:left" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();ngTyped()}"><button type="button" class="small" onclick="ngTyped()">💬 Say</button></div>
   <div class="muted" style="font-size:.78em;margin-top:2px">📱 Tip: on a phone, tap the 🎤 on your keyboard to say it out loud.</div>
   <div class="row" style="margin-top:8px;justify-content:center"><button class="small green" onclick="ngDeal()">✅ Deal at ${money(NG.ask)}</button><button class="small red" onclick="ngBye()">👋 No thanks</button></div>`}
 function ngAngry(by,line){NG.pat-=by;ngSay('him',line);if(G3)G3.play('grr')}
