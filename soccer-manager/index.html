@@ -460,17 +460,17 @@ function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const
 
 function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
- <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
+ <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`${p.back?'<div class="stb" style="background:#5cf29a;color:#06351b">😔 Came back to say sorry</div>':''}<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
- ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why).join('<br>')}</div></div>`:''}`}
+ ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.why==='Declined'?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
 function acceptT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;
  if(S.players.length>=22)return toast('Your squad is full (22). Kick someone out first!');
  if(S.money<p.fee)return toast(`Not enough money! You have ${money(S.money)}.`);
  S.money-=p.fee;S.trials=S.trials.filter(x=>x.id!==id);p.energy=100;['fee','weeks','final','msg','talk'].forEach(k=>delete p[k]);S.players.push(p);save();render();confetti(70);
  modal(`${jersey(S.color,p.num,90)}<h2>${esc(p.name)} joined!</h2><p>"Thanks coach! I'll play my best for ${esc(S.teamName)}!"</p>`)}
 function haggle(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const r=Math.random();
- if(p.final||r<.12){leave(p,'Got mad and left');modal(`<div class="big">😠</div><h2>${esc(p.name)} left!</h2><p>"${p.final?"I said that was my FINAL offer!":"That's rude! I'm going to another team!"}"<br>He's gone forever.</p>`);return}
+ if(p.final||r<.12){madLeave(p);leave(p,'Got mad and left');modal(`<div class="big">😠</div><h2>${esc(p.name)} left!</h2><p>"${p.final?"I said that was my FINAL offer!":"That's rude! I'm going to another team!"}"<br>He's gone forever.</p>`);return}
  if(r<.35){p.final=true;p.msg="No way! That's my final offer: "+money(p.fee)+".";}
  else{const old=p.fee;p.fee=Math.max(3,Math.round(p.fee*(rnd(70,85)/100)));if(Math.random()<.5)p.salary=Math.max(1,p.salary-1);p.msg=`Hmm... okay. How about ${money(p.fee)} and ${money(p.salary)} per week? (was ${money(old)})`;if(Math.random()<.3)p.final=true}
  save();render()}
@@ -542,6 +542,11 @@ function tableView(){const st=standings();
 
 /* ---------- TALKING WITH PLAYERS & SPONSORS (all on this device, nothing is sent) ---------- */
 const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rocket Juice','Splashy Water','Comet Chips','Twisty Gum','Turbo Toys','Sunny Shampoo','Mega Burger'];
+function madLeave(p){if(p.back)return;S.angry=S.angry||[];S.angry.push(JSON.parse(JSON.stringify(p)))}
+function maybeComeBack(){if(!S.angry||!S.angry.length||S.trials.length>=4||Math.random()>.2)return false;const i=rnd(0,S.angry.length-1),p=S.angry.splice(i,1)[0];
+ p.back=true;p.weeks=0;p.final=false;p.fee=Math.max(3,Math.round(p.fee*.6));p.salary=Math.max(1,p.salary-1);
+ p.msg=`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;
+ const g=S.gone.findIndex(x=>x.name===p.name);if(g>=0)S.gone.splice(g,1);S.trials.push(p);return p}
 function ensureTalker(){if(!S||!S.trials)return;let ch=false;
  [...S.players,...S.trials].forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}});
  if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}})});S.trials.forEach(t=>{if(t.talk===undefined){t.talk=Math.random()<.6;ch=true}});
@@ -555,18 +560,25 @@ let NG=null,G3=null;
 const SKINS=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac','#a0662f'];
 function openTalk(id){const t=S.trials.find(x=>x.id===id);if(!t)return;const g=goodBad(t);
  NG={kind:'player',id,name:t.name,ask:t.fee,floor:Math.round(t.fee*(.6+Math.random()*.22)),pat:rnd(3,5),max:5,used:{},offer:Math.round(t.fee*.8),busy:false,
-  log:[{w:'him',t:`Hi coach! I'm ${t.name}. I'm good at ${SKN[g.good[0]]}. I want ${money(t.fee)} to join.`}],look:{shirt:'#8a8f98',skin:pick(SKINS)}};openNego()}
+  log:[{w:'him',t:t.back?`Hi coach... I'm sorry about the bottles. I can join for ${money(t.fee)}.`:`Hi coach! I'm ${t.name}. I'm good at ${SKN[g.good[0]]}. I want ${money(t.fee)} to join.`}],look:{shirt:'#8a8f98',skin:pick(SKINS)}};openNego()}
 function openSponsor(){const c=S.call;if(!c)return;const p=S.players.find(x=>x.id===c.pid);if(!p){S.call=null;save();return render()}
  NG={kind:'sponsor',name:c.co,player:p.name,ask:c.amt,floor:c.max,pat:rnd(3,4),max:4,used:{},offer:Math.round(c.amt*1.2),busy:false,
   log:[{w:'him',t:`Hello! This is ${c.co}. We want ${p.name} in our TV ad! We will pay you ${money(c.amt)}.`}],look:{shirt:'#2d3436',skin:pick(SKINS),suit:true}};openNego()}
+let VOICE_ON=true;try{VOICE_ON=localStorage.getItem('soccerMgrVoice')!=='0'}catch(e){}
+function pickVoice(kind){try{if(!window.speechSynthesis)return null;const vs=speechSynthesis.getVoices().filter(v=>v.localService&&/^en/i.test(v.lang));if(!vs.length)return null;
+ const m=vs.filter(v=>/male|david|daniel|alex|fred|tom|aaron|arthur|gordon|rishi|guy|mark|james|oliver/i.test(v.name)&&!/female/i.test(v.name));return pick(m.length?m:vs)}catch(e){return null}}
+function speak(text){if(!VOICE_ON||!NG)return;try{const ss=window.speechSynthesis;if(!ss)return;if(!NG.voice)NG.voice=pickVoice(NG.kind);if(!NG.voice)return;
+ const say=String(text).replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[^\w\s.,!?'’-]/g,' ');const u=new SpeechSynthesisUtterance(say);u.voice=NG.voice;u.lang=NG.voice.lang;
+ const mad=NG.pat<=1||/!!|WHAT|THAT'S IT|RIDICULOUS/.test(text);u.pitch=NG.kind==='player'?(mad?1.35:1.15):(mad?1.1:.85);u.rate=mad?1.25:1.02;u.volume=1;ss.cancel();ss.speak(u)}catch(e){}}
+function toggleVoice(){VOICE_ON=!VOICE_ON;try{localStorage.setItem('soccerMgrVoice',VOICE_ON?'1':'0')}catch(e){}if(!VOICE_ON)try{speechSynthesis.cancel()}catch(e){}const b=$('#vBtn');if(b)b.textContent=VOICE_ON?'🔊':'🔇'}
 function moodFace(){const r=NG.pat/NG.max;return r>.7?'😊':r>.45?'😐':r>.2?'😠':'🤬'}
 function openNego(){let el=$('#nego');if(!el){el=document.createElement('div');el.id='nego';document.body.appendChild(el)}
- el.innerHTML=`<div class="nbox"><div class="row"><h3 class="sp">${NG.kind==='player'?'💬 Talking with '+esc(NG.name):'📞 '+esc(NG.name)}</h3><button class="small gray" onclick="closeNego()">✖</button></div>
+ el.innerHTML=`<div class="nbox"><div class="row"><h3 class="sp">${NG.kind==='player'?'💬 Talking with '+esc(NG.name):'📞 '+esc(NG.name)}</h3><button class="small gray" id="vBtn" onclick="toggleVoice()" title="Voice on/off">${VOICE_ON?'🔊':'🔇'}</button> <button class="small gray" onclick="closeNego()">✖</button></div>
   <div class="ng3d" id="ng3d"><div class="ngfx" id="ngfx"></div></div><div id="ngInfo"></div><div class="chat" id="ngChat"></div><div id="ngAct"></div></div>`;
- el.style.display='flex';ngUpdate();
+ el.style.display='flex';ngUpdate();speak(NG.log[0].t);
  loadThree().then(()=>{if(NG&&$('#ng3d')){G3&&G3.dispose();G3=makeScene($('#ng3d'),NG.look)}}).catch(()=>{})}
-function closeNego(){if(NG&&NG.busy)return;const el=$('#nego');if(el)el.style.display='none';G3&&G3.dispose();G3=null;NG=null;render()}
-function ngSay(w,t){NG.log.push({w,t});if(w==='him'&&G3)G3.play('talk')}
+function closeNego(){if(NG&&NG.busy)return;try{speechSynthesis.cancel()}catch(e){}const el=$('#nego');if(el)el.style.display='none';G3&&G3.dispose();G3=null;NG=null;render()}
+function ngSay(w,t){NG.log.push({w,t});if(w==='him'){if(G3)G3.play('talk');speak(t)}}
 function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
  $('#ngInfo').innerHTML=`<div class="row" style="margin:6px 0"><span class="chip">Mood ${moodFace()} ${'●'.repeat(Math.max(0,NG.pat))}${'○'.repeat(Math.max(0,NG.max-NG.pat))}</span><span class="chip m">${pl?'Wants':'Pays'} ${money(NG.ask)}</span>${pl?`<span class="chip">You have ${money(S.money)}</span>`:`<span class="chip">Ad with ${esc(NG.player)}</span>`}</div>`;
  const c=$('#ngChat');c.innerHTML=NG.log.map(m=>`<div class="bub ${m.w}">${esc(m.t)}</div>`).join('');c.scrollTop=c.scrollHeight;
@@ -608,7 +620,7 @@ function ngBye(){if(!NG||NG.busy)return;ngSay('me','No thanks. Goodbye!');ngSay(
  const end=()=>{NG.busy=false;closeNego()};if(G3)G3.play('walk',end);else setTimeout(end,1200)}
 function ngAfter(){if(NG.pat>0)return ngUpdate();
  ngSay('him',NG.kind==='player'?"THAT'S IT!! I'M LEAVING!!":"THIS IS RIDICULOUS! WE'RE DONE!");NG.busy=true;ngUpdate();fx('💢');
- if(NG.kind==='player'){const t=S.trials.find(x=>x.id===NG.id);if(t){S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Smashed bottles and left'});save()}}else{S.call=null;save()}
+ if(NG.kind==='player'){const t=S.trials.find(x=>x.id===NG.id);if(t){madLeave(t);S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Smashed bottles and left'});save()}}else{S.call=null;save()}
  const nm=NG.name,end=()=>{NG.busy=false;closeNego();toast(`😡 ${nm} stormed off!`)};if(G3)G3.play('smash',end);else setTimeout(end,1500)}
 function fx(e){const f=$('#ngfx');if(!f)return;const d=document.createElement('div');d.className='pop';d.textContent=e;f.appendChild(d);setTimeout(()=>d.remove(),1500)}
 function loadThree(){if(window.THREE)return Promise.resolve();if(loadThree.p)return loadThree.p;
@@ -1012,13 +1024,13 @@ function endLeague(){const st=standings(),n=st.length,pos=st.findIndex(t=>t.i===
 function endWeek(prize){const wage=S.players.reduce((a,p)=>a+p.salary,0);S.money+=money2(15)-wage;
  S.players.forEach(p=>p.energy=clamp(p.energy+8,5,100));
  const left=[];S.trials.forEach(t=>{t.weeks++;if(t.weeks>=3)left.push(t)});left.forEach(t=>{S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Joined another team'})});
- const before=S.trials.length;addTrials(rnd(1,2));const nw=S.trials.length-before;S.week++;S.trained=false;S.day=1;S.dayStart=Date.now();
+ const back=maybeComeBack();if(back)setTimeout(()=>toast(`😔 ${back.name} came back to say sorry!`),2600);const before=S.trials.length;addTrials(rnd(1,2));const nw=S.trials.length-before;S.week++;S.trained=false;S.day=1;S.dayStart=Date.now();
  const net=prize+money2(15)-wage;setTimeout(()=>toast(`💰 ${net>=0?'+':''}${money(net)} this week${nw?` · 📝 ${nw} new`:''}`),300)}
 function nextSeason(){S.season++;S.players.forEach(p=>{p.age++;p.energy=100});S.result='';setupLeague();addTrials(2);S.tab='team';save();render();
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
 function askReset(){modal('<h2>Start over?</h2><p>Your whole team, money and trophies will be deleted.</p>',[{t:'Yes, new game',c:'red',f:()=>{S=null;try{localStorage.removeItem('soccerMgrSave')}catch(e){}render()}},{t:'Cancel',c:'gray'}])}
 
-load();ensureTalker();render();if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
+load();ensureTalker();render();try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
