@@ -164,6 +164,9 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
 .cbtn{background:#ffffff14;box-shadow:none;padding:8px;font-size:.85em;display:flex;align-items:center;gap:6px;text-align:left}
 .cbtn span{font-size:1.6em}
+.trfx{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.trfx div{position:absolute;top:18%;font-family:"Lilita One",sans-serif;font-size:2.4em;text-shadow:0 3px 0 #000a,0 0 18px #000a;animation:pop 1.4s ease-out forwards;white-space:nowrap}
+.ng3d{position:relative}
 </style>
 </head>
 <body>
@@ -745,12 +748,17 @@ function makeScene(host,look){const {T,r,sc,cam}=sceneBase(host);cam.position.se
  const wall=new T.Mesh(new T.PlaneGeometry(14,7),std('#2f6fa8',.95));wall.position.set(0,3.2,-2.4);wall.receiveShadow=true;sc.add(wall);
  const win=new T.Mesh(new T.PlaneGeometry(1.6,1.1),new T.MeshBasicMaterial({color:0xbfe6ff}));win.position.set(-1.7,2.3,-2.38);sc.add(win);
  [[0,.58,1.7,.06],[0,-.58,1.7,.06],[-.82,0,.06,1.2],[.82,0,.06,1.2],[0,0,.04,1.2]].forEach(([x,y,w,h])=>{const f=new T.Mesh(new T.BoxGeometry(w,h,.05),std('#f5f5f5'));f.position.set(-1.7+x,2.3+y,-2.36);sc.add(f)});
- const shelf=new T.Mesh(new T.BoxGeometry(1.2,.06,.3),std('#8b5a2b'));shelf.position.set(1.7,2.1,-2.25);sc.add(shelf);
- const gold=new T.MeshStandardMaterial({color:0xffc83d,metalness:.8,roughness:.25});const cup=new T.Mesh(new T.CylinderGeometry(.13,.06,.25,16),gold);cup.position.set(1.55,2.3,-2.2);sc.add(cup);
- const base=new T.Mesh(new T.BoxGeometry(.16,.08,.16),gold);base.position.set(1.55,2.16,-2.2);sc.add(base);
- const ball=new T.Mesh(new T.SphereGeometry(.12,20,16),std('#ffffff',.5));ball.position.set(1.9,2.25,-2.2);sc.add(ball);
- const pot=new T.Mesh(new T.CylinderGeometry(.18,.14,.35,16),std('#c0392b'));pot.position.set(2.2,.18,-1.6);sc.add(pot);
- for(let i=0;i<6;i++){const lf=new T.Mesh(new T.SphereGeometry(.16,10,8),std('#27ae60'));lf.position.set(2.2+Math.cos(i)*.12,.5+i*.05,-1.6+Math.sin(i)*.12);lf.scale.set(1,1.4,1);sc.add(lf)}
+ const shelf=new T.Mesh(new T.BoxGeometry(1.2,.06,.3),std('#8b5a2b'));shelf.position.set(-.1,2.75,-2.25);sc.add(shelf);
+ const gold=new T.MeshStandardMaterial({color:0xffc83d,metalness:.8,roughness:.25});const cup=new T.Mesh(new T.CylinderGeometry(.13,.06,.25,16),gold);cup.position.set(-.3,2.95,-2.2);sc.add(cup);
+ const base=new T.Mesh(new T.BoxGeometry(.16,.08,.16),gold);base.position.set(-.3,2.81,-2.2);sc.add(base);
+ const ball=new T.Mesh(new T.SphereGeometry(.12,20,16),std('#ffffff',.5));ball.position.set(.15,2.9,-2.2);sc.add(ball);
+ const pot=new T.Mesh(new T.CylinderGeometry(.18,.14,.35,16),std('#c0392b'));pot.position.set(-2.4,.18,-1.6);sc.add(pot);
+ for(let i=0;i<6;i++){const lf=new T.Mesh(new T.SphereGeometry(.16,10,8),std('#27ae60'));lf.position.set(-2.4+Math.cos(i)*.12,.5+i*.05,-1.6+Math.sin(i)*.12);lf.scale.set(1,1.4,1);sc.add(lf)}
+ // door (he leaves through it!)
+ const DX=1.75,doorFrameM=std('#f5f5f5',.6);[[DX-.5,1.08,.08,2.2],[DX+.5,1.08,.08,2.2],[DX,2.2,1.08,.08]].forEach(([x,y,w,h])=>{const f=new T.Mesh(new T.BoxGeometry(w,h,.08),doorFrameM);f.position.set(x,y,-2.36);sc.add(f)});
+ const hole=new T.Mesh(new T.PlaneGeometry(.92,2.12),new T.MeshBasicMaterial({color:0x1b2a3a}));hole.position.set(DX,1.06,-2.385);sc.add(hole);
+ const hinge=new T.Group();hinge.position.set(DX-.46,0,-2.34);sc.add(hinge);const door=new T.Mesh(new T.BoxGeometry(.92,2.1,.05),std('#a0522d',.6));door.position.set(.46,1.05,0);door.castShadow=true;hinge.add(door);
+ const knob=new T.Mesh(new T.SphereGeometry(.04,10,8),new T.MeshStandardMaterial({color:0xffd166,metalness:.8,roughness:.3}));knob.position.set(.8,1.02,.05);hinge.add(knob);
  // desk
  const desk=new T.Group();const top=new T.Mesh(new T.BoxGeometry(2.2,.08,.9),std('#9c6b3c',.6));top.position.y=.82;top.castShadow=top.receiveShadow=true;desk.add(top);
  const front=new T.Mesh(new T.BoxGeometry(2.1,.7,.05),std('#7d5330',.7));front.position.set(0,.45,.4);front.castShadow=true;desk.add(front);
@@ -773,8 +781,13 @@ function makeScene(host,look){const {T,r,sc,cam}=sceneBase(host);cam.position.se
   if(anim==='grr'){head.material.color.lerp(red,.08);smile(-1);brows[0].rotation.z=-.45;brows[1].rotation.z=.45;headG.rotation.z=Math.sin(t*30)*.07;armL.rotation.z=-.5;armR.rotation.z=.5;if(t>1.1){headG.rotation.z=0;anim='idle'}}
   if(anim==='clap'){const c=Math.abs(Math.sin(t*9));smile(1);mouth.scale.set(1.4,2.2,1);armL.rotation.set(-1.3,0,.55-c*.5);armR.rotation.set(-1.3,0,-.55+c*.5);P.g.position.y=Math.abs(Math.sin(t*4.5))*.08;
    if(t>2.6){armL.rotation.set(0,0,-.1);armR.rotation.set(0,0,.1);finish()}}
-  if(anim==='walk'||(anim==='smash'&&t>2.7)){const w=anim==='walk'?t:t-2.7;P.g.rotation.y=Math.min(Math.PI,w*4);const s=Math.sin(w*10)*.6;legL.rotation.x=s;legR.rotation.x=-s;armL.rotation.x=-s*.8;armR.rotation.x=s*.8;
-   if(w>.6){P.g.position.z-=.035;P.g.position.x+=.012}if(w>2.4)finish()}
+  if(anim==='walk'||(anim==='smash'&&t>2.7)){const w=anim==='walk'?t:t-2.7,path=[[DX,-1.55],[DX,-3.4]];if(P.pi==null)P.pi=0;
+   const tg=path[Math.min(P.pi,1)],dx=tg[0]-P.g.position.x,dz=tg[1]-P.g.position.z,L=Math.hypot(dx,dz);
+   if(P.pi<2){const want=Math.atan2(dx,dz);let d=want-P.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));P.g.rotation.y+=d*.15;
+    if(Math.abs(d)<.6){const sp=Math.min(L,.03);P.g.position.x+=dx/L*sp;P.g.position.z+=dz/L*sp}if(L<.05)P.pi++;
+    const s=Math.sin(w*11)*.65;legL.rotation.x=s;legR.rotation.x=-s;armL.rotation.x=-s*.8;armR.rotation.x=s*.8;P.g.position.y=Math.abs(Math.sin(w*11))*.03}
+   const near=P.pi>=1||Math.hypot(DX-P.g.position.x,-2.3-P.g.position.z)<1.6;hinge.rotation.y+=((P.pi>=2?0:near?-1.5:0)-hinge.rotation.y)*.08;
+   if(P.pi>=2){P.g.visible=false;if(P.doneAt==null)P.doneAt=w;if(w-P.doneAt>.9)finish()}}
   if(anim==='smash'&&t<=2.7){head.material.color.lerp(red,.1);smile(-1);brows[0].rotation.z=-.55;brows[1].rotation.z=.55;mouth.scale.set(1.4,2.4,1);const b=bottles[0];
    if(t<.5){headG.rotation.z=Math.sin(t*40)*.08;armL.rotation.z=-.6;armR.rotation.z=.6}
    else if(t<1){armR.rotation.set(-1.1,0,-.25);if(!held&&b.parent===sc){held=b;armR.add(b);b.position.set(0,-.62,.06);b.rotation.set(0,0,0)}}
@@ -790,52 +803,104 @@ function makeScene(host,look){const {T,r,sc,cam}=sceneBase(host);cam.position.se
  raf=requestAnimationFrame(loop);
  return{play,dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
 
-// ---- try-out training session: sprint through cones, 3 shots, 2 passes ----
-function makeTryout(host,look,mateLook,res,onText,onDone){const {T,r,sc,cam}=sceneBase(host);cam.position.set(-1.5,4.2,7.2);cam.lookAt(0.6,.4,0);
+// ---- try-out training session (v2): dribble through cones, 3 shots vs a goalkeeper, 2 passes with a teammate ----
+function ballTex(T){const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,256,128);x.fillStyle='#111';
+ [[30,30],[95,70],[160,30],[225,70],[60,105],[190,105],[128,10]].forEach(([a,b])=>{x.beginPath();for(let i=0;i<5;i++){const an=i/5*Math.PI*2-Math.PI/2;x.lineTo(a+Math.cos(an)*16,b+Math.sin(an)*16)}x.fill()});return new T.CanvasTexture(c)}
+function makeTryout(host,look,mateLook,res,onText,onDone){const {T,r,sc,cam}=sceneBase(host);
  const std=(c,ro=.85)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:ro});
- const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');for(let i=0;i<8;i++){x.fillStyle=i%2?'#3fae4a':'#4cc257';x.fillRect(i*64,0,64,512)}
- const gt=new T.CanvasTexture(c);const grass=new T.Mesh(new T.PlaneGeometry(26,18),new T.MeshStandardMaterial({map:gt,roughness:1}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;sc.add(grass);
- const sky=new T.Mesh(new T.PlaneGeometry(60,20),new T.MeshBasicMaterial({color:0x8fd3ff}));sky.position.set(0,8,-9);sc.add(sky);
- const line=(w,h,px,pz)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:0xffffff}));m.rotation.x=-Math.PI/2;m.position.set(px,.01,pz);sc.add(m)};
- line(.06,8,6.5,0);line(2.4,.06,5.3,-1.6);line(2.4,.06,5.3,1.6);line(.06,3.2,4.1,0);
- // goal
- const post=std('#ffffff',.4),gx=6.6;[[0,-1.2],[0,1.2]].forEach(([dx,z])=>{const p=new T.Mesh(new T.CylinderGeometry(.05,.05,1.6,10),post);p.position.set(gx,.8,z);p.castShadow=true;sc.add(p)});
- const bar=new T.Mesh(new T.CylinderGeometry(.05,.05,2.4,10),post);bar.rotation.x=Math.PI/2;bar.position.set(gx,1.6,0);sc.add(bar);
- const net=new T.Mesh(new T.PlaneGeometry(2.4,1.6,12,8),new T.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.5}));net.rotation.y=Math.PI/2;net.position.set(gx+.7,.8,0);sc.add(net);
+ const fx=document.createElement('div');fx.className='trfx';host.appendChild(fx);
+ const pop=(t,col)=>{const d=document.createElement('div');d.textContent=t;d.style.color=col||'#fff';fx.appendChild(d);setTimeout(()=>d.remove(),1400)};
+ // ground + surroundings
+ const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');for(let i=0;i<8;i++){x.fillStyle=i%2?'#2f9e44':'#37b24d';x.fillRect(i*64,0,64,512)}
+ for(let i=0;i<3000;i++){x.fillStyle=Math.random()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.04)';x.fillRect(Math.random()*512,Math.random()*512,2,2)}
+ const gt=new T.CanvasTexture(c);gt.wrapS=gt.wrapT=T.RepeatWrapping;gt.repeat.set(2,1);
+ const grass=new T.Mesh(new T.PlaneGeometry(40,24),new T.MeshStandardMaterial({map:gt,roughness:1,color:0x9a9a9a}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;sc.add(grass);
+ sc.background=new T.Color(0x87ceeb);
+ const lineM=new T.MeshBasicMaterial({color:0xffffff});const line=(w,h,px,pz)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),lineM);m.rotation.x=-Math.PI/2;m.position.set(px,.012,pz);sc.add(m)};
+ line(.08,10,7,0);line(3,.08,5.5,-2.2);line(3,.08,5.5,2.2);line(.08,4.4,4,0);line(1.2,.08,6.4,-1.3);line(1.2,.08,6.4,1.3);line(.08,2.6,5.8,0);
+ const spot=new T.Mesh(new T.CircleGeometry(.07,12),lineM);spot.rotation.x=-Math.PI/2;spot.position.set(4.6,.013,0);sc.add(spot);
+ // stand + trees in the back
+ const stand=new T.Group();for(let i=0;i<4;i++){const st=new T.Mesh(new T.BoxGeometry(22,.5,1),std(i%2?'#3b5b8c':'#2c4870'));st.position.set(1,.25+i*.5,-9-i*.9);st.receiveShadow=true;stand.add(st)}
+ for(let i=0;i<60;i++){const fan=new T.Mesh(new T.SphereGeometry(.13,8,6),std(['#e74c3c','#f1c40f','#3498db','#ecf0f1','#2ecc71'][i%5]));fan.position.set(-9+(i%20)*1.05+Math.random()*.3,.75+Math.floor(i/20)*.5,-9.1-Math.floor(i/20)*.9);stand.add(fan)}
+ sc.add(stand);
+ [[-8,-6],[-5,-7],[10,-6],[12,-4]].forEach(([a,b])=>{const tr=new T.Mesh(new T.CylinderGeometry(.12,.16,1.2,8),std('#6b4420'));tr.position.set(a,.6,b);sc.add(tr);const lv=new T.Mesh(new T.SphereGeometry(.8,12,10),std('#1e8449'));lv.position.set(a,1.6,b);lv.castShadow=true;sc.add(lv)});
+ // goal with net
+ const GX=7,post=std('#ffffff',.3);[-1.2,1.2].forEach(z=>{const p=new T.Mesh(new T.CylinderGeometry(.05,.05,1.6,12),post);p.position.set(GX,.8,z);p.castShadow=true;sc.add(p)});
+ const bar=new T.Mesh(new T.CylinderGeometry(.05,.05,2.4,12),post);bar.rotation.x=Math.PI/2;bar.position.set(GX,1.6,0);sc.add(bar);
+ const netM=new T.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.45});
+ const netBack=new T.Mesh(new T.PlaneGeometry(2.4,1.6,14,9),netM);netBack.rotation.y=Math.PI/2;netBack.position.set(GX+.8,.8,0);sc.add(netBack);
+ const netTop=new T.Mesh(new T.PlaneGeometry(.8,2.4,4,14),netM);netTop.rotation.x=-Math.PI/2;netTop.rotation.z=Math.PI/2;netTop.position.set(GX+.4,1.6,0);sc.add(netTop);
+ [-1.2,1.2].forEach(z=>{const s=new T.Mesh(new T.PlaneGeometry(.8,1.6,4,9),netM);s.position.set(GX+.4,.8,z);sc.add(s)});
  // cones
- const cones=[];for(let i=0;i<5;i++){const cn=new T.Mesh(new T.ConeGeometry(.13,.32,14),std('#ff7a1a',.6));cn.position.set(-3.6+i*1.1,.16,0);cn.castShadow=true;sc.add(cn);cones.push(cn)}
- const P=buildPerson(T,look);sc.add(P.g);P.g.position.set(-5,0,0);P.g.rotation.y=Math.PI/2;
- const Mt=buildPerson(T,mateLook);sc.add(Mt.g);Mt.g.position.set(3.2,0,-3);Mt.g.rotation.y=Math.PI;
- const ball=new T.Mesh(new T.SphereGeometry(.11,20,16),std('#ffffff',.45));ball.castShadow=true;sc.add(ball);ball.position.set(-5,.11,.4);
- const steps=[];let t0=performance.now(),alive=true,raf=0,cur=0,said={};
- const runPose=(p,s)=>{const a=Math.sin(s)*.7;p.legL.rotation.x=a;p.legR.rotation.x=-a;p.armL.rotation.x=-a*.8;p.armR.rotation.x=a*.8};
- const stand=p=>{p.legL.rotation.x=p.legR.rotation.x=0;p.armL.rotation.x=p.armR.rotation.x=0};
- // timeline (seconds)
- const sprintT=2.6+(100-res.spd)/40; // faster players finish quicker
- const tl=[];let at=0;tl.push({k:'sprint',a:at,b:at+sprintT});at+=sprintT+.4;
- for(let i=0;i<3;i++){tl.push({k:'shot',i,a:at,b:at+2});at+=2.2}
- for(let i=0;i<2;i++){tl.push({k:'pass',i,a:at,b:at+1.8});at+=2}
- const total=at+.6;
- function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,g=P.g;
-  const seg=tl.find(s=>t>=s.a&&t<s.b);
-  if(seg&&seg.k==='sprint'){const q=(t-seg.a)/(seg.b-seg.a),xx=-5+q*6.2,zz=Math.sin(q*Math.PI*5)*.45;g.position.set(xx,0,zz);g.rotation.y=Math.PI/2-Math.cos(q*Math.PI*5)*.5;runPose(P,t*14);ball.position.set(-5,.11,.4);
-   if(!said.s){said.s=1;onText('🏃 Sprint through the cones!')}}
-  else if(seg&&seg.k==='shot'){const q=(t-seg.a)/(seg.b-seg.a),key='sh'+seg.i;
-   if(q<.45){const bx=1.2+q*4.5;g.position.set(bx-.35,0,-.1);g.rotation.y=Math.PI/2;runPose(P,t*12);ball.position.set(bx,.11,0);if(!said[key+'a']){said[key+'a']=1;onText(`⚽ Shot ${seg.i+1} of 3…`)}}
-   else{stand(P);if(q<.55){P.legR.rotation.x=-1.1}const s=(q-.45)/.55,ok=res.shots[seg.i];const tz=ok?(seg.i%2?.7:-.75):(seg.i%2?1.7:-1.8),ty=ok?.6+seg.i*.15:1.9;
-    ball.position.set(3.2+s*3.6,.11+Math.sin(Math.min(1,s)*Math.PI)*ty*.7+s*ty*.3,s*tz);
-    if(s>.8&&!said[key]){said[key]=1;onText(ok?'✅ GOAL!':'❌ Missed!');if(ok)net.position.x=gx+.8}}}
-  else if(seg&&seg.k==='pass'){const q=(t-seg.a)/(seg.b-seg.a),key='pa'+seg.i,ok=res.passes[seg.i];g.position.set(1.8,0,0);g.rotation.y=Math.PI*.82;stand(P);if(q<.15)P.legR.rotation.x=-.9;
-   const tx=ok?3.2:4.6,tz=ok?-2.6:-1.4;ball.position.set(2.1+(tx-2.1)*Math.min(1,q*1.4),.11,(tz)*Math.min(1,q*1.4));
-   Mt.g.rotation.y=Math.PI*.7;if(ok&&q>.7){Mt.armL.rotation.z=-2.6;Mt.armR.rotation.z=2.6}else{Mt.armL.rotation.z=-.1;Mt.armR.rotation.z=.1}
-   if(q>.75&&!said[key]){said[key]=1;onText(ok?'✅ Great pass!':'❌ Bad pass!')}}
-  else if(t<total){stand(P);net.position.x+=(gx+.7-net.position.x)*.1}
-  else{stand(P);if(!said.end){said.end=1;onDone&&onDone()}}
-  P.eyes.forEach(e=>e.scale.y=(Math.sin(now/770)>.985)?.2:1);
-  cam.position.x+=((g.position.x-1.8)-cam.position.x)*.03;cam.lookAt(cam.position.x+2.1,.4,0);
+ const coneX=[-3,-1.9,-.8,.3,1.4];coneX.forEach(cx=>{const cn=new T.Mesh(new T.ConeGeometry(.14,.34,16),std('#ff7a1a',.5));cn.position.set(cx,.17,0);cn.castShadow=true;sc.add(cn);
+  const ring=new T.Mesh(new T.TorusGeometry(.1,.025,6,16),std('#ffffff'));ring.rotation.x=Math.PI/2;ring.position.set(cx,.2,0);sc.add(ring)});
+ // people
+ const P=buildPerson(T,look);sc.add(P.g);
+ const K=buildPerson(T,{shirt:'#f1c40f',skin:pick(SKINS),hair:pick(HAIRS),hs:1,num:1});sc.add(K.g);K.g.position.set(GX-.25,0,0);K.g.rotation.y=-Math.PI/2;
+ const Mt=buildPerson(T,mateLook);sc.add(Mt.g);
+ const ball=new T.Mesh(new T.SphereGeometry(.11,24,18),new T.MeshStandardMaterial({map:ballTex(T),roughness:.45}));ball.castShadow=true;sc.add(ball);
+ // pose helpers
+ const face=(p,dx,dz)=>{p.g.rotation.y=Math.atan2(dx,dz)};
+ const runPose=(p,ph,amp=.85)=>{const a=Math.sin(ph)*amp;p.legL.rotation.x=a;p.legR.rotation.x=-a;p.armL.rotation.x=-a*.9;p.armR.rotation.x=a*.9;p.torso.rotation.x=.15;p.g.position.y=Math.abs(Math.sin(ph))*.05};
+ const idle=p=>{p.legL.rotation.x*=.8;p.legR.rotation.x*=.8;p.armL.rotation.x*=.8;p.armR.rotation.x*=.8;p.torso.rotation.x*=.8;p.g.position.y*=.8;p.armL.rotation.z=-.1;p.armR.rotation.z=.1};
+ const lerp=(a,b,q)=>a+(b-a)*q,ease=q=>q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2;
+ let lastBall=new T.Vector3();const roll=()=>{const d=ball.position.clone().sub(lastBall);if(d.length()>1e-4){const ax=new T.Vector3(d.z,0,-d.x).normalize();ball.rotateOnWorldAxis(ax,d.length()/.11)}lastBall.copy(ball.position)};
+ // timeline
+ const sprintT=clamp(3.4-res.spd/45,1.4,3.2);const tl=[];let at=0;const add=(k,d,o={})=>{tl.push(Object.assign({k,a:at,b:at+d},o));at+=d};
+ add('intro',1.2);add('dribble',sprintT);add('toSpot',1.1);
+ const shotZ=[-.75,.75,-.2];for(let i=0;i<3;i++){add('setup',.9,{i});add('shoot',1.6,{i});}
+ add('toPass',1);for(let i=0;i<2;i++)add('pass',2.4,{i});add('end',1.8);
+ const total=at;let said={},t0=performance.now(),alive=true,raf=0,sh=0,pa=0;
+ const startX=-4.6;P.g.position.set(startX,0,0);face(P,1,0);ball.position.set(startX+.35,.11,0);lastBall.copy(ball.position);Mt.g.position.set(3.4,0,-3.2);face(Mt,0,1);
+ function shotTarget(i){const ok=res.shots[i];if(ok)return{x:GX+.55,y:.35+((i*.37)%1)*.8,z:shotZ[i]>0?-.85:.85,ok};return i%2?{x:GX+.6,y:2.1,z:.3,ok}:{x:GX+.4,y:.4,z:shotZ[i]>0?1.75:-1.75,ok}}
+ function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,seg=tl.find(s=>t>=s.a&&t<s.b)||tl[tl.length-1],q=clamp((t-seg.a)/(seg.b-seg.a),0,1);
+  const key=seg.k+(seg.i||0);
+  if(seg.k==='intro'){idle(P);P.armR.rotation.z=1.8+Math.sin(t*10)*.4;if(!said.in){said.in=1;onText('👋 Hi coach! Let\'s train!')}}
+  else if(seg.k==='dribble'){if(!said.dr){said.dr=1;onText('🏃 Dribble through the cones!');pop('🏃 GO!')}
+   const xx=lerp(startX,2.2,q),zz=Math.sin((xx-(-3))/1.1*Math.PI)*.45*(xx>-3.5&&xx<1.9?1:0),nx=lerp(startX,2.2,Math.min(1,q+.02)),nz=Math.sin((nx-(-3))/1.1*Math.PI)*.45*(nx>-3.5&&nx<1.9?1:0);
+   P.g.position.x=xx;P.g.position.z=zz;face(P,nx-xx||1e-3,nz-zz);runPose(P,t*16);const fw=new T.Vector3(nx-xx,0,nz-zz).normalize();ball.position.set(xx+fw.x*.38,.11,zz+fw.z*.38+Math.sin(t*16)*.02);
+   if(q>.98&&!said.drd){said.drd=1;pop(`⏱️ ${res.time}s`,'#ffc83d')}}
+  else if(seg.k==='toSpot'){const xx=lerp(2.2,3.6,ease(q));P.g.position.set(xx,0,lerp(P.g.position.z,0,.1));face(P,1,0);runPose(P,t*12,.5);ball.position.set(xx+.38,.11,0)}
+  else if(seg.k==='setup'){const z=shotZ[seg.i];if(!said[key]){said[key]=1;ball.position.set(4.6,.11,z+.2);onText(`⚽ Shot ${seg.i+1} of 3…`)}
+   const px=lerp(3.4,4.15,ease(q)),pz=lerp(P.g.position.z,z-.15,.15);P.g.position.set(px,0,pz);face(P,1,.1);runPose(P,t*12,.45*(1-q));
+   ball.position.x+= (4.6-ball.position.x)*.2;ball.position.z+=(z-ball.position.z)*.2;
+   K.g.position.z+=((z*.4)-K.g.position.z)*.08;idle(K);K.armL.rotation.z=-.6;K.armR.rotation.z=.6;K.legL.rotation.z=.15;K.legR.rotation.z=-.15}
+  else if(seg.k==='shoot'){const tg=shotTarget(seg.i),z=shotZ[seg.i];
+   if(q<.18){P.legR.rotation.x=lerp(0,.9,q/.18);P.armL.rotation.x=-.6;P.torso.rotation.x=-.1}
+   else if(q<.26){P.legR.rotation.x=lerp(.9,-1.3,(q-.18)/.08);P.torso.rotation.x=.2}
+   else{P.legR.rotation.x*=.9;P.armL.rotation.x*=.9;P.torso.rotation.x*=.9;
+    const s=clamp((q-.26)/.36,0,1);if(s<1){ball.position.set(lerp(4.6,tg.x,s),.11+Math.sin(s*Math.PI)*.35+(tg.y-.11)*s,lerp(z,tg.z,s))}
+    else if(tg.ok){ball.position.y=Math.max(.11,ball.position.y-.03);netBack.position.x=lerp(netBack.position.x,GX+1.05,.3)}
+    else{ball.position.x+=.03;ball.position.y=Math.max(.11,ball.position.y-.04)}
+    // keeper dive: wrong way on goals, too late on misses
+    const dz=tg.ok?(tg.z>0?-1:1):(tg.z>0?1:-1),ds=clamp((q-.28)/.25,0,1);K.g.position.z=lerp(z*.4,z*.4+dz*.9,ds);K.g.rotation.z=dz*1.2*ds*(-1);K.g.position.y=lerp(0,.25,ds)-ds*ds*.25;
+    K.armL.rotation.z=-2.6*ds;K.armR.rotation.z=2.6*ds;
+    if(s>=1&&!said[key+'r']){said[key+'r']=1;if(tg.ok){sh++;pop('⚽ GOAL!','#ffc83d');onText('✅ GOAL!')}else{pop(tg.y>1.8?'❌ Over the bar!':'❌ Wide!','#ff7a7a');onText(tg.y>1.8?'❌ Over the bar!':'❌ Missed wide!')}}}
+   if(q>.95){netBack.position.x+=(GX+.8-netBack.position.x)*.3;K.g.rotation.z*=.5;K.g.position.y=0}}
+  else if(seg.k==='toPass'){K.g.rotation.z=0;K.g.position.y=0;netBack.position.x=GX+.8;const px=lerp(P.g.position.x,2.6,.08),pz=lerp(P.g.position.z,0,.08);P.g.position.set(px,0,pz);face(P,.3,-1);runPose(P,t*10,.4);
+   if(!said.tp){said.tp=1;ball.position.set(2.9,.11,-.25);onText('🎯 Now passing!')}Mt.g.position.x=lerp(Mt.g.position.x,3.4,.1);idle(Mt)}
+  else if(seg.k==='pass'){const ok=res.passes[seg.i],mx=ok?3.4:4.9,mz=ok?-3.0:-2.3;face(P,mx-P.g.position.x,mz-P.g.position.z);
+   if(q<.12){P.legR.rotation.x=lerp(0,.7,q/.12)}else if(q<.18){P.legR.rotation.x=lerp(.7,-.9,(q-.12)/.06)}else P.legR.rotation.x*=.9;
+   const s=clamp((q-.18)/.3,0,1);if(q<.18)ball.position.set(2.9,.11,-.25);else if(q<.5)ball.position.set(lerp(2.9,mx,ease(s)),.11,lerp(-.25,mz,ease(s)));
+   face(Mt,ball.position.x-Mt.g.position.x,ball.position.z-Mt.g.position.z);
+   if(ok){if(q>.48&&q<.6){Mt.legR.rotation.x=-.5}else if(q>=.6&&q<.68)Mt.legR.rotation.x=lerp(.6,-.8,(q-.6)/.08);else Mt.legR.rotation.x*=.85;
+    if(q>=.68){const s2=clamp((q-.68)/.28,0,1);ball.position.set(lerp(mx,2.9,ease(s2)),.11,lerp(mz,-.25,ease(s2)))}}
+   else{Mt.g.position.x=lerp(Mt.g.position.x,4.3,.04);runPose(Mt,t*12,.6*(q>.3&&q<.8?1:0));if(q>=.5)ball.position.set(ball.position.x+.025,.11,ball.position.z+.004)}
+   if(q>.5&&!said[key]){said[key]=1;if(ok){pa++;pop('🎯 Nice pass!','#5cf29a');onText('✅ Great pass!')}else{pop('❌ Bad pass!','#ff7a7a');onText('❌ Bad pass!')}}
+   if(q>.97&&!ok){Mt.g.position.x=3.4;ball.position.set(2.9,.11,-.25)}}
+  else{idle(K);face(P,0,1);const happy=sh+pa>=3;if(happy){P.armL.rotation.z=-2.7;P.armR.rotation.z=2.7;P.g.position.y=Math.abs(Math.sin(t*7))*.15}else{P.armL.rotation.z=-.5;P.armR.rotation.z=.5;P.headG.rotation.z=Math.sin(t*3)*.15}
+   if(!said.end){said.end=1;pop(happy?'🌟 Great try-out!':'😅 Okay try-out','#ffc83d')}if(t>=total&&!said.done){said.done=1;onDone&&onDone()}}
+  roll();
+  [P,K,Mt].forEach(p=>p.eyes.forEach(e=>e.scale.y=(Math.sin(now/770+p.g.position.x)>.985)?.2:1));
+  // camera follows the action
+  const shooting=seg.k==='setup'||seg.k==='shoot',passing=seg.k==='toPass'||seg.k==='pass';
+  const tx=shooting?5.2:passing?3:P.g.position.x+1.2,cpx=shooting?2.4:passing?0:P.g.position.x-2.6,cpz=shooting?5.2:passing?5.5:6.2,cpy=shooting?2.6:3.2;
+  cam.position.x+=(cpx-cam.position.x)*.04;cam.position.y+=(cpy-cam.position.y)*.04;cam.position.z+=(cpz-cam.position.z)*.04;
+  cam.userData.lx=(cam.userData.lx??tx)+(tx-(cam.userData.lx??tx))*.06;cam.lookAt(cam.userData.lx,.5,passing?-1:0);
   r.render(sc,cam)}
+ cam.position.set(startX-2.6,3.2,6.2);cam.userData.lx=startX+1.2;
  raf=requestAnimationFrame(loop);
- return{dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
+ return{dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove();fx.remove()}}}
 
 /* ---------- ONLINE (this site's own server relay /api/server/CODE?g=sm, 2 players; fixed nicknames, no chat) ---------- */
 const NICK_A=['Captain','Super','Mega','Turbo','Sneaky','Brave','Lucky','Speedy','Mighty','Cosmic','Silly','Ninja','Rocket','Thunder','Pixel','Sparkle'];
