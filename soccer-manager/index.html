@@ -40,7 +40,7 @@ button.small{padding:7px 11px;font-size:.85em;border-radius:11px}
 .chip.m{background:#ffc83d22;border-color:#ffc83d66;color:var(--gold)}
 .goal{margin:10px 0;display:flex;gap:10px;align-items:center;background:linear-gradient(90deg,#ffb703,#ffd35a);color:#3a2500;border-radius:14px;padding:8px 14px;font-weight:900;font-size:.9em}
 .goal .bar{flex:1;height:10px;background:#0003;border-radius:6px;overflow:hidden}.goal .bar i{display:block;height:100%;background:#3a2500}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0 12px}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:10px 0 12px}
 .tabs button{padding:9px 4px;font-size:.82em;background:#123a63;box-shadow:0 4px 0 #081f38;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
 .tabs button .ic{font-size:1.5em}
 .tabs button.on{background:linear-gradient(180deg,#ffe07a,#ffb703);color:#3a2500;box-shadow:0 4px 0 #b07800}
@@ -126,6 +126,20 @@ input[type=text]{font:inherit;padding:12px;border-radius:14px;border:3px solid v
 .ladder .step.now{background:linear-gradient(180deg,#ffe07a,#ffb703);color:#3a2500;transform:scale(1.08)}
 .ladder .arr{opacity:.5}
 .ftov{position:absolute;inset:0;background:#04101dcc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;animation:fadein .4s}
+.mini{position:relative;margin-top:10px;width:100%;aspect-ratio:3/4;max-height:560px;border-radius:16px;overflow:hidden;border:3px solid #24496f;
+ background:repeating-linear-gradient(0deg,#37b24d 0 10%,#40c057 10% 20%)}
+.mini:before{content:"";position:absolute;left:6%;right:6%;top:4%;bottom:4%;border:2px solid #ffffffaa;border-radius:4px}
+.mini:after{content:"";position:absolute;left:30%;right:30%;bottom:4%;height:14%;border:2px solid #ffffffaa;border-bottom:none}
+.spot{position:absolute;transform:translate(-50%,-50%);text-align:center;cursor:pointer;z-index:1;width:76px}
+.spot .dot{width:40px;height:40px;margin:0 auto;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-family:"Lilita One";font-size:1.1em;color:#fff;text-shadow:0 1px 2px #000;box-shadow:0 3px 6px #0006}
+.spot .lbl{font-size:.75em;font-weight:900;text-shadow:0 1px 3px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spot .lo{font-size:.68em;background:#0009;border-radius:6px;display:inline-block;padding:0 5px}
+.spot.off .lo{background:#a3121acc}
+.spot.sel .dot{border-color:var(--gold);transform:scale(1.2);box-shadow:0 0 0 4px #ffc83d88}
+.benchrow{display:flex;align-items:center;gap:8px;padding:9px 8px;border-radius:10px;background:#ffffff0d;margin:5px 0;cursor:pointer}
+.benchrow.can{outline:2px dashed #ffc83d88}
+.ovrs{font-family:"Lilita One";color:var(--gold);font-size:1.2em;min-width:30px;text-align:right}
+.tabs button{font-size:.75em}
 </style>
 </head>
 <body>
@@ -224,13 +238,21 @@ function makePlayer(t,pos){const s={};SK.forEach(k=>s[k]=t+rnd(-6,6));
  p.salary=Math.max(1,Math.round((ovr(p)-40)/8));return p}
 function goodBad(p){const ks=[...SK].sort((a,b)=>p.s[b]-p.s[a]);return{good:ks.slice(0,2),bad:ks[4]}}
 
-function bestXI(){const slots=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];const used=new Set(),xi=[];
- for(const pos of slots){let c=S.players.filter(p=>!used.has(p.id)&&p.pos===pos);if(!c.length)c=S.players.filter(p=>!used.has(p.id));if(!c.length)break;
-  c.sort((a,b)=>eff(b,pos)-eff(a,pos));used.add(c[0].id);xi.push({p:c[0],pos})}return xi}
+const FORMS={
+ '4-3-3':{att:0,def:0,tip:'Balanced',pos:[[.04,.5,'GK'],[.2,.14,'DEF'],[.17,.38,'DEF'],[.17,.62,'DEF'],[.2,.86,'DEF'],[.38,.25,'MID'],[.34,.5,'MID'],[.38,.75,'MID'],[.56,.2,'FWD'],[.6,.5,'FWD'],[.56,.8,'FWD']]},
+ '4-4-2':{att:-1,def:1,tip:'Strong middle',pos:[[.04,.5,'GK'],[.2,.14,'DEF'],[.17,.38,'DEF'],[.17,.62,'DEF'],[.2,.86,'DEF'],[.38,.13,'MID'],[.35,.38,'MID'],[.35,.62,'MID'],[.38,.87,'MID'],[.58,.38,'FWD'],[.58,.62,'FWD']]},
+ '3-4-3':{att:3,def:-3,tip:'Attack! (weaker defense)',pos:[[.04,.5,'GK'],[.18,.25,'DEF'],[.16,.5,'DEF'],[.18,.75,'DEF'],[.38,.12,'MID'],[.35,.38,'MID'],[.35,.62,'MID'],[.38,.88,'MID'],[.58,.2,'FWD'],[.6,.5,'FWD'],[.58,.8,'FWD']]},
+ '5-3-2':{att:-3,def:3,tip:'Defend! (weaker attack)',pos:[[.04,.5,'GK'],[.24,.1,'DEF'],[.18,.3,'DEF'],[.16,.5,'DEF'],[.18,.7,'DEF'],[.24,.9,'DEF'],[.38,.25,'MID'],[.35,.5,'MID'],[.38,.75,'MID'],[.58,.38,'FWD'],[.58,.62,'FWD']]}};
+const formOf=()=>FORMS[S.form]?S.form:'4-3-3';
+function bestXI(){const slots=FORMS[formOf()].pos.map(p=>p[2]),used=new Set(),xi=new Array(11).fill(null),ids=S.lineup||[];
+ slots.forEach((pos,i)=>{const p=S.players.find(x=>x.id===ids[i]);if(p&&!used.has(p.id)){used.add(p.id);xi[i]={p,pos}}});
+ slots.forEach((pos,i)=>{if(xi[i])return;let c=S.players.filter(p=>!used.has(p.id)&&p.pos===pos);if(!c.length)c=S.players.filter(p=>!used.has(p.id));if(!c.length)return;
+  c.sort((a,b)=>eff(b,pos)-eff(a,pos));used.add(c[0].id);xi[i]={p:c[0],pos}});
+ return xi.filter(Boolean)}
 function teamRating(xi){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
  const str=avg(xi.map(x=>eff(x.p,x.pos)));const fw=avg(xi.filter(x=>x.pos==='FWD').map(x=>eff(x.p,'FWD')));
  const df=avg(xi.filter(x=>x.pos==='DEF'||x.pos==='GK').map(x=>eff(x.p,x.pos)));
- return{str:Math.round(str),att:Math.round((str+fw)/2),def:Math.round((str+df)/2)}}
+ const F=FORMS[formOf()];return{str:Math.round(str),att:Math.round((str+fw)/2+F.att),def:Math.round((str+df)/2+F.def)}}
 
 function makeFixtures(n){let t=[...Array(n).keys()],r=[];for(let k=0;k<n-1;k++){const ms=[];for(let i=0;i<n/2;i++)ms.push([t[i],t[n-1-i]]);r.push(ms);t=[t[0],t[n-1],...t.slice(1,n-1)]}
  return r.concat(r.map(ms=>ms.map(([a,b])=>[b,a])))}
@@ -260,11 +282,11 @@ function render(){const a=$('#app');stopAnim();if(!S){a.innerHTML=startScreen();
   <div class="chips"><span class="chip">Season ${S.season}</span><span class="chip">Week ${S.week}</span><span class="chip m">💰 ${money(S.money)}</span><span class="chip">👥 ${S.players.length}</span>
   ${S.trophies.length?`<span class="chip m">${S.trophies.map(trophyIcon).join('')}</span>`:''}</div></div></div>
   <div class="goal"><span>🎯 ${prog.txt}</span></div>${ladder()}
-  <div class="tabs">${[['team','👥','Team'],['train','🏋️','Train'],['trials','📝','Trials'],['match','⚽','Match'],['table','📊','Table']]
+  <div class="tabs">${[['team','👥','Team'],['lineup','📋','Lineup'],['train','🏋️','Train'],['trials','📝','Trials'],['match','⚽','Match'],['table','📊','Table']]
    .map(([k,i,l])=>`<button class="${S.tab===k?'on':''}" onclick="go('${k}')"><span class="ic">${i}</span>${l}${k==='trials'&&tc?`<span class="badge">${tc}</span>`:''}</button>`).join('')}</div>
-  <div id="view">${({team:teamView,train:trainView,trials:trialsView,match:matchView,table:tableView})[S.tab]()}</div>
+  <div id="view">${({team:teamView,lineup:lineupView,train:trainView,trials:trialsView,match:matchView,table:tableView})[S.tab]()}</div>
   <p style="text-align:center;margin-top:26px"><button class="small gray" onclick="askReset()">New game</button></p>`}
-function go(t){S.tab=t;save();render();scrollTo(0,0)}
+function go(t){selSlot=null;S.tab=t;save();render();scrollTo(0,0)}
 function progress(){if(S.phase==='wc')return{txt:'World Cup: '+WC_ROUNDS[S.wc.round]+' — win it all!'};
  if(S.phase==='over')return{txt:'Season over! Start the next one.'};
  const pos=standings().findIndex(t=>t.i===0)+1,L=LEVELS[S.level];
@@ -300,6 +322,27 @@ function youthBtn(){return `<div class="tip" style="background:#ff7a7a22;border-
 function callYouth(){if(S.players.length>=22)return toast('Squad is full!');const have=p=>S.players.filter(x=>x.pos===p).length;
  const pos=have('GK')<1?'GK':have('DEF')<4?'DEF':have('MID')<3?'MID':have('FWD')<3?'FWD':pick(['DEF','MID','FWD']);
  const p=makePlayer(rnd(44,50)+S.level*5,pos);p.age=rnd(15,17);p.salary=1;S.players.push(p);save();render();toast(`🧒 ${p.name} (${pos}) joined from the youth team!`)}
+let selSlot=null;
+function lineupView(){const F=FORMS[formOf()],xi=bestXI(),inXI=new Set(xi.map(x=>x.p.id)),R=xi.length>=11?teamRating(xi):null;
+ const bench=S.players.filter(p=>!inXI.has(p.id)).sort((a,b)=>ovr(b)-ovr(a));
+ const spots=F.pos.map(([u,y,role],i)=>{const x=xi[i];if(!x)return '';const o=ovrAt(x.p,role),off=x.p.pos!==role;
+  return `<div class="spot ${selSlot===i?'sel':''} ${off?'off':''}" style="left:${y*100}%;top:${92-u*140}%" onclick="tapSlot(${i})">
+   <div class="dot" style="background:${role==='GK'?'#ffd43b':S.color}">${x.p.num||''}</div><div class="lbl">${esc(x.p.name.split(' ').slice(-1)[0])}</div><div class="lo">${role} ${o}${off?' ⚠️':''}</div></div>`}).join('');
+ return `<div class="card"><div class="row"><h2 class="sp">📋 Lineup</h2>${R?`<span class="chip m">Power ${R.str} · ATT ${R.att} · DEF ${R.def}</span>`:''}</div>
+  <div class="muted">Pick a formation, then tap a player on the field and tap someone else to swap them.</div>
+  <div class="opts" style="justify-content:flex-start">${Object.keys(FORMS).map(k=>`<button class="small ${k===formOf()?'gold':'gray'}" onclick="setForm('${k}')">${k}</button>`).join('')}</div>
+  <div class="muted">${formOf()}: ${F.tip}</div>
+  ${S.players.length<11?youthBtn():''}
+  <div class="mini">${spots}</div>
+  <div class="row" style="margin-top:10px"><span class="chip">${S.lineup?'✋ Your lineup':'✨ Auto lineup (best players)'}</span><span class="sp"></span><button class="small" onclick="autoLineup()">✨ Auto pick best</button></div>
+  <div class="muted" style="margin-top:6px">⚠️ = playing out of position (a bit worse). ${selSlot!==null&&xi[selSlot]?`<b style="color:var(--gold)">Now tap a bench player or another player to swap with ${esc(xi[selSlot].p.name)}.</b>`:''}</div></div>
+  <div class="card"><h3>🪑 Bench (${bench.length})</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">Everyone is playing!</div>'}</div>`}
+function fixLineup(){if(!S.lineup)S.lineup=bestXI().map(x=>x.p.id)}
+function tapSlot(i){if(selSlot===null){selSlot=i;return render()}
+ if(selSlot!==i){fixLineup();const a=S.lineup[selSlot];S.lineup[selSlot]=S.lineup[i];S.lineup[i]=a;save()}selSlot=null;render()}
+function tapBench(id){if(selSlot===null)return toast('First tap a player on the field!');fixLineup();S.lineup[selSlot]=id;selSlot=null;save();render()}
+function autoLineup(){S.lineup=null;selSlot=null;save();render();toast('✨ Best players picked!')}
+function setForm(k){const ids=bestXI().map(x=>x.p.id);S.form=k;if(S.lineup)S.lineup=ids;selSlot=null;save();render()}
 function askKick(id){const p=S.players.find(x=>x.id===id);if(!p)return;
  modal(`<div class="big">🚫</div><h2>Kick out ${esc(p.name)}?</h2><p>He leaves <b>forever</b> and can't play anymore. He will never come back.</p>${S.players.length<=11?'<p style="color:var(--bad)"><b>⚠️ You will have less than 11 players!</b></p>':''}`,
   [{t:'🚫 Kick out',c:'red',f:()=>{S.players=S.players.filter(x=>x.id!==id);S.gone.push({name:p.name,why:'Kicked out'});save();render();toast(p.name+' is gone forever.')}},{t:'Keep him',c:'gray'}])}
@@ -360,7 +403,7 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
   ${R?`<div class="meter"><i style="width:${pct}%;background:${S.color}"></i><i style="flex:1;background:${o.col}"></i></div>`:youthBtn()}
   ${tip?`<div class="tip">${tip}</div>`:''}<br>
   <button class="gold" style="width:100%;font-size:1.3em;padding:14px" onclick="startMatch()" ${R?'':'disabled'}>⚽ KICK OFF!</button></div>
-  ${R?`<div class="card"><h3>Starting 11</h3><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
+  ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
 
 function standings(){return S.league.teams.map((t,i)=>({...t,i})).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
 function tableView(){const st=standings();
@@ -373,7 +416,7 @@ function tableView(){const st=standings();
 
 /* ---------- MATCH ---------- */
 // Formation 4-3-3, written for the team attacking to the right. u = how far up the pitch (0 = own goal, 1 = their goal)
-const FORM=[[.04,.5,'GK'],[.2,.14,'DEF'],[.17,.38,'DEF'],[.17,.62,'DEF'],[.2,.86,'DEF'],[.38,.25,'MID'],[.34,.5,'MID'],[.38,.75,'MID'],[.56,.2,'FWD'],[.6,.5,'FWD'],[.56,.8,'FWD']];
+const FORM=FORMS['4-3-3'].pos;
 const UCL={GK:[.02,.2],DEF:[.07,.62],MID:[.14,.8],FWD:[.24,.92]};
 const OPP_NUM=[1,2,4,5,3,6,8,10,7,9,11];
 function hexDist(a,b){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));try{const A=p(a),B=p(b);return Math.hypot(A[0]-B[0],A[1]-B[1],A[2]-B[2])}catch(e){return 999}}
@@ -414,14 +457,14 @@ function initPitch(){const c=$('#pitch');if(!c)return;
  let oc=M.o.col||'#cccccc';if(hexDist(oc,S.color)<110)oc=hexDist('#f1f3f5',S.color)<110?'#212529':'#f1f3f5';
  P={c,x:c.getContext('2d'),cols:[S.color,oc],teams:[[],[]],ball:{x:.5,y:.5,z:0,fly:null},poss:0,carrier:null,plan:null,wait:0,after:null,
   mode:'play',dribble:null,speed:1,f:0,last:null,reset:0,steps:0};
- for(let t=0;t<2;t++)FORM.forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
+ for(let t=0;t<2;t++)(t===0?FORMS[formOf()].pos:FORM).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
   P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):OPP_NUM[i],name:t===0?xp.name:'',spd:t===0?xp.s.spd/100:M.o.str/100,dive:null})});
  kickoff(0);P.after=nextChunk;P.wait=50;
  const loop=()=>{if(!P)return;for(let k=0;k<P.speed;k++)step();draw();anim=requestAnimationFrame(loop)};loop()}
 function stopAnim(){if(anim)cancelAnimationFrame(anim);anim=null;P=null}
 
 function kickoff(t){P.ball={x:.5,y:.5,z:0,fly:null};P.poss=t;P.dribble=null;P.mode='reset';P.reset=70;
- P.teams.forEach(tm=>tm.forEach(p=>p.dive=null));P.carrier=P.teams[t][9];}
+ P.teams.forEach(tm=>tm.forEach(p=>p.dive=null));P.carrier=P.teams[t].filter(p=>p.role==='FWD').sort((a,b)=>Math.abs(a.by-.5)-Math.abs(b.by-.5))[0];}
 function kickoffSpot(p){if(P.carrier===p&&P.mode==='reset')return{x:.5-dirOf(p.t)*.012,y:.5};
  const u=p.role==='GK'?.04:Math.min(p.bu*.85,p.t===P.poss&&p.role==='FWD'?.47:.42);return{x:toX(p.t,u),y:p.by}}
 
