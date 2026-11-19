@@ -1231,7 +1231,8 @@ function initPitch(){const c=$('#pitch');if(!c)return;
  for(let t=0;t<2;t++)(t===0?mySpots():(M.oppSpots||FORM)).forEach(([u,y,role],i)=>{const xp=M.xi[i].p;
   P.teams[t].push({t,i,role,bu:u,by:y,x:toX(t,u),y,vx:0,vy:0,num:t===0?(xp.num||i+1):(M.oppNums?M.oppNums[i]:OPP_NUM[i]),name:t===0?xp.name:(M.oppNames?M.oppNames[i]:''),spd:t===0?xp.s.spd/100:(M.oppSpd?M.oppSpd[i]:M.o.str/100),st:t===0?(xp.st||''):(M.oppSt?M.oppSt[i]:''),dive:null})});
  kickoff(0);P.after=nextChunk;P.wait=50;
- const loop=()=>{if(!P)return;for(let k=0;k<P.speed;k++)step();if(M3)M3.render();else draw();anim=requestAnimationFrame(loop)};loop();apply3D()}
+ let acc=0,lastT=performance.now();
+ const loop=()=>{if(!P)return;const now=performance.now();acc+=Math.min(250,now-lastT);lastT=now;let n=0;while(acc>=16.67&&n<30){for(let k=0;k<P.speed;k++)step();acc-=16.67;n++;if(!P)return}if(M3)M3.render();else draw();anim=requestAnimationFrame(loop)};loop();apply3D()}
 function stopAnim(){if(anim)cancelAnimationFrame(anim);anim=null;P=null;if(M3){M3.dispose();M3=null}}
 
 function kickoff(t){P.ball={x:.5,y:.5,z:0,fly:null};P.poss=t;P.dribble=null;P.mode='reset';P.reset=70;
