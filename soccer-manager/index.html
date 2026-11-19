@@ -50,15 +50,6 @@ button.small{padding:7px 11px;font-size:.85em;border-radius:11px}
 .muted{opacity:.72;font-size:.86em;font-weight:600}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sp{flex:1}
 /* player cards */
-.pc{border-radius:18px;padding:10px 12px 12px;color:#1c1300;position:relative;overflow:hidden;box-shadow:0 6px 16px #0007}
-.pc.gold{background:linear-gradient(150deg,#fff2b0,#f3c64a 45%,#c9951c)}
-.pc.silver{background:linear-gradient(150deg,#ffffff,#cfd8e3 45%,#8e9aab)}
-.pc.bronze{background:linear-gradient(150deg,#ffd7b0,#d9935a 45%,#9a5a2c)}
-.pc:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,#ffffff55 50%,transparent 60%);pointer-events:none}
-.pc .top{display:flex;gap:10px;align-items:center}
-.pc .ov{font-family:"Lilita One";font-size:2.3em;line-height:.9;text-align:center}
-.pc .ov small{display:block;font-size:.38em;font-family:Nunito;font-weight:900}
-.pc .nm{font-family:"Lilita One";font-size:1.18em;line-height:1.05}
 .pc .xi{position:absolute;top:8px;right:10px;background:#1c1300;color:var(--gold);border-radius:999px;padding:1px 8px;font-size:.75em;font-weight:900;z-index:1}
 .pos{display:inline-block;border-radius:6px;padding:1px 7px;font-weight:900;font-size:.75em;color:#fff}
 .GK{background:#f07b16}.DEF{background:#1d6fe0}.MID{background:#18a457}.FWD{background:#e0393e}
@@ -173,6 +164,38 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 @keyframes trf{0%{opacity:1}100%{opacity:0}}
 .pitch3d{width:100%;aspect-ratio:720/460;position:relative;background:#0e2a47}
 .pitch3d canvas{display:block;width:100%!important;height:100%!important}
+/* player cards */
+.pc{--tx:#2a1a05;--sub:#2a1a0599;--bd:#00000033;--stb:#ffffff40;position:relative;overflow:hidden;border-radius:26px 26px 16px 16px;padding:26px 12px 12px;color:var(--tx);border:3px solid var(--bd);box-shadow:0 8px 18px #0008,inset 0 0 0 2px #ffffff55}
+.pc:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;background:repeating-linear-gradient(135deg,transparent 0 10px,#ffffff22 10px 11px)}
+.pc-shine{position:absolute;top:-60%;left:-80%;width:60%;height:220%;transform:rotate(25deg);background:linear-gradient(90deg,transparent,#ffffff88,transparent);pointer-events:none;animation:shine 4.5s ease-in-out infinite}
+@keyframes shine{0%,60%{left:-80%}100%{left:140%}}
+.pc-tier{position:absolute;top:0;left:50%;transform:translateX(-50%);padding:2px 16px 3px;border-radius:0 0 12px 12px;font-family:"Lilita One";font-size:.78em;letter-spacing:2px;background:#0000004d;color:#fff;text-shadow:0 1px 2px #0008;z-index:1}
+.pc .xi{position:absolute;top:6px;right:10px;background:#1c1300;color:var(--gold);border-radius:999px;padding:1px 8px;font-size:.7em;font-weight:900;z-index:2}
+.pc-head{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.pc-ovr{display:flex;flex-direction:column;align-items:center;min-width:56px;line-height:1}
+.pc-ovr b{font-family:"Lilita One";font-weight:400;font-size:2.6em;text-shadow:0 2px 0 #ffffff55}
+.pc-ovr i{font-style:normal;font-size:1.3em;margin-top:2px}
+.pc-av{flex:1;display:flex;justify-content:center;filter:drop-shadow(0 4px 4px #0006)}
+.pc-name{font-family:"Lilita One";font-size:1.25em;text-align:center;margin-top:4px;line-height:1.05;position:relative;z-index:1}
+.pc-meta{font-size:.74em;text-align:center;color:var(--sub);position:relative;z-index:1}
+.pc-meta .pot{color:inherit}
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px;position:relative;z-index:1}
+.pc-stats .st{background:var(--stb);border-radius:9px;text-align:center;padding:3px 0}
+.pc-stats .st b{display:block;font-family:"Lilita One";font-weight:400;font-size:1.25em;line-height:1}
+.pc-stats .st span{font-size:.62em;font-weight:900;opacity:.75}
+.pc-stats .st.up b{color:#0b7a3c}.pc-stats .st.down b{color:#b3121c}
+.pc .en{position:relative;z-index:1}.pc .gb{position:relative;z-index:1;font-size:.76em;text-align:center}
+.pc .act{display:flex;gap:6px;margin-top:8px;position:relative;z-index:1}
+.t-bronze{background:linear-gradient(160deg,#f6d2ad,#cd8448 48%,#7b4421);--bd:#5a3015}
+.t-silver{background:linear-gradient(160deg,#ffffff,#d3dbe6 45%,#7d8b9e);--bd:#5b6676}
+.t-gold{background:linear-gradient(160deg,#fff6c2,#f2c230 45%,#a8770a);--bd:#7a5606;box-shadow:0 8px 18px #0008,0 0 12px #ffd54a66,inset 0 0 0 2px #ffffff66}
+.t-diamond{background:radial-gradient(circle at 20% 15%,#ffffff 0 6%,transparent 7%),radial-gradient(circle at 80% 30%,#ffffffcc 0 3%,transparent 4%),radial-gradient(circle at 65% 85%,#ffffffaa 0 2.5%,transparent 3.5%),linear-gradient(160deg,#f1fdff,#9ee8ff 40%,#3aa7d9 75%,#1d6fa5);--tx:#06263d;--sub:#06263dbb;--bd:#1b7fb0;box-shadow:0 8px 18px #0008,0 0 18px #8fe3ffaa,inset 0 0 0 2px #ffffffaa}
+.t-ruby{background:radial-gradient(circle at 30% 20%,#ff8fa3,transparent 45%),linear-gradient(160deg,#ff5f7e,#d7143a 45%,#6d0618);--tx:#fff;--sub:#ffffffcc;--bd:#4a0210;--stb:#00000033;box-shadow:0 8px 18px #0008,0 0 20px #ff3b5caa,inset 0 0 0 2px #ffffff55}
+.t-legend{background:radial-gradient(circle at 15% 20%,#fff 0 1%,transparent 1.5%),radial-gradient(circle at 70% 12%,#fff 0 .8%,transparent 1.3%),radial-gradient(circle at 85% 60%,#fff 0 1%,transparent 1.5%),radial-gradient(circle at 30% 75%,#ffffffcc 0 .8%,transparent 1.3%),radial-gradient(circle at 60% 40%,#c77dff88,transparent 50%),linear-gradient(160deg,#7b2ff7,#3a0ca3 50%,#10002b);--tx:#fff;--sub:#ffffffcc;--bd:#e0aaff;--stb:#ffffff22;box-shadow:0 8px 18px #0008,0 0 22px #b15cffcc,inset 0 0 0 2px #e0aaff88}
+.t-icon{background:linear-gradient(120deg,#ff6b6b,#ffd93d,#6bff95,#4dd4ff,#c86bff,#ff6b6b);background-size:300% 300%;animation:rainbow 6s linear infinite;--tx:#1a1033;--sub:#1a1033cc;--bd:#ffffff;--stb:#ffffff66;box-shadow:0 8px 18px #0008,0 0 26px #ffffffcc,inset 0 0 0 3px #ffffffcc}
+@keyframes rainbow{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+.t-ruby .pc-stats .st.up b,.t-legend .pc-stats .st.up b{color:#8dffb6}.t-ruby .pc-stats .st.down b,.t-legend .pc-stats .st.down b{color:#ffd0d6}
+.t-ruby .pc-ovr b,.t-legend .pc-ovr b{text-shadow:0 2px 6px #0008}
 </style>
 </head>
 <body>
@@ -277,7 +300,8 @@ function ovrAt(p,pos){const s=p.s;let v;
  if(pos!==p.pos)v*=.85;return Math.round(v)}
 const ovr=p=>ovrAt(p,p.pos);
 const eff=(p,pos)=>ovrAt(p,pos)*(0.7+0.3*p.energy/100);
-const tier=o=>o>=70?'gold':o>=60?'silver':'bronze';
+const TIERS=[[130,'icon','ICON'],[110,'legend','LEGEND'],[90,'ruby','RUBY'],[80,'diamond','DIAMOND'],[70,'gold','GOLD'],[60,'silver','SILVER'],[0,'bronze','BRONZE']];
+const tierOf=o=>TIERS.find(t=>o>=t[0]);const tier=o=>tierOf(o)[1];
 
 const STYLES={joker:{i:'🃏',n:'Joker',d:'Knows lots of special dribbling moves',att:1.5},sniper:{i:'🎯',n:'Sniper',d:'Super accurate shots',att:1.5},
  speedster:{i:'🚀',n:'Speedster',d:'Runs past defenders',att:.5},playmaker:{i:'🧠',n:'Playmaker',d:'Amazing passes',att:1,def:.5},wall:{i:'🧱',n:'Wall',d:'Nobody gets past him',def:1.5},
@@ -399,14 +423,17 @@ function startScreen(){return `${homeBtn()}<div class="card" style="text-align:c
 function pickName(c){$('#tname').value=c+' '+pick(SUFFIX)}
 function keepName(){const v=$('#tname').value;render();$('#tname').value=v}
 
-function pcard(p,{xi=false,trial=false}={}){const o=ovr(p),g=goodBad(p),ec=p.energy>=70?'#18b85f':p.energy>=40?'#e3a008':'#e0393e';
- return `<div class="pc ${tier(o)}">${xi?'<span class="xi">⭐ STARTER</span>':''}
-  <div class="top"><div class="ov">${o}<small><span class="pos ${p.pos}">${p.pos}</span></small></div>${jersey(trial?'#8a8f98':S.color,p.num||'?')}
-   <div style="min-width:0"><div class="nm">${esc(p.name)}</div><div style="font-size:.8em">Age ${p.age} · ${money(p.salary)}/wk</div><div style="font-size:.75em">Potential ${trial&&!p.tried?'<b>???</b>':`<b style="color:#7a5200">${stars(p.pot||3)}</b>`}</div>${stB(p)}</div></div>
-  <div class="sks">${SK.map(k=>`<div><span>${SKS[k]}</span><b style="color:${p.s[k]>=70?'#0b6b33':p.s[k]<45?'#a3121a':'inherit'}">${p.s[k]}</b></div>`).join('')}
-   ${trial?'':`<div><span>⚡ NRG</span><b>${Math.round(p.energy)}</b></div>`}</div>
+function pcard(p,{xi=false,trial=false}={}){const o=ovr(p),g=goodBad(p),T=tierOf(o),ec=p.energy>=70?'#18b85f':p.energy>=40?'#e3a008':'#e0393e';
+ const stat=k=>{const v=p.s[k],c=v>=o+6?'up':v<=o-12?'down':'';return `<div class="st ${c}"><b>${v}</b><span>${SKS[k]}</span></div>`};
+ return `<div class="pc t-${T[1]}"><div class="pc-shine"></div><div class="pc-tier">${T[2]}</div>${xi?'<span class="xi">⭐ STARTER</span>':''}
+  <div class="pc-head"><div class="pc-ovr"><b>${o}</b><span class="pos ${p.pos}">${p.pos}</span>${p.st&&STYLES[p.st]?`<i title="${STYLES[p.st].n}">${STYLES[p.st].i}</i>`:''}</div>
+   <div class="pc-av">${jersey(trial?'#8a8f98':S.color,p.num||'?',64)}</div></div>
+  <div class="pc-name">${esc(p.name)}</div>
+  <div class="pc-meta">Age ${p.age} · ${money(p.salary)}/wk · Potential ${trial&&!p.tried?'<b>???</b>':`<b class="pot">${stars(p.pot||3)}</b>`}</div>
+  ${stB(p)?`<div style="text-align:center">${stB(p)}</div>`:''}
+  <div class="pc-stats">${SK.map(stat).join('')}${trial?'':`<div class="st"><b>${Math.round(p.energy)}</b><span>⚡NRG</span></div>`}</div>
   ${trial?'':`<div class="en"><i style="width:${p.energy}%;background:${ec}"></i></div>`}
-  <div class="gb">👍 ${g.good.map(k=>SKN[k]).join(', ')}<br>👎 ${SKN[g.bad]}</div>`}
+  <div class="gb">👍 ${g.good.map(k=>SKN[k]).join(', ')} · 👎 ${SKN[g.bad]}</div>`}
 
 function teamView(){const xi=new Set(bestXI().map(x=>x.p.id));const order={GK:0,DEF:1,MID:2,FWD:3};
  const ps=[...S.players].sort((a,b)=>(xi.has(b.id)-xi.has(a.id))||order[a.pos]-order[b.pos]||ovr(b)-ovr(a));
@@ -479,8 +506,8 @@ function trainView(){if(Object.values(S.plan).reduce((a,b)=>a+b,0)>HOURS)S.plan=
   <p class="muted">Young players (22 and under) learn the fastest.</p></div>`}
 function plan(k,d){if(S.trained)return;const used=Object.values(S.plan).reduce((a,b)=>a+b,0);if(d>0&&used>=HOURS)return;S.plan[k]=clamp(S.plan[k]+d,0,HOURS);save();render()}
 function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const th=SK.reduce((a,k)=>a+S.plan[k],0);let best=null,bestN=0;
- S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(.6+.16*(p.pot||3))*(p.energy>30?1:.5)*(p.s[k]>85?.4:1);
-   if(Math.random()<ch&&p.s[k]<99){p.s[k]++;g[k]++;n++}}});if(n>bestN){bestN=n;best=p}
+ S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(.6+.16*(p.pot||3))*(p.energy>30?1:.5)*(p.s[k]>=120?.25:p.s[k]>=95?.45:p.s[k]>85?.7:1);
+   if(Math.random()<ch&&p.s[k]<150){p.s[k]++;g[k]++;n++}}});if(n>bestN){bestN=n;best=p}
   p.energy=clamp(p.energy-th*2+S.plan.rest*8,5,100)});
  S.trained=true;save();render();
  const show=()=>modal(`<div class="big">💪</div><h2>Training complete!</h2><div class="sks" style="color:#fff">${SK.map(k=>`<div><span>${SKN[k]}</span><b style="color:var(--good)">+${g[k]}</b></div>`).join('')}</div>
