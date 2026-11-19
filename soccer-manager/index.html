@@ -534,7 +534,7 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
  const o=nextOpp();if(!o){setTimeout(endLeague,0);return '<div class="card">Season finished!</div>'}const xi=bestXI(),R=xi.length>=11?teamRating(xi):null;
  let tip='';if(R&&false){const avgE=xi.reduce((a,x)=>a+x.p.energy,0)/11;
   if(avgE<55)tip='😴 Your starters are tired. Use more Rest hours in Training.';else if(R.str<o.str-3)tip='💡 They look stronger. Sign a better player in Trials or train more!';else if(!S.trained)tip="💡 You haven't trained this week yet.";else tip='💪 Your team is ready!'}
- const pct=R?Math.round(R.str/(R.str+o.str)*100):50,wc=R?winChance(R,o.str,o):null;
+ const pct=R?Math.round(R.str/(R.str+o.str)*100):50,wc=null; // no win chance shown: who wins is a surprise!
  return `<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   ${S.phase==='wc'&&!S.country?'<div class="tip">🌍 Pick your country for the World Cup first! <button class="small gold" onclick="pickCountry()">Pick country</button></div>':''}
   <div class="vs"><div>${myCrest(64)}<div class="disp">${esc(TN())}</div>${R?`<div class="num">${R.str}</div><div class="muted">ATT ${R.att} · DEF ${R.def}</div>`:''}</div>
