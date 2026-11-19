@@ -308,8 +308,7 @@ const FORMS={
  '3-4-3':{att:3,def:-3,tip:'Attack! (weaker defense)',pos:[[.04,.5,'GK'],[.18,.25,'DEF'],[.16,.5,'DEF'],[.18,.75,'DEF'],[.38,.12,'MID'],[.35,.38,'MID'],[.35,.62,'MID'],[.38,.88,'MID'],[.58,.2,'FWD'],[.6,.5,'FWD'],[.58,.8,'FWD']]},
  '5-3-2':{att:-3,def:3,tip:'Defend! (weaker attack)',pos:[[.04,.5,'GK'],[.24,.1,'DEF'],[.18,.3,'DEF'],[.16,.5,'DEF'],[.18,.7,'DEF'],[.24,.9,'DEF'],[.38,.25,'MID'],[.35,.5,'MID'],[.38,.75,'MID'],[.58,.38,'FWD'],[.58,.62,'FWD']]}};
 const formOf=()=>FORMS[S.form]?S.form:'4-3-3';
-const TACTICS={super:{n:'🔥 Super Attack',att:7,def:-7,drain:1.5,du:.09,sp:1.05,tip:'Everyone attacks! Lots of chances, but your back is weak and players get tired fast.'},
- attack:{n:'⚔️ Attack',att:3,def:-3,drain:1.2,du:.045,sp:1,tip:'Push forward. More attack, a bit weaker at the back.'},
+const TACTICS={attack:{n:'⚔️ Attack',att:3,def:-3,drain:1.2,du:.045,sp:1,tip:'Push forward. More attack, a bit weaker at the back.'},
  mid:{n:'🧱 Mid Block',att:1,def:1,drain:1,du:0,sp:.78,tip:'Hold the middle and stay together. Good at attacking AND defending.'},
  defend:{n:'🛡️ Defend',att:-5,def:5,drain:.8,du:-.08,sp:.9,tip:'Stay back. Hard to score on you, but you attack less. Players stay fresh.'}};
 const tacOf=()=>TACTICS[S.tactic]?S.tactic:'mid';
@@ -338,8 +337,8 @@ function genPlayer(t,pos){const s={};SK.forEach(k=>s[k]=t+rnd(-6,6));
  return assignStyle({name:pick(FIRST)+' '+pick(LAST),pos,s,num:pos==='GK'?1:rnd(2,99),energy:100})}
 function oppRating(sq){const sp=FORMS[sq.form].pos,avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,xi=sq.xi.map((p,i)=>({p,pos:sp[i][2]}));
  const str=avg(xi.map(x=>ovrAt(x.p,x.pos))),fw=avg(xi.filter(x=>x.pos==='FWD').map(x=>ovrAt(x.p,'FWD'))),df=avg(xi.filter(x=>x.pos==='DEF'||x.pos==='GK').map(x=>ovrAt(x.p,x.pos)));
- const F=FORMS[sq.form],T=TACTICS[sq.tac],sb=styleBonus(xi);return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att+sb.att),def:Math.round((str+df)/2+F.def+T.def+sb.def)}}
-function makeSquad(target){const form=pick(Object.keys(FORMS)),tac=pick(['super','attack','mid','mid','defend']),sp=FORMS[form].pos;
+ const F=FORMS[sq.form],T=TACTICS[sq.tac]||TACTICS.mid,sb=styleBonus(xi);return{str:Math.round(str),att:Math.round((str+fw)/2+F.att+T.att+sb.att),def:Math.round((str+df)/2+F.def+T.def+sb.def)}}
+function makeSquad(target){const form=pick(Object.keys(FORMS)),tac=pick(['attack','attack','mid','mid','defend']),sp=FORMS[form].pos;
  const xi=sp.map(([u,y,role])=>genPlayer(target,role));const used=new Set();xi.forEach(p=>{while(used.has(p.num))p.num=rnd(2,99);used.add(p.num)});
  const sq={form,tac,xi};for(let k=0;k<4;k++){const d=target-oppRating(sq).str;if(Math.abs(d)<1)break;xi.forEach(p=>SK.forEach(q=>p.s[q]=clamp(Math.round(p.s[q]+d),15,97)))}return sq}
 function ensureSquad(t){if(!t.sq||!t.sq.xi||t.sq.xi.length!==11)t.sq=makeSquad(t.str);return t.sq}
@@ -550,7 +549,7 @@ function matchView(){if(S.phase==='over')return `<div class="card" style="text-a
   <div class="card" style="text-align:center"><h3>🌐 Play a real person</h3><div class="muted">Play your team against a friend or another player online. It doesn't count for your flight.</div><br><button onclick="go('online')">🌐 Play online</button></div>
   ${R?`<div class="card"><div class="row"><h3 class="sp">Starting 11 · ${formOf()}</h3><button class="small" onclick="go('lineup')">📋 Change lineup</button></div><div class="muted" style="line-height:1.8">${xi.map(x=>`<span class="pos ${x.pos}">${x.pos}</span> ${esc(x.p.name)} · ${ovrAt(x.p,x.pos)} · ⚡${Math.round(x.p.energy)}`).join('<br>')}</div></div>`:''}`}
 
-function scoutView(o,xi,R){if(!o.sq)return '';const sq=o.sq,sp=FORMS[sq.form].pos,T=TACTICS[sq.tac],mu=matchup(xi,sq);
+function scoutView(o,xi,R){if(!o.sq)return '';const sq=o.sq,sp=FORMS[sq.form].pos,T=TACTICS[sq.tac]||TACTICS.mid,mu=matchup(xi,sq);
  const items=sq.xi.map((p,i)=>({p,role:sp[i][2],u:sp[i][0],y:sp[i][1]}));
  const tips=[];
  if(R){if(o.att>R.def+3)tips.push(`⚠️ Their attack (${o.att}) is stronger than your defense (${R.def}). Try 🛡️ Defend or 5-3-2.`);
@@ -559,7 +558,7 @@ function scoutView(o,xi,R){if(!o.sq)return '';const sq=o.sq,sp=FORMS[sq.form].po
   if(mu.spdA>=5)tips.push(`⚡ Your forwards (SPD ${mu.myFs}) are faster than their defenders (${mu.thDs}). They will run past them!`);
   if(mu.spdA<=-5)tips.push(`🐢 Their defenders (SPD ${mu.thDs}) are faster than your forwards (${mu.myFs}). Try faster forwards.`);}
  items.filter(x=>x.p.st).forEach(x=>tips.push(`${STYLES[x.p.st].i} Watch out: #${x.p.num} ${esc(x.p.name)} is a ${STYLES[x.p.st].n} (${STYLES[x.p.st].d.toLowerCase()}).`));
- if(sq.tac==='super')tips.push('🔥 They play Super Attack: their back is weak and they get tired. Attack them!');
+ if(sq.tac==='attack')tips.push('⚔️ They play Attack: their back is a bit weaker. Counter-attack them!');
  if(sq.tac==='defend')tips.push('🛡️ They play Defend: hard to score on. Be patient.');
  const weakD=items.filter(x=>x.role==='DEF').sort((a,b)=>ovrAt(a.p,'DEF')-ovrAt(b.p,'DEF'))[0];if(weakD)tips.push(`🎯 Their weakest defender is #${weakD.p.num} ${esc(weakD.p.name)} (${ovrAt(weakD.p,'DEF')}).`);
  const star=[...items].sort((a,b)=>ovrAt(b.p,b.role)-ovrAt(a.p,a.role))[0];tips.push(`⭐ Their best player is #${star.p.num} ${esc(star.p.name)} (${star.role} ${ovrAt(star.p,star.role)}).`);
@@ -588,6 +587,7 @@ function maybeComeBack(){if(!S.angry||!S.angry.length||S.trials.length>=4||Math.
  p.msg=p.disliked?`I thought about it again... your team is actually cool! 😊 Can I join for ${money(p.fee)} and ${money(p.salary)} a week?`:`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;p.tried=false;p.liked=false;
  const g=S.gone.findIndex(x=>x.name===p.name);if(g>=0)S.gone.splice(g,1);S.trials.push(p);return p}
 function ensureTalker(){if(!S||!S.trials)return;let ch=false;
+ if(S.tactic==='super'){S.tactic='attack';ch=true}[S.league&&S.league.teams,S.wc&&S.wc.opps].forEach(l=>(l||[]).forEach(t=>{if(t.sq&&t.sq.tac==='super'){t.sq.tac='attack';ch=true}}));
  if((S.stv||0)<2){S.stv=2;[...S.players,...S.trials].forEach(p=>assignStyle(p));if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(assignStyle)});ch=true}
  [...S.players,...S.trials].forEach(p=>{if(!p.pot){givePot(p);ch=true}});
  [...S.players,...S.trials].forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}});
