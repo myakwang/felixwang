@@ -167,6 +167,7 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .trfx{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
 .trfx div{position:absolute;top:18%;font-family:"Lilita One",sans-serif;font-size:2.4em;text-shadow:0 3px 0 #000a,0 0 18px #000a;animation:pop 1.4s ease-out forwards;white-space:nowrap}
 .ng3d{position:relative}
+.lastrep{background:#fff;color:#123;border-radius:12px;padding:6px 10px;margin-top:8px;font-size:.9em;animation:fadein .3s}
 </style>
 </head>
 <body>
@@ -484,7 +485,7 @@ function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const
 function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
  <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`${p.back?'<div class="stb" style="background:#5cf29a;color:#06351b">😔 Came back to say sorry</div>':''}<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
-  ${p.tried?`<div class="tip" style="margin-top:6px;font-size:.85em">${p.liked?'😊 He liked training with you! (asks less now)':''} 🏃 Try-out: ${p.tryTxt||''}</div>`:`<div class="act"><button class="small" style="flex:1" onclick="openTryout(${p.id})">🏃 Try him out first</button></div>`}
+  ${p.tried?`<div class="tip" style="margin-top:6px;font-size:.85em">${p.liked?'😊 He liked training with you! (asks less now)':''} 🏃 Try-out: ${p.tryTxt||''}</div>`:`<div class="act"><button class="small" style="flex:1" onclick="openTryout(${p.id})">🏃 Try him out (${{GK:'saves',DEF:'tackles',MID:'passing',FWD:'shooting'}[p.pos]})</button></div>`}
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
  ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.why==='Declined'?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
@@ -587,18 +588,24 @@ let NG=null,G3=null;
 const SKINS=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac','#a0662f'];
 let TRY=null;
 function openTryout(id){const t=S.trials.find(x=>x.id===id);if(!t||t.tried)return;
- const res={spd:t.s.spd,shots:[0,1,2].map(()=>Math.random()<.2+t.s.sho/110),passes:[0,1].map(()=>Math.random()<.3+t.s.pas/120)};res.time=(2.6+(100-t.s.spd)/40).toFixed(1);
+ const ps=t.pos,roll=(n,p)=>[...Array(n)].map(()=>Math.random()<p),res={spd:t.s.spd,pos:ps};res.time=clamp(6.2-t.s.spd/22,2.4,5).toFixed(1);
+ if(ps==='FWD'){res.shots=roll(3,.2+t.s.sho/110);res.passes=roll(2,.3+t.s.pas/120);res.count=5}
+ else if(ps==='MID'){res.passes=roll(4,.3+t.s.pas/110);res.shots=roll(1,.15+t.s.sho/120);res.count=5}
+ else if(ps==='DEF'){res.tackles=roll(3,.15+t.s.def/110);res.count=3}
+ else{res.saves=roll(4,.1+(t.s.def*.7+t.s.spd*.3)/110);res.count=4}
  TRY={id,res,lines:[`${t.name} came to train with your team!`]};let el=$('#nego');if(!el){el=document.createElement('div');el.id='nego';document.body.appendChild(el)}
  el.innerHTML=`<div class="nbox"><div class="row"><h3 class="sp">🏃 Try-out: ${esc(t.name)}</h3></div><div class="ng3d" id="tr3d" style="height:240px"></div><div class="chat" id="trLog" style="height:110px"></div><div id="trAct"></div></div>`;el.style.display='flex';trDraw();
  const done=()=>trDone(t);
  loadThree().then(()=>{if(!TRY||!$('#tr3d'))return;G3&&G3.dispose();const mate=S.players.find(p=>p.pos==='MID')||S.players[0];
-  G3=makeTryout($('#tr3d'),{shirt:'#8a8f98',skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:t.num||9},{shirt:S.color,skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:mate?mate.num:8},res,txt=>{if(TRY){TRY.lines.push(txt);trDraw()}},done)})
- .catch(()=>{res.shots.forEach((ok,i)=>TRY.lines.push(`⚽ Shot ${i+1}: ${ok?'GOAL!':'missed'}`));setTimeout(done,600)})}
+  G3=makeTryout($('#tr3d'),{shirt:'#8a8f98',skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:t.num||9},{shirt:S.color,skin:pick(SKINS),hair:pick(HAIRS),hs:rnd(0,2),num:mate?mate.num:8},res,txt=>{if(TRY){TRY.lines.push(txt);trDraw()}},done,t.pos)})
+ .catch(()=>{setTimeout(done,600)})}
 function trDraw(){const c=$('#trLog');if(!c||!TRY)return;c.innerHTML=TRY.lines.map(l=>`<div class="bub him">${esc(l)}</div>`).join('');c.scrollTop=c.scrollHeight}
-function trDone(t){if(!TRY)return;const r=TRY.res,sh=r.shots.filter(Boolean).length,pa=r.passes.filter(Boolean).length;t.tried=true;t.tryTxt=`sprint ${r.time}s · shots ${sh}/3 · passes ${pa}/2`;
+function trDone(t){if(!TRY)return;const r=TRY.res,n=a=>a?a.filter(Boolean).length:0;
+ const sum=r.pos==='FWD'?`Sprint ${r.time}s · Shots ${n(r.shots)}/3 · Passes ${n(r.passes)}/2`:r.pos==='MID'?`Passes ${n(r.passes)}/4 · Long shot ${r.shots[0]?'⚽':'❌'} · Sprint ${r.time}s`:r.pos==='DEF'?`Tackles ${n(r.tackles)}/3 · Sprint ${r.time}s`:`Saves ${n(r.saves)}/4`;
+ t.tried=true;t.tryTxt=sum;
  const my=bestXI().length>=11?teamRating(bestXI()).str:40,pos=S.league?standings().findIndex(x=>x.i===0)+1:6;
  const likes=Math.random()<clamp(.45+(my-ovr(t))/25+(pos<=3?.15:0),.15,.92);
- TRY.lines.push(`📋 Sprint ${r.time}s · Shots ${sh}/3 · Passes ${pa}/2`,`🌟 Potential: ${stars(t.pot||3)}`);
+ TRY.lines.push(`📋 ${sum}`,`🌟 Potential: ${stars(t.pot||3)}`);
  if(likes){t.liked=true;t.fee=Math.max(3,Math.round(t.fee*.9));t.msg=`I really liked training with you! I'll join for ${money(t.fee)} and ${money(t.salary)} a week.`;TRY.lines.push(`😊 "${t.msg}"`)}
  else{TRY.lines.push(`😕 "Hmm... I don't really like it here. Bye!"`);t.disliked=true;madLeave(t);S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:"Didn't like your team"})}
  save();trDraw();const a=$('#trAct');
@@ -635,7 +642,7 @@ function ngUpdate(){if(!NG)return;const pl=NG.kind==='player';
   :[['more','💰 Can you pay more?'],['why','🤔 Why our player?'],['fans','📣 He has lots of fans!']];
  $('#ngAct').innerHTML=`<div class="qs">${q.map(([k,t])=>`<button class="small gray" onclick="ngAsk('${k}')">${t}</button>`).join('')}</div>
   <div class="row" style="margin-top:8px"><input type="range" min="${lo}" max="${hi}" value="${NG.offer}" style="flex:1" oninput="NG.offer=+this.value;$('#ngOv').textContent=money(NG.offer)"><button class="small" onclick="ngOffer()">${pl?'Offer':'Ask for'} <span id="ngOv">${money(NG.offer)}</span></button></div>
-  <div class="row" style="margin-top:8px"><input type="text" id="ngTxt" maxlength="80" enterkeyhint="send" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:16px;padding:9px;text-align:left" autocomplete="off" autocorrect="on" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();sayNow()}"><button type="button" class="small" style="touch-action:manipulation" ontouchend="event.preventDefault();sayNow()" onmousedown="event.preventDefault()" onclick="sayNow()">💬 Say</button></div>
+  ${NG.log.length>1?`<div class="lastrep">💬 <b>${esc(NG.name.split(' ')[0])}:</b> ${esc([...NG.log].reverse().find(m=>m.w==='him').t)}</div>`:''}<div class="row" style="margin-top:8px"><input type="text" id="ngTxt" maxlength="80" enterkeyhint="send" placeholder="Type anything… e.g. too high! how about 20k?" style="flex:1;font-size:16px;padding:9px;text-align:left" autocomplete="off" autocorrect="on" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();sayNow()}"><button type="button" class="small" style="touch-action:manipulation" ontouchend="event.preventDefault();sayNow()" onmousedown="event.preventDefault()" onclick="sayNow()">💬 Say</button></div>
   <div class="muted" style="font-size:.78em;margin-top:2px">📱 Tip: on a phone, tap the 🎤 on your keyboard to say it out loud.</div>
   <div class="row" style="margin-top:8px;justify-content:center"><button class="small green" onclick="ngDeal()">✅ Deal at ${money(NG.ask)}</button><button class="small red" onclick="ngBye()">👋 No thanks</button></div>`}
 function ngAngry(by,line){NG.pat-=by;ngSay('him',line);if(G3)G3.play('grr')}
@@ -804,10 +811,13 @@ function makeScene(host,look){const {T,r,sc,cam}=sceneBase(host);cam.position.se
  raf=requestAnimationFrame(loop);
  return{play,dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove()}}}
 
-// ---- try-out training session (v2): dribble through cones, 3 shots vs a goalkeeper, 2 passes with a teammate ----
-function ballTex(T){const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,256,128);x.fillStyle='#111';
- [[30,30],[95,70],[160,30],[225,70],[60,105],[190,105],[128,10]].forEach(([a,b])=>{x.beginPath();for(let i=0;i<5;i++){const an=i/5*Math.PI*2-Math.PI/2;x.lineTo(a+Math.cos(an)*16,b+Math.sin(an)*16)}x.fill()});return new T.CanvasTexture(c)}
-function makeTryout(host,look,mateLook,res,onText,onDone){const {T,r,sc,cam}=sceneBase(host);
+// ---- try-out training (v3): a different drill for each position ----
+function makeBall(T,r){const g=new T.Group();const w=new T.Mesh(new T.SphereGeometry(r,28,20),new T.MeshStandardMaterial({color:0xffffff,roughness:.45}));w.castShadow=true;g.add(w);
+ const ico=new T.IcosahedronGeometry(1,0),pos=ico.attributes.position,seen=[],blk=new T.MeshStandardMaterial({color:0x111111,roughness:.5});
+ for(let i=0;i<pos.count;i++){const v=new T.Vector3().fromBufferAttribute(pos,i).normalize();if(seen.some(s=>s.distanceTo(v)<.01))continue;seen.push(v);
+  const p=new T.Mesh(new T.CircleGeometry(r*.36,5),blk);p.position.copy(v.clone().multiplyScalar(r*1.003));p.lookAt(v.clone().multiplyScalar(r*2));g.add(p)}
+ return g}
+function makeTryout(host,look,mateLook,res,onText,onDone,pos){const {T,r,sc,cam}=sceneBase(host);
  const std=(c,ro=.85)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:ro});
  const fx=document.createElement('div');fx.className='trfx';host.appendChild(fx);
  const pop=(t,col)=>{const d=document.createElement('div');d.textContent=t;d.style.color=col||'#fff';fx.appendChild(d);setTimeout(()=>d.remove(),1400)};
@@ -815,91 +825,115 @@ function makeTryout(host,look,mateLook,res,onText,onDone){const {T,r,sc,cam}=sce
  const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');for(let i=0;i<8;i++){x.fillStyle=i%2?'#2f9e44':'#37b24d';x.fillRect(i*64,0,64,512)}
  for(let i=0;i<3000;i++){x.fillStyle=Math.random()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.04)';x.fillRect(Math.random()*512,Math.random()*512,2,2)}
  const gt=new T.CanvasTexture(c);gt.wrapS=gt.wrapT=T.RepeatWrapping;gt.repeat.set(2,1);
- const grass=new T.Mesh(new T.PlaneGeometry(40,24),new T.MeshStandardMaterial({map:gt,roughness:1,color:0x9a9a9a}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;sc.add(grass);
+ const grass=new T.Mesh(new T.PlaneGeometry(44,28),new T.MeshStandardMaterial({map:gt,roughness:1,color:0x9a9a9a}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;sc.add(grass);
  sc.background=new T.Color(0x87ceeb);
  const lineM=new T.MeshBasicMaterial({color:0xffffff});const line=(w,h,px,pz)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),lineM);m.rotation.x=-Math.PI/2;m.position.set(px,.012,pz);sc.add(m)};
- line(.08,10,7,0);line(3,.08,5.5,-2.2);line(3,.08,5.5,2.2);line(.08,4.4,4,0);line(1.2,.08,6.4,-1.3);line(1.2,.08,6.4,1.3);line(.08,2.6,5.8,0);
- const spot=new T.Mesh(new T.CircleGeometry(.07,12),lineM);spot.rotation.x=-Math.PI/2;spot.position.set(4.6,.013,0);sc.add(spot);
- // stand + trees in the back
- const stand=new T.Group();for(let i=0;i<4;i++){const st=new T.Mesh(new T.BoxGeometry(22,.5,1),std(i%2?'#3b5b8c':'#2c4870'));st.position.set(1,.25+i*.5,-9-i*.9);st.receiveShadow=true;stand.add(st)}
- for(let i=0;i<60;i++){const fan=new T.Mesh(new T.SphereGeometry(.13,8,6),std(['#e74c3c','#f1c40f','#3498db','#ecf0f1','#2ecc71'][i%5]));fan.position.set(-9+(i%20)*1.05+Math.random()*.3,.75+Math.floor(i/20)*.5,-9.1-Math.floor(i/20)*.9);stand.add(fan)}
+ const GX=8,GW=2.6,GH=2.5,ND=1.3; // goal line x, half width, height, net depth
+ line(.08,14,GX,0);line(3.6,.08,GX-1.8,-4.4);line(3.6,.08,GX-1.8,4.4);line(.08,8.8,GX-3.6,0);line(1.5,.08,GX-.75,-3.2);line(1.5,.08,GX-.75,3.2);line(.08,6.4,GX-1.5,0);
+ const spot=new T.Mesh(new T.CircleGeometry(.08,14),lineM);spot.rotation.x=-Math.PI/2;spot.position.set(GX-2.6,.013,0);sc.add(spot);
+ const stand=new T.Group();for(let i=0;i<4;i++){const st=new T.Mesh(new T.BoxGeometry(26,.5,1),std(i%2?'#3b5b8c':'#2c4870'));st.position.set(2,.25+i*.5,-11-i*.9);stand.add(st)}
+ for(let i=0;i<72;i++){const fan=new T.Mesh(new T.SphereGeometry(.14,8,6),std(['#e74c3c','#f1c40f','#3498db','#ecf0f1','#2ecc71'][i%5]));fan.position.set(-9+(i%24)*1.05+Math.random()*.3,.75+Math.floor(i/24)*.5,-11.1-Math.floor(i/24)*.9);stand.add(fan)}
  sc.add(stand);
- [[-8,-6],[-5,-7],[10,-6],[12,-4]].forEach(([a,b])=>{const tr=new T.Mesh(new T.CylinderGeometry(.12,.16,1.2,8),std('#6b4420'));tr.position.set(a,.6,b);sc.add(tr);const lv=new T.Mesh(new T.SphereGeometry(.8,12,10),std('#1e8449'));lv.position.set(a,1.6,b);lv.castShadow=true;sc.add(lv)});
- // goal with net
- const GX=7,post=std('#ffffff',.3);[-1.2,1.2].forEach(z=>{const p=new T.Mesh(new T.CylinderGeometry(.05,.05,1.6,12),post);p.position.set(GX,.8,z);p.castShadow=true;sc.add(p)});
- const bar=new T.Mesh(new T.CylinderGeometry(.05,.05,2.4,12),post);bar.rotation.x=Math.PI/2;bar.position.set(GX,1.6,0);sc.add(bar);
- const netM=new T.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.45});
- const netBack=new T.Mesh(new T.PlaneGeometry(2.4,1.6,14,9),netM);netBack.rotation.y=Math.PI/2;netBack.position.set(GX+.8,.8,0);sc.add(netBack);
- const netTop=new T.Mesh(new T.PlaneGeometry(.8,2.4,4,14),netM);netTop.rotation.x=-Math.PI/2;netTop.rotation.z=Math.PI/2;netTop.position.set(GX+.4,1.6,0);sc.add(netTop);
- [-1.2,1.2].forEach(z=>{const s=new T.Mesh(new T.PlaneGeometry(.8,1.6,4,9),netM);s.position.set(GX+.4,.8,z);sc.add(s)});
+ [[-9,-7],[-6,-8.5],[13,-7],[15,-4]].forEach(([a,b])=>{const tr=new T.Mesh(new T.CylinderGeometry(.14,.18,1.4,8),std('#6b4420'));tr.position.set(a,.7,b);sc.add(tr);const lv=new T.Mesh(new T.SphereGeometry(.95,12,10),std('#1e8449'));lv.position.set(a,1.9,b);lv.castShadow=true;sc.add(lv)});
+ // goal (bigger than the players) with net behind the goal line
+ const post=std('#ffffff',.3);[-GW,GW].forEach(z=>{const p=new T.Mesh(new T.CylinderGeometry(.07,.07,GH,12),post);p.position.set(GX,GH/2,z);p.castShadow=true;sc.add(p)});
+ const bar=new T.Mesh(new T.CylinderGeometry(.07,.07,GW*2,12),post);bar.rotation.x=Math.PI/2;bar.position.set(GX,GH,0);bar.castShadow=true;sc.add(bar);
+ const netM=new T.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.4,side:T.DoubleSide});
+ const netBack=new T.Mesh(new T.PlaneGeometry(GW*2,GH,18,9),netM);netBack.rotation.y=Math.PI/2;netBack.position.set(GX+ND,GH/2,0);sc.add(netBack);
+ const netTop=new T.Mesh(new T.PlaneGeometry(ND,GW*2,4,18),netM);netTop.rotation.x=-Math.PI/2;netTop.position.set(GX+ND/2,GH,0);sc.add(netTop);
+ [-GW,GW].forEach(z=>{const s=new T.Mesh(new T.PlaneGeometry(ND,GH,4,9),netM);s.position.set(GX+ND/2,GH/2,z);sc.add(s)});
  // cones
- const coneX=[-3,-1.9,-.8,.3,1.4];coneX.forEach(cx=>{const cn=new T.Mesh(new T.ConeGeometry(.14,.34,16),std('#ff7a1a',.5));cn.position.set(cx,.17,0);cn.castShadow=true;sc.add(cn);
-  const ring=new T.Mesh(new T.TorusGeometry(.1,.025,6,16),std('#ffffff'));ring.rotation.x=Math.PI/2;ring.position.set(cx,.2,0);sc.add(ring)});
+ const coneX=[-3,-1.9,-.8,.3,1.4];coneX.forEach(cx=>{const cn=new T.Mesh(new T.ConeGeometry(.15,.36,16),std('#ff7a1a',.5));cn.position.set(cx,.18,0);cn.castShadow=true;sc.add(cn)});
  // people
- const P=buildPerson(T,look);sc.add(P.g);
- const K=buildPerson(T,{shirt:'#f1c40f',skin:pick(SKINS),hair:pick(HAIRS),hs:1,num:1});sc.add(K.g);K.g.position.set(GX-.25,0,0);K.g.rotation.y=-Math.PI/2;
+ const isGK=pos==='GK';
+ const P=buildPerson(T,isGK?Object.assign({},look,{shirt:'#7f8c8d'}):look);sc.add(P.g);
+ const K=buildPerson(T,{shirt:'#f1c40f',skin:pick(SKINS),hair:pick(HAIRS),hs:1,num:1});if(!isGK)sc.add(K.g);
  const Mt=buildPerson(T,mateLook);sc.add(Mt.g);
- const ball=new T.Mesh(new T.SphereGeometry(.11,24,18),new T.MeshStandardMaterial({map:ballTex(T),roughness:.45}));ball.castShadow=true;sc.add(ball);
- // pose helpers
+ const ball=makeBall(T,.14);sc.add(ball);const BR=.14;
+ // helpers
  const face=(p,dx,dz)=>{p.g.rotation.y=Math.atan2(dx,dz)};
- const runPose=(p,ph,amp=.85)=>{const a=Math.sin(ph)*amp;p.legL.rotation.x=a;p.legR.rotation.x=-a;p.armL.rotation.x=-a*.9;p.armR.rotation.x=a*.9;p.torso.rotation.x=.15;p.g.position.y=Math.abs(Math.sin(ph))*.05};
- const idle=p=>{p.legL.rotation.x*=.8;p.legR.rotation.x*=.8;p.armL.rotation.x*=.8;p.armR.rotation.x*=.8;p.torso.rotation.x*=.8;p.g.position.y*=.8;p.armL.rotation.z=-.1;p.armR.rotation.z=.1};
+ const runPose=(p,ph,amp=.75)=>{const a=Math.sin(ph)*amp;p.legL.rotation.x=a;p.legR.rotation.x=-a;p.armL.rotation.x=-a*.9;p.armR.rotation.x=a*.9;p.torso.rotation.x=.12;p.g.position.y=Math.abs(Math.sin(ph))*.04};
+ const idle=p=>{['legL','legR','armL','armR'].forEach(k=>{p[k].rotation.x*=.85});p.torso.rotation.x*=.85;p.torso.rotation.z*=.85;p.g.position.y*=.8;p.g.rotation.z*=.8;p.armL.rotation.z+=(-.1-p.armL.rotation.z)*.2;p.armR.rotation.z+=(.1-p.armR.rotation.z)*.2};
+ const kick=(p,q)=>{if(q<.6)p.legR.rotation.x=.9*q/.6;else p.legR.rotation.x=.9-2.2*(q-.6)/.4;p.armL.rotation.x=-.5*Math.sin(q*Math.PI)};
+ const keeperReady=k=>{idle(k);k.armL.rotation.z=-.7;k.armR.rotation.z=.7;k.torso.rotation.x=.15};
+ const dive=(k,side,s,baseZ)=>{k.g.position.z=baseZ+side*1.6*s;k.g.rotation.x=0;k.g.rotation.z=-side*1.25*s;k.g.position.y=Math.sin(s*Math.PI)*.35;k.armL.rotation.z=-2.7*s;k.armR.rotation.z=2.7*s};
  const lerp=(a,b,q)=>a+(b-a)*q,ease=q=>q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2;
- let lastBall=new T.Vector3();const roll=()=>{const d=ball.position.clone().sub(lastBall);if(d.length()>1e-4){const ax=new T.Vector3(d.z,0,-d.x).normalize();ball.rotateOnWorldAxis(ax,d.length()/.11)}lastBall.copy(ball.position)};
+ let lastBall=new T.Vector3();const roll=()=>{const d=ball.position.clone().sub(lastBall);d.y=0;const L=d.length();if(L>1e-4&&L<1){const ax=new T.Vector3(d.z,0,-d.x).normalize();ball.rotateOnWorldAxis(ax,L/BR)}lastBall.copy(ball.position)};
  // timeline
- const sprintT=clamp(3.4-res.spd/45,1.4,3.2);const tl=[];let at=0;const add=(k,d,o={})=>{tl.push(Object.assign({k,a:at,b:at+d},o));at+=d};
- add('intro',1.2);add('dribble',sprintT);add('toSpot',1.1);
- const shotZ=[-.75,.75,-.2];for(let i=0;i<3;i++){add('setup',.9,{i});add('shoot',1.6,{i});}
- add('toPass',1);for(let i=0;i<2;i++)add('pass',2.4,{i});add('end',1.8);
- const total=at;let said={},t0=performance.now(),alive=true,raf=0,sh=0,pa=0;
- const startX=-4.6;P.g.position.set(startX,0,0);face(P,1,0);ball.position.set(startX+.35,.11,0);lastBall.copy(ball.position);Mt.g.position.set(3.4,0,-3.2);face(Mt,0,1);
- function shotTarget(i){const ok=res.shots[i];if(ok)return{x:GX+.55,y:.35+((i*.37)%1)*.8,z:shotZ[i]>0?-.85:.85,ok};return i%2?{x:GX+.6,y:2.1,z:.3,ok}:{x:GX+.4,y:.4,z:shotZ[i]>0?1.75:-1.75,ok}}
- function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,seg=tl.find(s=>t>=s.a&&t<s.b)||tl[tl.length-1],q=clamp((t-seg.a)/(seg.b-seg.a),0,1);
-  const key=seg.k+(seg.i||0);
-  if(seg.k==='intro'){idle(P);P.armR.rotation.z=1.8+Math.sin(t*10)*.4;if(!said.in){said.in=1;onText('👋 Hi coach! Let\'s train!')}}
-  else if(seg.k==='dribble'){if(!said.dr){said.dr=1;onText('🏃 Dribble through the cones!');pop('🏃 GO!')}
-   const xx=lerp(startX,2.2,q),zz=Math.sin((xx-(-3))/1.1*Math.PI)*.45*(xx>-3.5&&xx<1.9?1:0),nx=lerp(startX,2.2,Math.min(1,q+.02)),nz=Math.sin((nx-(-3))/1.1*Math.PI)*.45*(nx>-3.5&&nx<1.9?1:0);
-   P.g.position.x=xx;P.g.position.z=zz;face(P,nx-xx||1e-3,nz-zz);runPose(P,t*16);const fw=new T.Vector3(nx-xx,0,nz-zz).normalize();ball.position.set(xx+fw.x*.38,.11,zz+fw.z*.38+Math.sin(t*16)*.02);
+ const tl=[];let at=0;const add=(k,d,o={})=>{tl.push(Object.assign({k,a:at,b:at+d},o));at+=d};
+ const runT=clamp(6.2-res.spd/22,2.4,5);
+ add('intro',1.3);
+ if(pos==='FWD'){add('dribble',runT);add('toSpot',1.4);for(let i=0;i<3;i++){add('setup',1.1,{i});add('shoot',1.9,{i})}add('toPass',1.2);for(let i=0;i<2;i++)add('pass',2.6,{i,mates:[[3.4,-3.6],[3.4,-3.6]]})}
+ if(pos==='MID'){add('dribble',runT);add('toPass',1.2);const ms=[[4.4,-3.4],[4.6,3.2],[-.8,3.4],[-1,-3.4]];for(let i=0;i<4;i++)add('pass',2.6,{i,mates:ms});add('toSpot',1.4);add('setup',1.1,{i:0});add('shoot',1.9,{i:0})}
+ if(pos==='DEF'){add('sprint',runT*.85);for(let i=0;i<3;i++)add('tackle',3,{i})}
+ if(isGK){add('gkIn',1.6);for(let i=0;i<4;i++){add('gkSetup',1.2,{i});add('gkShot',1.8,{i})}}
+ add('end',2);const total=at;
+ let said={},t0=performance.now(),alive=true,raf=0,good=0;
+ const startX=-4.6;
+ if(isGK){P.g.position.set(GX-.6,0,0);face(P,-1,0);Mt.g.position.set(GX-3.1,0,.2);face(Mt,1,0);ball.position.set(GX-2.6,BR,0)}
+ else{P.g.position.set(startX,0,0);face(P,1,0);ball.position.set(startX+.45,BR,0);Mt.g.position.set(3.4,0,-3.6);face(Mt,0,1);K.g.position.set(GX-.6,0,0);face(K,-1,0)}
+ lastBall.copy(ball.position);
+ const shotZ=[-1.1,1.1,-.4];
+ function shotTarget(i,ok){if(ok)return{x:GX+.7,y:.5+((i*.41)%1)*1.4,z:(shotZ[i%3]>0?-1:1)*(1.5+((i*.3)%.6)),ok};return i%2?{x:GX+.9,y:GH+.9,z:.4,ok}:{x:GX+.5,y:.5,z:(shotZ[i%3]>0?1:-1)*(GW+.9),ok}}
+ function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);const t=(now-t0)/1000,seg=tl.find(s=>t>=s.a&&t<s.b)||tl[tl.length-1],q=clamp((t-seg.a)/(seg.b-seg.a),0,1),key=seg.k+(seg.i||0);
+  if(seg.k==='intro'){idle(P);P.armR.rotation.z=1.9+Math.sin(t*9)*.35;if(!said.in){said.in=1;onText({GK:'🧤 Hi coach! Shoot at me!',DEF:'🛡️ Hi coach! Try to get past me!',MID:'🎯 Hi coach! Watch my passes!',FWD:'⚽ Hi coach! Watch me score!'}[pos])}}
+  else if(seg.k==='dribble'||seg.k==='sprint'){const withBall=seg.k==='dribble';if(!said.dr){said.dr=1;onText(withBall?'🏃 Dribble through the cones!':'🏃 Sprint through the cones!');pop('🏃 GO!')}
+   const wz=xx=>Math.sin((xx+3)/1.1*Math.PI)*.5*(xx>-3.5&&xx<1.9?1:0);const xx=lerp(startX,2.4,q),nx=lerp(startX,2.4,Math.min(1,q+.01)),zz=wz(xx),nz=wz(nx);
+   P.g.position.x=xx;P.g.position.z=zz;face(P,nx-xx||1e-3,nz-zz);runPose(P,t*9.5);const fw=new T.Vector3(nx-xx,0,nz-zz).normalize();
+   if(withBall)ball.position.set(xx+fw.x*.45,BR,zz+fw.z*.45+Math.sin(t*9.5)*.03);else ball.position.set(5,BR,2.5);
    if(q>.98&&!said.drd){said.drd=1;pop(`⏱️ ${res.time}s`,'#ffc83d')}}
-  else if(seg.k==='toSpot'){const xx=lerp(2.2,3.6,ease(q));P.g.position.set(xx,0,lerp(P.g.position.z,0,.1));face(P,1,0);runPose(P,t*12,.5);ball.position.set(xx+.38,.11,0)}
-  else if(seg.k==='setup'){const z=shotZ[seg.i];if(!said[key]){said[key]=1;ball.position.set(4.6,.11,z+.2);onText(`⚽ Shot ${seg.i+1} of 3…`)}
-   const px=lerp(3.4,4.15,ease(q)),pz=lerp(P.g.position.z,z-.15,.15);P.g.position.set(px,0,pz);face(P,1,.1);runPose(P,t*12,.45*(1-q));
-   ball.position.x+= (4.6-ball.position.x)*.2;ball.position.z+=(z-ball.position.z)*.2;
-   K.g.position.z+=((z*.4)-K.g.position.z)*.08;idle(K);K.armL.rotation.z=-.6;K.armR.rotation.z=.6;K.legL.rotation.z=.15;K.legR.rotation.z=-.15}
-  else if(seg.k==='shoot'){const tg=shotTarget(seg.i),z=shotZ[seg.i];
-   if(q<.18){P.legR.rotation.x=lerp(0,.9,q/.18);P.armL.rotation.x=-.6;P.torso.rotation.x=-.1}
-   else if(q<.26){P.legR.rotation.x=lerp(.9,-1.3,(q-.18)/.08);P.torso.rotation.x=.2}
-   else{P.legR.rotation.x*=.9;P.armL.rotation.x*=.9;P.torso.rotation.x*=.9;
-    const s=clamp((q-.26)/.36,0,1);if(s<1){ball.position.set(lerp(4.6,tg.x,s),.11+Math.sin(s*Math.PI)*.35+(tg.y-.11)*s,lerp(z,tg.z,s))}
-    else if(tg.ok){ball.position.y=Math.max(.11,ball.position.y-.03);netBack.position.x=lerp(netBack.position.x,GX+1.05,.3)}
-    else{ball.position.x+=.03;ball.position.y=Math.max(.11,ball.position.y-.04)}
-    // keeper dive: wrong way on goals, too late on misses
-    const dz=tg.ok?(tg.z>0?-1:1):(tg.z>0?1:-1),ds=clamp((q-.28)/.25,0,1);K.g.position.z=lerp(z*.4,z*.4+dz*.9,ds);K.g.rotation.z=dz*1.2*ds*(-1);K.g.position.y=lerp(0,.25,ds)-ds*ds*.25;
-    K.armL.rotation.z=-2.6*ds;K.armR.rotation.z=2.6*ds;
-    if(s>=1&&!said[key+'r']){said[key+'r']=1;if(tg.ok){sh++;pop('⚽ GOAL!','#ffc83d');onText('✅ GOAL!')}else{pop(tg.y>1.8?'❌ Over the bar!':'❌ Wide!','#ff7a7a');onText(tg.y>1.8?'❌ Over the bar!':'❌ Missed wide!')}}}
-   if(q>.95){netBack.position.x+=(GX+.8-netBack.position.x)*.3;K.g.rotation.z*=.5;K.g.position.y=0}}
-  else if(seg.k==='toPass'){K.g.rotation.z=0;K.g.position.y=0;netBack.position.x=GX+.8;const px=lerp(P.g.position.x,2.6,.08),pz=lerp(P.g.position.z,0,.08);P.g.position.set(px,0,pz);face(P,.3,-1);runPose(P,t*10,.4);
-   if(!said.tp){said.tp=1;ball.position.set(2.9,.11,-.25);onText('🎯 Now passing!')}Mt.g.position.x=lerp(Mt.g.position.x,3.4,.1);idle(Mt)}
-  else if(seg.k==='pass'){const ok=res.passes[seg.i],mx=ok?3.4:4.9,mz=ok?-3.0:-2.3;face(P,mx-P.g.position.x,mz-P.g.position.z);
-   if(q<.12){P.legR.rotation.x=lerp(0,.7,q/.12)}else if(q<.18){P.legR.rotation.x=lerp(.7,-.9,(q-.12)/.06)}else P.legR.rotation.x*=.9;
-   const s=clamp((q-.18)/.3,0,1);if(q<.18)ball.position.set(2.9,.11,-.25);else if(q<.5)ball.position.set(lerp(2.9,mx,ease(s)),.11,lerp(-.25,mz,ease(s)));
-   face(Mt,ball.position.x-Mt.g.position.x,ball.position.z-Mt.g.position.z);
-   if(ok){if(q>.48&&q<.6){Mt.legR.rotation.x=-.5}else if(q>=.6&&q<.68)Mt.legR.rotation.x=lerp(.6,-.8,(q-.6)/.08);else Mt.legR.rotation.x*=.85;
-    if(q>=.68){const s2=clamp((q-.68)/.28,0,1);ball.position.set(lerp(mx,2.9,ease(s2)),.11,lerp(mz,-.25,ease(s2)))}}
-   else{Mt.g.position.x=lerp(Mt.g.position.x,4.3,.04);runPose(Mt,t*12,.6*(q>.3&&q<.8?1:0));if(q>=.5)ball.position.set(ball.position.x+.025,.11,ball.position.z+.004)}
-   if(q>.5&&!said[key]){said[key]=1;if(ok){pa++;pop('🎯 Nice pass!','#5cf29a');onText('✅ Great pass!')}else{pop('❌ Bad pass!','#ff7a7a');onText('❌ Bad pass!')}}
-   if(q>.97&&!ok){Mt.g.position.x=3.4;ball.position.set(2.9,.11,-.25)}}
-  else{idle(K);face(P,0,1);const happy=sh+pa>=3;if(happy){P.armL.rotation.z=-2.7;P.armR.rotation.z=2.7;P.g.position.y=Math.abs(Math.sin(t*7))*.15}else{P.armL.rotation.z=-.5;P.armR.rotation.z=.5;P.headG.rotation.z=Math.sin(t*3)*.15}
+  else if(seg.k==='toSpot'){const xx=lerp(P.g.position.x,GX-3.6,.04),zz=lerp(P.g.position.z,0,.06);P.g.position.set(xx,0,zz);face(P,1,0);runPose(P,t*8,.45);ball.position.set(xx+.45,BR,zz);if(!isGK){keeperReady(K)}}
+  else if(seg.k==='setup'){const z=shotZ[seg.i];if(!said[key]){said[key]=1;onText(pos==='MID'?'💥 Long shot!':`⚽ Shot ${seg.i+1} of 3…`)}
+   const bx=GX-2.6-(pos==='MID'?2:0);P.g.position.x+=((bx-.55)-P.g.position.x)*.08;P.g.position.z+=((z-.2)-P.g.position.z)*.08;face(P,1,.05);runPose(P,t*8,.35*(1-q));
+   ball.position.x+=(bx-ball.position.x)*.15;ball.position.z+=(z-ball.position.z)*.15;ball.position.y=BR;
+   K.g.position.z+=((z*.3)-K.g.position.z)*.06;keeperReady(K);K.g.rotation.z=0;K.g.position.y=0;netBack.position.x=GX+ND}
+  else if(seg.k==='shoot'){const ok=pos==='MID'?res.shots[0]:res.shots[seg.i],tg=shotTarget(seg.i,ok),bx=GX-2.6-(pos==='MID'?2:0),z=shotZ[seg.i];
+   if(q<.25)kick(P,q/.25);else idle(P);
+   const s=clamp((q-.25)/.33,0,1);if(s<1)ball.position.set(lerp(bx,tg.x,s),BR+Math.sin(s*Math.PI)*.4+(tg.y-BR)*s,lerp(z,tg.z,s));
+   else if(tg.ok){ball.position.y=Math.max(BR,ball.position.y-.035);netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.25)}else{ball.position.x+=.03;ball.position.y=Math.max(BR,ball.position.y-.05)}
+   const side=tg.ok?(tg.z>0?-1:1):(tg.z>0?1:-1),ds=clamp((q-.3)/.28,0,1);dive(K,side,ds,z*.3);
+   if(s>=1&&!said[key+'r']){said[key+'r']=1;if(tg.ok){good++;pop('⚽ GOAL!','#ffc83d');onText('✅ GOAL!')}else{pop(tg.y>GH?'❌ Over the bar!':'❌ Wide!','#ff7a7a');onText(tg.y>GH?'❌ Over the bar!':'❌ Missed wide!')}}}
+  else if(seg.k==='toPass'){const px=lerp(P.g.position.x,1.6,.06),pz=lerp(P.g.position.z,0,.06);P.g.position.set(px,0,pz);face(P,.4,-1);runPose(P,t*8,.4);if(!said.tp){said.tp=1;onText('🎯 Now passing!')}ball.position.set(px+.45,BR,pz-.2);keeperReady(K)}
+  else if(seg.k==='pass'){const ok=res.passes[seg.i],[mx0,mz0]=seg.mates[seg.i],tx=ok?mx0:mx0+1.4,tz=ok?mz0:mz0*.6,bx=1.9,bz=-.2;
+   if(!said[key+'m']){said[key+'m']=1;ball.position.set(bx,BR,bz)}
+   Mt.g.position.x+=(mx0-Mt.g.position.x)*.12;Mt.g.position.z+=(mz0-Mt.g.position.z)*.12;if(q<.2)runPose(Mt,t*9,.5);else idle(Mt);
+   face(P,tx-P.g.position.x,tz-P.g.position.z);face(Mt,ball.position.x-Mt.g.position.x,ball.position.z-Mt.g.position.z);
+   if(q>.22&&q<.36)kick(P,(q-.22)/.14);else if(q>=.36)idle(P);
+   const s=clamp((q-.36)/.3,0,1);if(q>=.36&&q<.66)ball.position.set(lerp(bx,tx,ease(s)),BR,lerp(bz,tz,ease(s)));
+   if(ok){if(q>.66&&q<.75)Mt.legR.rotation.x=-.4;if(q>=.75){const s2=clamp((q-.75)/.22,0,1);if(q<.82)kick(Mt,(q-.75)/.07);else idle(Mt);ball.position.set(lerp(tx,bx,ease(s2)),BR,lerp(tz,bz,ease(s2)))}}
+   else if(q>=.66){ball.position.x+=.02;ball.position.z+=.004;Mt.g.position.x+=.01;runPose(Mt,t*9,.5)}
+   if(q>.66&&!said[key]){said[key]=1;if(ok){good++;pop('🎯 Nice pass!','#5cf29a');onText('✅ Great pass!')}else{pop('❌ Bad pass!','#ff7a7a');onText('❌ Bad pass!')}}
+   keeperReady(K)}
+  else if(seg.k==='tackle'){const ok=res.tackles[seg.i],sz=[-.6,.6,0][seg.i];if(!said[key+'s']){said[key+'s']=1;onText(`🛡️ Tackle ${seg.i+1} of 3…`);Mt.g.position.set(6,0,sz);P.g.position.set(1.2,0,0)}
+   P.g.position.z+=((Mt.g.position.z)-P.g.position.z)*.04;face(P,1,0);
+   if(q<.55){const mx=lerp(6,2.1,q/.55);Mt.g.position.set(mx,0,lerp(sz,0,q/.55));face(Mt,-1,0);runPose(Mt,t*9.5,.6);ball.position.set(mx-.45,BR,Mt.g.position.z+Math.sin(t*9.5)*.03);idle(P);P.torso.rotation.x=.25}
+   else if(ok){const s=clamp((q-.55)/.2,0,1);P.legR.rotation.x=-1.3*s;P.torso.rotation.x=-.35*s;P.g.position.x=lerp(1.2,1.5,s);
+    if(!said[key+'b'])said[key+'b']=0;ball.position.set(lerp(1.65,1.9,s)+s*1.2,BR+Math.sin(s*Math.PI)*.5,lerp(Mt.g.position.z,2.6,s));idle(Mt);Mt.armL.rotation.z=-.8;Mt.armR.rotation.z=.8;
+    if(q>.85){idle(P);P.armR.rotation.z=2.6}}
+   else{const s=clamp((q-.55)/.4,0,1);P.legR.rotation.x=-1*Math.min(1,s*3);P.torso.rotation.x=-.2;const mx=lerp(2.1,-1.6,s),mz=lerp(0,1.3,Math.sin(Math.min(1,s*1.5)*Math.PI/2));
+    Mt.g.position.set(mx,0,mz);face(Mt,-1,mz>0?.3:-.3);runPose(Mt,t*10,.6);ball.position.set(mx-.45,BR,mz)}
+   if(q>.72&&!said[key]){said[key]=1;if(ok){good++;pop('💪 Tackle!','#5cf29a');onText('✅ Great tackle!')}else{pop('😮 He got past!','#ff7a7a');onText('❌ He got past!')}}}
+  else if(seg.k==='gkIn'){keeperReady(P);if(!said.gk){said.gk=1;onText('🧤 Save the shots!')}face(Mt,1,0);idle(Mt)}
+  else if(seg.k==='gkSetup'){if(!said[key]){said[key]=1;ball.position.set(GX-2.6,BR,0);onText(`🧤 Shot ${seg.i+1} of 4…`)}keeperReady(P);P.g.rotation.z*=.7;P.g.position.y*=.7;P.g.position.z*=.9;
+   Mt.g.position.x+=((GX-3.2)-Mt.g.position.x)*.1;Mt.g.position.z+=(.15-Mt.g.position.z)*.1;face(Mt,1,0);idle(Mt);netBack.position.x=GX+ND}
+  else if(seg.k==='gkShot'){const ok=res.saves[seg.i],tz=[1.7,-1.6,.9,-2][seg.i],ty=[.6,1.6,.4,1.1][seg.i];
+   if(q<.22)kick(Mt,q/.22);else idle(Mt);const s=clamp((q-.22)/.3,0,1),side=tz>0?1:-1;
+   const reach=ok?1:.55,ds=clamp((q-.26)/.24,0,1);P.g.position.z=side*Math.abs(tz)*reach*ds*.62;P.g.rotation.z=-side*1.2*ds;P.g.position.y=Math.sin(ds*Math.PI)*.3;P.armL.rotation.z=-2.7*ds;P.armR.rotation.z=2.7*ds;
+   if(ok){if(s<1)ball.position.set(lerp(GX-2.6,GX-.5,s),lerp(BR,ty,s)+Math.sin(s*Math.PI)*.25,lerp(0,tz*.95,s));else{ball.position.x-=.02;ball.position.y=Math.max(BR,ball.position.y-.04);ball.position.z*=.99}}
+   else{if(s<1)ball.position.set(lerp(GX-2.6,GX+.7,s),lerp(BR,ty,s)+Math.sin(s*Math.PI)*.25,lerp(0,tz,s));else{ball.position.y=Math.max(BR,ball.position.y-.035);netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.25)}}
+   if(s>=1&&!said[key]){said[key]=1;if(ok){good++;pop('🧤 SAVE!','#5cf29a');onText('✅ What a save!')}else{pop('⚽ Goal…','#ff7a7a');onText('❌ He let it in.')}}}
+  else{if(!isGK)keeperReady(K);face(P,0,1);P.g.rotation.z=0;P.g.position.y=0;const happy=good>=Math.ceil(res.count*.6);
+   if(happy){P.armL.rotation.z=-2.7;P.armR.rotation.z=2.7;P.g.position.y=Math.abs(Math.sin(t*6))*.14}else{P.armL.rotation.z=-.5;P.armR.rotation.z=.5;P.headG.rotation.z=Math.sin(t*3)*.15}
    if(!said.end){said.end=1;pop(happy?'🌟 Great try-out!':'😅 Okay try-out','#ffc83d')}if(t>=total&&!said.done){said.done=1;onDone&&onDone()}}
   roll();
   [P,K,Mt].forEach(p=>p.eyes.forEach(e=>e.scale.y=(Math.sin(now/770+p.g.position.x)>.985)?.2:1));
-  // camera follows the action
-  const shooting=seg.k==='setup'||seg.k==='shoot',passing=seg.k==='toPass'||seg.k==='pass';
-  const tx=shooting?5.2:passing?3:P.g.position.x+1.2,cpx=shooting?2.4:passing?0:P.g.position.x-2.6,cpz=shooting?5.2:passing?5.5:6.2,cpy=shooting?2.6:3.2;
-  cam.position.x+=(cpx-cam.position.x)*.04;cam.position.y+=(cpy-cam.position.y)*.04;cam.position.z+=(cpz-cam.position.z)*.04;
-  cam.userData.lx=(cam.userData.lx??tx)+(tx-(cam.userData.lx??tx))*.06;cam.lookAt(cam.userData.lx,.5,passing?-1:0);
+  // camera
+  const atGoal=['setup','shoot','gkIn','gkSetup','gkShot'].includes(seg.k),passing=seg.k==='toPass'||seg.k==='pass',tack=seg.k==='tackle';
+  const tx=atGoal?GX-1.5:passing?1.8:tack?2.6:P.g.position.x+1.4,cpx=atGoal?GX-6.4:passing?-1:tack?-1.6:P.g.position.x-3.2,cpz=atGoal?6.4:passing?7.4:6.6,cpy=atGoal?3.2:3.8;
+  cam.position.x+=(cpx-cam.position.x)*.035;cam.position.y+=(cpy-cam.position.y)*.035;cam.position.z+=(cpz-cam.position.z)*.035;
+  cam.userData.lx+=(tx-cam.userData.lx)*.05;cam.lookAt(cam.userData.lx,.7,passing?-.6:0);
   r.render(sc,cam)}
- cam.position.set(startX-2.6,3.2,6.2);cam.userData.lx=startX+1.2;
+ if(isGK){cam.position.set(GX-6.4,3.2,6.4);cam.userData.lx=GX-1.5}else{cam.position.set(startX-3.2,3.8,6.6);cam.userData.lx=startX+1.4}
  raf=requestAnimationFrame(loop);
  return{dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove();fx.remove()}}}
 
