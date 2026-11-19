@@ -150,7 +150,7 @@ function clamp(v,a,b){return v<a?a:v>b?b:v;}
 const UNITS={
   miner:  {name:'Miner',         cost:25, cool:60,  hp:40,  dmg:0, range:0,  rate:60, speed:1.3, w:20,h:44},
   sword:  {name:'Swordy',        cost:15, cool:50,  hp:70,  dmg:11,range:14, rate:38, speed:1.05,w:20,h:44},
-  thrower:{name:'Pencil Thrower',cost:30, cool:110, hp:45,  dmg:9, range:170,rate:60, speed:0.8, w:20,h:44,proj:'pencil'},
+  thrower:{name:'Archer',cost:30, cool:110, hp:45,  dmg:9, range:170,rate:60, speed:0.8, w:20,h:44,proj:'arrow'},
   bubble: {name:'Bubble Guard',  cost:45, cool:200, hp:300, dmg:5, range:14, rate:50, speed:0.55,w:48,h:56},
   titan:  {name:'Giant',         cost:120,cool:420, hp:380, dmg:24,range:16, rate:72, speed:0.5, w:40,h:76,splash:55},
 };
@@ -209,7 +209,7 @@ for(const k in VS_MIRROR){const m=UNITS[VS_MIRROR[k]];VS2[k].cost=m.cost;VS2[k].
 function vsDef(k){const m=UNITS[VS_MIRROR[k]],e=ENEMIES[k];return Object.assign({},m,{name:e.name,fly:e.fly,proj:m.proj?(e.proj||m.proj):undefined,reward:0});}
 const VS_MUL=1,VS_RATE=4;
 function zombieStage(k){const z=ZMODES[k];return Object.assign({n:0,short:z.name,big:'brute',small:'runner',mid:'zombie',angry:'The graveyard is getting ANGRY!'},z);}
-function startMode(key){window.playerNumber&&playerNumber('sa');finishMode.paid=false;G=null;
+function startMode(key){finishMode.paid=false;G=null;
   if(key==='night')startBattle({n:0,name:'Survive Till Sunrise',short:'Survive Till Sunrise',baseHp:99999,int:220,mix:{zombie:8,runner:2},beetle:[900,900],start:110,mul:1.1,pmul:1.3,bmul:1.1,boss:null,towerHp:1500,big:'brute',small:'runner',mid:'zombie'},'night',key);
   else if(key[0]==='z'){startBattle(zombieStage(key),'zombie',key);G.theme=ZMODES[key].theme;}
   else startBattle({n:0,name:key==='vs2'?'VS: Star Army vs. Bug Army':'VS: You vs. the Computer',short:'VS',baseHp:3000,int:1e9,mix:{bug:1},beetle:[1e9,1e9],start:100,mul:1,pmul:1,bmul:1,boss:null,towerHp:3000},'vs',key);
@@ -231,12 +231,13 @@ function startBattle(s,mode,key){const vs=mode==='vs';
 }
 
 function makeUnit(team,type,def,x,mul){mul=mul||1;return {id:NID++,team,type,def,x,y:GROUND+((NID*37)%21)-10,hp:def.hp*mul,max:def.hp*mul,dmg:def.dmg*(team<0?1+(mul-1)*0.6:mul),reward:Math.max(1,Math.round(def.reward?def.reward*0.7*(0.6+0.4*mul):0)),spawnT:200,cd:20,atk:0,flash:0,walk:Math.random()*6,dead:false};}
-function spawnEnemy(type,dx){const def=ENEMIES[type];const u=makeUnit(-1,type,def,G.ebase.x-G.ebase.w/2-def.w/2+(dx||0),def.boss?G.s.bmul:G.s.mul);G.units.push(u);return u;}
+function hidePower(){return (G.mode==='story'||G.mode==='zombie')?Math.min(3,(G.defendT||0)/defendFull()):0;}
+function spawnEnemy(type,dx){const def=ENEMIES[type];const u=makeUnit(-1,type,def,G.ebase.x-G.ebase.w/2-def.w/2+(dx||0),(def.boss?G.s.bmul:G.s.mul)*(1+0.3*Math.min(2,hidePower())));G.units.push(u);return u;}
 function army(){return G.units.filter(u=>u.team>0&&!u.dead).length;}
 
 /* ---------- actions ---------- */
 const UNLOCK_AT={miner:0,sword:0,mine:0,bolt:1,thrower:1,bubble:2,wallcannon:3,titan:5};   // stages you must beat first
-const CARD_NAMES={miner:'Miner',sword:'Swordy',thrower:'Pencil Thrower',bubble:'Bubble Guard',wallcannon:'Wall Cannon',titan:'Giant',bolt:'Lightning',mine:'Star Mine'};
+const CARD_NAMES={miner:'Miner',sword:'Swordy',thrower:'Archer',bubble:'Bubble Guard',wallcannon:'Wall Cannon',titan:'Giant',bolt:'Lightning',mine:'Star Mine'};
 function beaten(){return save.unlocked-1;}
 function lockedStory(k){return beaten()<(UNLOCK_AT[k]||0);}
 function locked(k){if(G&&G.mode!=='story')return false;return lockedStory(k);}
@@ -389,12 +390,19 @@ function baseDefense(b){if(b.flash>0)b.flash--;if(--b.cd>0)return;const front=b.
 function updateProj(){for(const p of G.proj){if(p.tg.dead){p.life=0;continue;}
   const tx=p.tg.x,ty=aimY(p.tg),dx=tx-p.x,dy=ty-p.y,dist=Math.hypot(dx,dy);if(!p.d0)p.d0=dist||1;
   if(dist<p.sp+6){p.life=0;if(p.splash)splash(tx,p.team,p.splash,p.dmg);else{dmg(p.tg,p.dmg);burst(tx,ty,4);}continue;}
-  p.x+=dx/dist*p.sp;p.y+=dy/dist*p.sp;p.prog=clamp(1-dist/p.d0,0,1);}
+  p.ang=Math.atan2(dy,dx);p.x+=dx/dist*p.sp;p.y+=dy/dist*p.sp;p.prog=clamp(1-dist/p.d0,0,1);}
   G.proj=G.proj.filter(p=>p.life>0);}
 function pickMix(mix){let tot=0;for(const k in mix)tot+=mix[k];let r=Math.random()*tot;for(const k in mix){r-=mix[k];if(r<=0)return k;}return 'bug';}
+function defendFull(){return 60*(G.mode==='story'?80-Math.min(30,stageIdx*3):50);}   // seconds of hiding on Defend until the bugs are at full courage (longer on the first stages)
 function spawner(){const s=G.s;
-  if(--G.spawnT<=0){spawnEnemy(pickMix(s.mix),0);const k=Math.max(0.55,1-G.time/(60*180));G.spawnT=s.int*k*(0.7+Math.random()*0.6);}
-  if(--G.beetleT<=0){spawnEnemy(s.big||'beetle',0);G.beetleT=s.beetle[1];}
+  /* Defend is safe, so the longer you only defend, the braver the bugs get (more, faster, tougher). Attacking cools them down. */
+  if(G.cmd==='defend')G.defendT=(G.defendT||0)+1;else G.defendT=Math.max(0,(G.defendT||0)-4);
+  const hp=hidePower();
+  if(hp>0.45&&!G.hideWarn){G.hideWarn=true;G.bannerText='The bugs are getting BRAVE! Hiding too long makes them swarm!';G.banner=130;}
+  if(G.defendT===0)G.hideWarn=false;
+  if(--G.spawnT<=0){spawnEnemy(pickMix(s.mix),0);const k=Math.max(0.55,1-G.time/(60*180));G.spawnT=s.int*k*(0.7+Math.random()*0.6)/(1+0.9*hp);}
+  if(--G.beetleT<=0){spawnEnemy(s.big||'beetle',0);G.beetleT=s.beetle[1]/(1+0.6*hp);}
+  G.swarmT=(G.swarmT??600)-1;if(hp>=1&&G.swarmT<=0){G.swarmT=600;const n=2+Math.min(4,(G.mode==='story'?stageIdx/8:2)|0);for(let i=0;i<n;i++)spawnEnemy(pickMix(s.mix),i*30);}
   if(!G.panic&&G.ebase.hp<G.ebase.max*0.7){G.panic=true;for(let i=0;i<3;i++)spawnEnemy(s.small||'bug',i*36);G.bannerText=G.mode==='zombie'?'The zombies are angry!':'The bugs are angry!';G.banner=120;}
   if(s.boss&&!G.bossSpawned&&(G.mode==='zombie'?G.ebase.hp<G.ebase.max*(s.bossAt||0.6):G.time>2700)){G.bossSpawned=true;G.boss=spawnEnemy(s.boss,0);if(s.boss2)spawnEnemy(s.boss2,70);G.bannerText='BOSS: '+G.boss.def.name+'!';G.banner=170;sfx('boom');G.flash=8;}
   if(!G.kingDone&&G.ebase.hp<G.ebase.max*0.5){G.kingDone=true;for(let i=0;i<Math.min(3,1+(G.mode==='story'?stageIdx/6|0:1));i++)spawnEnemy(s.big||'beetle',i*50);spawnEnemy(s.mid||'err',20);G.bannerText=s.angry||'The Crack is getting ANGRY!';G.banner=150;sfx('boom');}}
@@ -471,7 +479,7 @@ function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv'].forEach(id
 function showMsg(title,html,buttons){$('msgTitle').textContent=title;$('msgText').innerHTML=html;const box=$('msgBtns');box.innerHTML='';
   buttons.forEach(([label,fn])=>{const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=()=>{hideAll();fn();};box.appendChild(b);});
   hideAll();$('msgOv').classList.add('on');}
-function go(i){window.playerNumber&&playerNumber('sa');finish.paid=false;startStage(i);state='play';}
+function go(i){finish.paid=false;startStage(i);state='play';}
 function showSelect(fromGame){prevState=fromGame?state:null;if(fromGame&&state==='play')state='paused';
   const g=$('selGrid');g.innerHTML='';
   STAGES.forEach((st,i)=>{const b=document.createElement('button');b.className='sbtn'+(st.boss?' boss':'')+(st.n<save.unlocked?' done':'');b.disabled=st.n>save.unlocked;
@@ -576,6 +584,11 @@ function sfx(k){if(muted||!AC)return;if(k==='hit'||k==='shoot'){if(t-lastHit<4)r
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent='sound '+(muted?'off':'on');unlockAudio();};
 
 /* ---------- drawing: characters ---------- */
+function drawBow(x,y,f,sc,pull,col){ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;
+  const bx=17,by=-21;ctx.beginPath();ctx.moveTo(bx-4,by-17);ctx.quadraticCurveTo(bx+9,by,bx-4,by+17);ctx.stroke();
+  ctx.lineWidth=1.2;const sx=bx-4-pull*9;ctx.beginPath();ctx.moveTo(bx-4,by-17);ctx.lineTo(sx,by);ctx.lineTo(bx-4,by+17);ctx.stroke();
+  if(pull>0){ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(bx+12,by);ctx.stroke();ctx.beginPath();ctx.moveTo(bx+12,by);ctx.lineTo(bx+7,by-3);ctx.moveTo(bx+12,by);ctx.lineTo(bx+7,by+3);ctx.stroke();}
+  ctx.restore();}
 function drawStick(x,y,f,sc,run,swAng,swLen,col,arc){
   ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;
   cpath(0,-37,7,0.6);ctx.fillStyle=PAPER;ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.fillRect(2,-39,2.4,2.4);
@@ -698,7 +711,7 @@ function drawUnit(u){seed(u.id);const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:
     case 'giant':drawZombie(u.x,u.y,f,2.7,col,u.walk,u.atk,'giant');break;
     case 'zking':drawZombie(u.x,u.y,f,3.0,col,u.walk,u.atk,'giant');ctx.strokeStyle='rgba(192,57,43,.7)';ctx.lineWidth=3;sline(u.x+8,u.y-100,u.x+40,u.y-20,1);sline(u.x+14,u.y-100,u.x+52,u.y-30,1);break;
     case 'sword':drawStick(u.x,u.y,f,1,u.walk,u.atk>0?-1.9+k*2.7:-1.0,26,col,u.atk>3);break;
-    case 'thrower':drawStick(u.x,u.y,f,1,u.walk,u.atk>0?-2.4+k*2.4:-1.6,14,col,false);break;
+    case 'thrower':drawStick(u.x,u.y,f,1,u.walk,0,0,col,false);drawBow(u.x,u.y,f,1,u.atk>0?Math.max(0,1-k*1.4):0.35,col);break;
     case 'bubble':ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1.8;cpath(u.x,u.y-27,28,1.4);ctx.fillStyle='rgba(255,255,255,.5)';ctx.fill();ctx.stroke();
       drawStick(u.x,u.y-4,f,0.78,u.walk,-1.0,18,col,false);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.fillStyle='#fff';
       ctx.beginPath();ctx.ellipse(u.x+f*16,u.y-26,6,14,0,0,Math.PI*2);ctx.fill();ctx.stroke();starPath(u.x+f*16,u.y-26,4);ctx.fillStyle=col;ctx.fill();break;
@@ -799,7 +812,7 @@ function drawCard(i,sl){const k=sl.k,x=sl.x,y=CARD_Y,CW=sl.w,p2=sl.team<0,pr=G.p
   if(p2){if(k==='bug')drawBugShape(ix,iy-6,-1,1.3,INK,1,false);else if(k==='err')drawErrShape(ix,iy-30,18,INK,'Err');else if(k==='blaster')drawBlasterShape(ix,iy-4,-1,INK);else if(k==='beetle')drawBugShape(ix+6,iy-4,-1,1.6,INK,2,true);else{ctx.strokeStyle=RED;ctx.lineWidth=4;zigzag(ix+10,y+12,ix-8,iy,5,9);}}
   else if(k==='miner'){drawStick(ix,iy,1,1,0,-1.3,22,INK,false);ctx.lineWidth=3;const tx=ix+10+Math.cos(-1.3)*22,ty=iy-21+Math.sin(-1.3)*22;sline(tx-7,ty+2,tx+7,ty-1,0.3);ctx.lineWidth=2;ctx.beginPath();ctx.arc(ix+1,iy-41,8,Math.PI,0);ctx.stroke();}
   else if(k==='sword')drawStick(ix,iy,1,1,0,-1.0,26,INK,false);
-  else if(k==='thrower')drawStick(ix,iy,1,1,0,-1.6,14,INK,false);
+  else if(k==='thrower'){drawStick(ix,iy,1,1,0,0,0,INK,false);drawBow(ix,iy,1,1,0.8,INK);}
   else if(k==='bubble'){ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1.6;cpath(ix,iy-22,24,1);ctx.stroke();drawStick(ix,iy-2,1,0.66,0,-1,14,INK,false);}
   else if(k==='wallcannon'){ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.fillStyle='#fff';srect(ix-40,iy-50,22,50,1);for(let yy=iy-40;yy<iy;yy+=12)sline(ix-40,yy,ix-18,yy,0.5);
     ctx.save();ctx.translate(ix-18,iy-28);ctx.rotate(-0.4);ctx.fillRect(0,-7,34,14);srect(0,-7,34,14,0.7);ctx.restore();cpath(ix-18,iy-28,10,0.6);ctx.fill();ctx.stroke();}
@@ -848,7 +861,8 @@ function draw(){const sc=cv.width/W;ctx.setTransform(sc,0,0,cv.height/H,0,0);ctx
   drawTower(G.pbase);if(G.ebase.kind==='grave')drawGrave(G.ebase);else drawCrack(G.ebase);for(const o of G.ores)drawOre(o);for(const c of G.cannons)drawWallCannon(c);hpBar(G.pbase,'STAR TOWER');if(G.mode!=='night')hpBar(G.ebase,G.ebase.kind==='grave'?'GRAVEYARD':'THE CRACK');
   const list=G.units.slice().sort((a,b)=>a.y-b.y);for(const u of list)drawUnit(u);
   for(const p of G.proj){seed(9);ctx.strokeStyle=INK;ctx.lineWidth=2;
-    if(p.kind==='pencil'){const a=t*0.5;sline(p.x-Math.cos(a)*7,p.y-Math.sin(a)*7,p.x+Math.cos(a)*7,p.y+Math.sin(a)*7,0.3);}
+    if(p.kind==='arrow'){const a=p.ang||0,c=Math.cos(a),n=Math.sin(a);ctx.lineWidth=2;sline(p.x-c*11,p.y-n*11,p.x+c*9,p.y+n*9,0.2);ctx.beginPath();ctx.moveTo(p.x+c*13,p.y+n*13);ctx.lineTo(p.x+c*7-n*3.5,p.y+n*7+c*3.5);ctx.lineTo(p.x+c*7+n*3.5,p.y+n*7-c*3.5);ctx.closePath();ctx.fillStyle=INK;ctx.fill();
+      sline(p.x-c*11,p.y-n*11,p.x-c*15-n*4,p.y-n*15+c*4,0.2);sline(p.x-c*11,p.y-n*11,p.x-c*15+n*4,p.y-n*15-c*4,0.2);}
     else if(p.kind==='ball'){const yy=p.y-Math.sin(p.prog*Math.PI)*60;cpath(p.x,yy,8,0.6);ctx.fillStyle='#333';ctx.fill();ctx.stroke();}
     else if(p.kind==='star'){starPath(p.x,p.y,8);ctx.fillStyle='#1d1d1d';ctx.fill();}
     else if(p.kind==='bin'){cpath(p.x,p.y,7,0.5);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();text('1',p.x,p.y,8,INK);}
@@ -1077,15 +1091,6 @@ function frame(now){acc+=Math.min(100,now-last);last=now;boil=Math.floor(now/140
   draw();musicTick();requestAnimationFrame(frame);}
 startStage(0);requestAnimationFrame(frame);
 try{document.fonts.load('bold 20px Stickman').then(()=>{bgKey='';});}catch(e){}
-</script>
-<script>
-/* "You're player #N today!": when you start playing, the website adds one to today's count for this game and tells you
-   your number. Only that one anonymous number per game per day is kept (it starts over at midnight). Not in app builds. */
-function playerNumber(g){if(playerNumber.done||!/^https?:$/.test(location.protocol)||(location.hostname==='localhost'&&!location.port))return;playerNumber.done=1;
-  fetch('/api/player',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({g})}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.n>0)showPlayerNumber(d.n);}).catch(()=>{});}
-function showPlayerNumber(n){const el=document.createElement('div');el.id='playerNo';el.textContent=(n===1?'🥇 You\'re player #1 today! The very first!':n<=10?'🎉 You\'re player #'+n+' today! One of the first!':'🎉 You\'re player #'+n+' today!');
-  el.style.cssText='position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:99999;background:#fff8d6;color:#5a3b00;border:3px solid #f1c40f;border-radius:14px;padding:8px 16px;font-family:inherit;font-weight:bold;font-size:18px;max-width:92vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;transition:opacity .6s';
-  document.body.appendChild(el);setTimeout(()=>{el.style.opacity='0';},4500);setTimeout(()=>el.remove(),5200);}
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:'){
