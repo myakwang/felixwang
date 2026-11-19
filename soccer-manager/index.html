@@ -1082,7 +1082,7 @@ function make3DMatch(host,P){const {T,r,sc,cam}=sceneBase(host);const L=34,W=22,
    const dx=(p.x-pp.lx)*L,dz=(p.y-pp.ly)*W,sp=Math.hypot(dx,dz);pp.lx=p.x;pp.ly=p.y;
    if(sp>.004){const want=Math.atan2(dx,dz);let d=want-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*.25}
    else{const want=Math.atan2(X(b.x)-wx,Z(b.y)-wz);let d=want-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*.08}
-   const run=clamp(sp*9,0,1);pp.ph+=sp*7;const a=Math.sin(pp.ph)*.8*run;pp.legL.rotation.x=a;pp.legR.rotation.x=-a;pp.armL.rotation.x=-a*.9;pp.armR.rotation.x=a*.9;pp.torso.rotation.x=.12*run;g.position.y=Math.abs(Math.sin(pp.ph))*.05*run;
+   const run=clamp(sp*6,0,1);pp.ph+=sp*2.6;const a=Math.sin(pp.ph)*.75*run;pp.legL.rotation.x=a;pp.legR.rotation.x=-a;pp.armL.rotation.x=-a*.9;pp.armR.rotation.x=a*.9;pp.torso.rotation.x=.12*run;g.position.y=Math.abs(Math.sin(pp.ph))*.05*run;
    // kick when the ball just left this player
    if(b.fly&&b.fly.k<9&&P.last===p){pp.legR.rotation.x=-1.2+b.fly.k*.1}
    // keeper dive
