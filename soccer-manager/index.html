@@ -950,6 +950,12 @@ function makeTryout(host,look,mateLook,res,onText,onDone,pos){const {T,r,sc,cam}
  if(isGK){cam.position.set(GX-6.4,3.2,6.4);cam.userData.lx=GX-1.5}else{cam.position.set(startX-3.2,3.8,6.6);cam.userData.lx=startX+1.4}
  raf=requestAnimationFrame(loop);
  return{dispose(){alive=false;cancelAnimationFrame(raf);try{r.dispose()}catch(e){}r.domElement.remove();fx.remove()}}}
+// a water bottle that sits in a player's right hand (shown only at water breaks)
+function handBottle(T,p){const g=new T.Group(),m=new T.MeshStandardMaterial({color:0x3fa9f5,roughness:.25,transparent:true,opacity:.85});
+ const body=new T.Mesh(new T.CylinderGeometry(.065,.065,.3,14),m);g.add(body);const cap=new T.Mesh(new T.CylinderGeometry(.03,.035,.06,10),new T.MeshStandardMaterial({color:0xffffff}));cap.position.y=.14;g.add(cap);
+ const lab=new T.Mesh(new T.CylinderGeometry(.052,.052,.08,14),new T.MeshStandardMaterial({color:0x1e5fa8}));g.add(lab);
+ g.position.set(0,-.6,.07);g.visible=false;p.armR.add(g);return g}
+function drinkPose(p,dr){p.armR.rotation.x=-2.5*dr;p.armR.rotation.z=.15+.35*dr;p.headG.rotation.x=-.35*dr;if(p.bottle){p.bottle.visible=true;p.bottle.rotation.x=-.25-1.1*dr;p.bottle.rotation.z=.4*dr}}
 // ---- team training animation: a drill for each skill you trained ----
 function makeTeamTraining(host,plan,looks,onText,onDone,seed){seed=seed|0;const {T,r,sc,cam}=sceneBase(host);
  const std=(c,ro=.85)=>new T.MeshStandardMaterial({color:new T.Color(c),roughness:ro});
@@ -968,7 +974,7 @@ function makeTeamTraining(host,plan,looks,onText,onDone,seed){seed=seed|0;const 
  const stand=new T.Group();for(let i=0;i<3;i++){const st=new T.Mesh(new T.BoxGeometry(26,.5,1),std(i%2?'#3b5b8c':'#2c4870'));st.position.set(1,.25+i*.5,-11-i*.9);stand.add(st)}sc.add(stand);
  const cones=[];for(let i=0;i<6;i++){const cn=new T.Mesh(new T.ConeGeometry(.15,.36,16),std('#ff7a1a',.5));cn.castShadow=true;sc.add(cn);cones.push(cn)}
  const bottles=[];for(let i=0;i<4;i++){const b=new T.Mesh(new T.CylinderGeometry(.06,.06,.25,12),std('#3498db',.3));b.castShadow=true;sc.add(b);bottles.push(b)}
- const ppl=looks.map(l=>{const p=buildPerson(T,l);sc.add(p.g);return p}),K=buildPerson(T,{shirt:'#f1c40f',skin:pick(SKINS),hair:pick(HAIRS),hs:1,num:1});sc.add(K.g);
+ const ppl=looks.map(l=>{const p=buildPerson(T,l);sc.add(p.g);p.bottle=handBottle(T,p);return p}),K=buildPerson(T,{shirt:'#f1c40f',skin:pick(SKINS),hair:pick(HAIRS),hs:1,num:1});sc.add(K.g);
  const BR=.14,ball=makeBall(T,BR);sc.add(ball);
  const fade=document.createElement('div');fade.className='trfade';host.appendChild(fade);
  const face=(p,dx,dz)=>{p.g.rotation.y=Math.atan2(dx,dz)};
@@ -977,64 +983,80 @@ function makeTeamTraining(host,plan,looks,onText,onDone,seed){seed=seed|0;const 
  const kick=(p,q)=>{if(q<.6)p.legR.rotation.x=.9*q/.6;else p.legR.rotation.x=.9-2.2*(q-.6)/.4};
  const lerp=(a,b,q)=>a+(b-a)*q,ease=q=>q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2;
  let lastBall=new T.Vector3();const roll=()=>{const d=ball.position.clone().sub(lastBall);d.y=0;const L=d.length();if(L>1e-4&&L<1){ball.rotateOnWorldAxis(new T.Vector3(d.z,0,-d.x).normalize(),L/BR)}lastBall.copy(ball.position)};
- const N=ppl.length;
+ const N=ppl.length;let RR={};const coin=p=>Math.random()<p,side=()=>Math.random()<.5?-1:1;
+ const seqOf=(n,len)=>{const a=[rnd(0,n-1)];while(a.length<len){let x;do x=rnd(0,n-1);while(x===a[a.length-1]);a.push(x)}return a};
  const DR={
-  sho:{t:'⚽ Shooting practice',d:5.4,cam:[GX-7,3.4,6.2,GX-1.5,.8,0],init(){ppl.forEach((p,i)=>{p.g.position.set(GX-5.2-(i%3)*.7,0,-1.4+(i%3)*1.4+(i>2?.35:0));face(p,1,0)});K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);ball.position.set(GX-2.6,BR,0)},
-   up(q,t){const k=Math.min(2,Math.floor(q*3)),s=(q*3)-k,p=ppl[k],ok=k!==1,tz=[-1.8,1.2,1.6][k],ty=[.7,1.6,1.1][k];
-    ppl.forEach((o,i)=>{if(o!==p){reset(o);face(o,1,0)}});
-    if(s<.35){const st=s/.35;p.g.position.x=lerp(GX-5.2-(k%3)*.7,GX-3.2,ease(st));p.g.position.z=lerp(p.g.position.z,-.2,.1);runPose(p,t*9,.5);ball.position.set(GX-2.6,BR,0);K.g.rotation.z*=.6;K.g.position.y*=.6;K.g.position.z*=.8;netBack.position.x=GX+ND}
-    else if(s<.5){kick(p,(s-.35)/.15)}else{reset(p);const b=clamp((s-.5)/.3,0,1);
-     ball.position.set(lerp(GX-2.6,ok?GX+.7:GX-.55,b),lerp(BR,ty,b)+Math.sin(b*Math.PI)*.3,lerp(0,ok?tz:tz*.85,b));
-     const side=tz>0?1:-1,ds=clamp((s-.52)/.25,0,1),reach=ok?.5:1;K.g.position.z=side*Math.abs(tz)*reach*ds*.7;K.g.rotation.z=-side*1.2*ds;K.g.position.y=Math.sin(ds*Math.PI)*.3;K.armL.rotation.z=-2.7*ds;K.armR.rotation.z=2.7*ds;
-     if(b>=1&&ok)netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.2)}}},
-  pas:{t:'🎯 Passing circle',d:5.4,cam:[-1,5.5,7.5,-1,0,0],init(){ppl.forEach((p,i)=>{const a=i/N*Math.PI*2;p.g.position.set(-1+Math.cos(a)*2.6,0,Math.sin(a)*2.6);face(p,-Math.cos(a),-Math.sin(a))});K.g.visible=false;ball.position.copy(ppl[0].g.position).setY(BR)},
-   up(q,t){const step=q*N*1.2,k=Math.floor(step)%N,s=step-Math.floor(step),a=ppl[k],b=ppl[(k+2)%N];ppl.forEach(o=>{if(o!==a)reset(o);face(o,ball.position.x-o.g.position.x,ball.position.z-o.g.position.z)});
+  sho:{t:'⚽ Shooting practice',d:5.7,cam:[GX-7.5,3.6,6.8,GX-2.8,.8,-.6],init(){const slot=j=>[GX-5.4-j*.85,-1.3];const order=shuffle([...Array(N).keys()]);
+    RR={sh:order.slice(0,3),sp:order.slice(3),ok:[0,1,2].map(()=>coin(.6)),tz:[0,1,2].map(()=>side()*(1.1+Math.random()*.9)),ty:[0,1,2].map(()=>.45+Math.random()*1.4),miss:[0,1,2].map(()=>coin(.5)?'save':'wide')};
+    RR.sh.forEach((pi,j)=>{const p=ppl[pi];reset(p);const [a,b]=slot(j);p.g.position.set(a,0,b);face(p,1,0)});RR.sp.forEach((pi,i)=>{const p=ppl[pi];reset(p);p.g.position.set(GX-6+i*1.1,0,2.8);face(p,0,-1)});
+    K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);ball.position.set(GX-2.6,BR,0)},
+   up(q,t){const slot=j=>({x:GX-5.4-j*.85,z:-1.3}),spot={x:GX-3.2,z:-.15},k=Math.min(2,Math.floor(q*3)),s=q*3-k,ok=RR.ok[k],tz=RR.tz[k],ty=RR.ty[k],wide=!ok&&RR.miss[k]==='wide';
+    const order=[0,1,2].map(j=>RR.sh[(k+j)%3]);// order[0] = shooter now, then the queue
+    const shooter=ppl[order[0]];
+    // the queue moves up one place while the shooter is busy
+    [order[1],order[2]].forEach((pi,j)=>{const p=ppl[pi],from=slot(j+1),to=slot(j),g=ease(clamp((s-.15)/.35,0,1));p.g.position.x=lerp(from.x,to.x,g);p.g.position.z=to.z;face(p,1,0);if(g>0&&g<1)runPose(p,t*8,.35);else reset(p)});
+    // shooter: front of line -> spot -> kick -> jog around the side -> back of the line
+    const back=slot(2),p=shooter;
+    if(s<.28){const g=ease(s/.28);p.g.position.x=lerp(slot(0).x,spot.x,g);p.g.position.z=lerp(slot(0).z,spot.z,g);face(p,1,.2);runPose(p,t*8,.5);ball.position.set(GX-2.6,BR,0);K.g.rotation.z*=.6;K.g.position.y*=.6;K.g.position.z*=.8;K.armL.rotation.z=-.7;K.armR.rotation.z=.7;netBack.position.x=GX+ND}
+    else if(s<.42){kick(p,(s-.28)/.14)}
+    else{reset(p);const b=clamp((s-.42)/.3,0,1);
+     ball.position.set(lerp(GX-2.6,ok||wide?GX+.7:GX-.55,b),lerp(BR,ty,b)+Math.sin(b*Math.PI)*.3,lerp(0,ok?tz:wide?Math.sign(tz)*(GW+.8):tz*.85,b));
+     const side=tz>0?1:-1,ds=clamp((s-.45)/.25,0,1),reach=ok||wide?.5:1;K.g.position.z=side*Math.abs(tz)*reach*ds*.7;K.g.rotation.z=-side*1.2*ds;K.g.position.y=Math.sin(ds*Math.PI)*.3;K.armL.rotation.z=-2.7*ds;K.armR.rotation.z=2.7*ds;
+     if(b>=1&&ok)netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.2);
+     // jog back along a lane next to the line (never through anyone)
+     const w=clamp((s-.55)/.42,0,1),lane=-2.5,pts=[[spot.x,spot.z],[spot.x,lane],[back.x,lane],[back.x,back.z]];
+     const seg=Math.min(2,Math.floor(w*3)),u=w*3-seg,[ax,az]=pts[seg],[bx,bz]=pts[seg+1];if(w>0){p.g.position.x=lerp(ax,bx,u);p.g.position.z=lerp(az,bz,u);face(p,bx-ax||1e-3,bz-az);if(w<1)runPose(p,t*9,.55);else{reset(p);face(p,1,0)}}}
+    RR.sp.forEach(pi=>{const p=ppl[pi];reset(p);face(p,0,-1);if(s>.7&&ok){p.armL.rotation.z=-2.5;p.armR.rotation.z=2.5}})}},
+  pas:{t:'🎯 Passing circle',d:5.4,cam:[-1,5.5,7.5,-1,0,0],init(){RR={seq:seqOf(N,12)};ppl.forEach((p,i)=>{const a=i/N*Math.PI*2;p.g.position.set(-1+Math.cos(a)*2.6,0,Math.sin(a)*2.6);face(p,-Math.cos(a),-Math.sin(a))});K.g.visible=false;ball.position.copy(ppl[0].g.position).setY(BR)},
+   up(q,t){const step=q*N*1.2,k=Math.floor(step),s=step-k,a=ppl[RR.seq[k]],b=ppl[RR.seq[k+1]];ppl.forEach(o=>{if(o!==a)reset(o);face(o,ball.position.x-o.g.position.x,ball.position.z-o.g.position.z)});
     if(s<.25)kick(a,s/.25);else reset(a);const m=clamp((s-.25)/.6,0,1);ball.position.set(lerp(a.g.position.x,b.g.position.x,ease(m)),BR,lerp(a.g.position.z,b.g.position.z,ease(m)))}},
-  def:{t:'🛡️ Defending: 1 vs 1',d:5.4,cam:[-1,4,7.2,-1,0,0],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(i<2?(i?-3:3):-1+(i-4)*1.2,0,i<2?0:-3.2);face(p,i<2?(i?1:-1):0,i<2?0:1)});ball.position.set(2.6,BR,0)},
+  def:{t:'🛡️ Defending: 1 vs 1',d:5.4,cam:[-1,4,7.2,-1,0,0],init(){RR={win:[coin(.55),coin(.55)]};K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(i<2?(i?-3:3):-1+(i-4)*1.2,0,i<2?0:-3.2);face(p,i<2?(i?1:-1):0,i<2?0:1)});ball.position.set(2.6,BR,0)},
    up(q,t){const a=ppl[0],d=ppl[1],k=q<.5?0:1,s=(q%.5)/.5;ppl.slice(2).forEach(o=>{reset(o);face(o,0,1);o.armL.rotation.z=-.3*Math.sin(t*3)})
     if(s<.55){a.g.position.x=lerp(3,-.6,s/.55);a.g.position.z=0;face(a,-1,0);runPose(a,t*9.5,.6);ball.position.set(a.g.position.x-.45,BR,0);reset(d);d.g.position.set(-2.2,0,0);face(d,1,0);d.torso.rotation.x=.25}
-    else if(k===0){const w=clamp((s-.55)/.25,0,1);d.legR.rotation.x=-1.3*w;d.torso.rotation.x=-.35*w;d.g.position.x=lerp(-2.2,-1.7,w);ball.position.set(lerp(-1.05,-.2,w),BR+Math.sin(w*Math.PI)*.5,lerp(0,2,w));reset(a)}
+    else if(RR.win[k]){const w=clamp((s-.55)/.25,0,1);d.legR.rotation.x=-1.3*w;d.torso.rotation.x=-.35*w;d.g.position.x=lerp(-2.2,-1.7,w);ball.position.set(lerp(-1.05,-.2,w),BR+Math.sin(w*Math.PI)*.5,lerp(0,2,w));reset(a)}
     else{const w=clamp((s-.55)/.4,0,1);d.legR.rotation.x=-.9*Math.min(1,w*3);const mx=lerp(-.6,-4,w),mz=Math.sin(Math.min(1,w*1.6)*Math.PI/2)*1.3;a.g.position.set(mx,0,mz);face(a,-1,.3);runPose(a,t*10,.6);ball.position.set(mx-.45,BR,mz)}}},
-  spd:{t:'🚀 Sprint races',d:4.6,cam:[-1,9.5,8.5,-1,0,.3],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-5.5,0,-2.5+i*1);face(p,1,0)});ball.position.set(9,BR,5);cones.forEach((c2,i)=>c2.position.set(3.5,.18,-2.5+i))},
-   up(q,t){ppl.forEach((p,i)=>{const sp=[1,.92,1.05,.88,.97,1.02][i%6],g=clamp(q*1.25*sp,0,1);if(g<1){p.g.position.x=lerp(-5.5,3.5,ease(g));runPose(p,t*12+i,.85)}else{reset(p);face(p,0,1);if(sp>=1){p.armL.rotation.z=-2.6;p.armR.rotation.z=2.6}}})}},
-  sta:{t:'🔋 Stamina laps',d:5,cam:[-1,6,8.5,-1,0,0],init(){K.g.visible=false;cones.forEach((c2,i)=>{const a=i/6*Math.PI*2;c2.position.set(-1+Math.cos(a)*3.4,.18,Math.sin(a)*3.4)});ball.position.set(9,BR,5)},
-   up(q,t){ppl.forEach((p,i)=>{const a=q*Math.PI*2*1.3+i/N*Math.PI*2;p.g.position.set(-1+Math.cos(a)*3,0,Math.sin(a)*3);face(p,-Math.sin(a),Math.cos(a));runPose(p,t*8+i,.5)})}},
+  spd:{t:'🚀 Sprint races',d:4.6,pre(){RR={sp:ppl.map(()=>.86+Math.random()*.22)}},cam:[-1,9.5,8.5,-1,0,.3],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-5.5,0,-2.5+i*1);face(p,1,0)});ball.position.set(9,BR,5);cones.forEach((c2,i)=>c2.position.set(3.5,.18,-2.5+i))},
+   up(q,t){const best=Math.max(...RR.sp);ppl.forEach((p,i)=>{const sp=RR.sp[i],g=clamp(q*1.25*sp/best,0,1);if(g<1){p.g.position.x=lerp(-5.5,3.5,ease(g));runPose(p,t*12+i,.85)}else{reset(p);face(p,0,1);if(sp===best){p.armL.rotation.z=-2.6;p.armR.rotation.z=2.6;p.g.position.y=Math.abs(Math.sin(t*7))*.2}}})}},
+  sta:{t:'🔋 Stamina laps',d:5,pre(){RR={sp:ppl.map(()=>.85+Math.random()*.3),off:ppl.map(()=>Math.random()*.5)}},cam:[-1,6,8.5,-1,0,0],init(){K.g.visible=false;cones.forEach((c2,i)=>{const a=i/6*Math.PI*2;c2.position.set(-1+Math.cos(a)*3.4,.18,Math.sin(a)*3.4)});ball.position.set(9,BR,5)},
+   up(q,t){ppl.forEach((p,i)=>{const a=q*Math.PI*2*1.3*RR.sp[i]+i/N*Math.PI*2+RR.off[i];p.g.position.set(-1+Math.cos(a)*3,0,Math.sin(a)*3);face(p,-Math.sin(a),Math.cos(a));runPose(p,t*8+i,.5)})}},
   rest:{t:'😴 Rest & stretching',d:4.2,cam:[-1,3.4,6.5,-1,.6,0],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-3.5+i*1.4,0,0);face(p,0,1)});bottles.forEach((b,i)=>b.position.set(-2.8+i*1.4,.125,.6));ball.position.set(9,BR,5)},
-   up(q,t){ppl.forEach((p,i)=>{reset(p);if(i%2){const s=Math.sin(t*2+i);p.armL.rotation.z=-2.8;p.armR.rotation.z=2.8;p.torso.rotation.z=s*.25}else{p.legL.rotation.x=-1.5;p.legR.rotation.x=-1.5;p.g.position.y=-.72;p.torso.rotation.x=-.15;p.armR.rotation.x=-1.2+Math.sin(t*2)*.2}})}}
+   up(q,t){ppl.forEach((p,i)=>{reset(p);if(i%2){const s=Math.sin(t*2+i);p.armL.rotation.z=-2.8;p.armR.rotation.z=2.8;p.torso.rotation.z=s*.25}else{p.legL.rotation.x=-1.5;p.legR.rotation.x=-1.5;p.g.position.y=-.72;p.torso.rotation.x=-.15;drinkPose(p,clamp(Math.sin(t*1.5+i)*1.4,0,1))}})}}
  };
  const DR2={
-  sho:{t:'🎯 Free kicks over the wall',d:5.6,cam:[GX-9,3.6,7,GX-2.5,.8,0],init(){K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);
+  sho:{t:'🎯 Free kicks over the wall',d:5.6,cam:[GX-9,3.6,7,GX-2.5,.8,0],init(){RR={ok:[coin(.55),coin(.55)],tz:[side()*(1.2+Math.random()*.9),side()*(1.2+Math.random()*.9)],over:[coin(.5),coin(.5)]};K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);
     ppl.forEach((p,i)=>{reset(p);if(i<3){p.g.position.set(GX-4.6,0,-.7+i*.7);face(p,-1,0)}else{p.g.position.set(GX-9.5-(i-3)*.8,0,1.6+(i-3)*.4);face(p,1,0)}});ball.position.set(GX-8.4,BR,.5)},
-   up(q,t){const k=Math.min(1,Math.floor(q*2)),s=q*2-k,p=ppl[3+k],ok=k===0;ppl.slice(0,3).forEach(w=>{reset(w);w.armL.rotation.x=-.9;w.armR.rotation.x=-.9;w.armL.rotation.z=.6;w.armR.rotation.z=-.6;if(s>.42&&s<.6){w.g.position.y=Math.sin((s-.42)/.18*Math.PI)*.4}});
+   up(q,t){const k=Math.min(1,Math.floor(q*2)),s=q*2-k,p=ppl[3+k],ok=RR.ok[k];ppl.slice(0,3).forEach(w=>{reset(w);w.armL.rotation.x=-.9;w.armR.rotation.x=-.9;w.armL.rotation.z=.6;w.armR.rotation.z=-.6;if(s>.42&&s<.6){w.g.position.y=Math.sin((s-.42)/.18*Math.PI)*.4}});
+    if(k===1){const f=ppl[3],w=clamp(s/.25,0,1);f.g.position.x=lerp(GX-8.95,GX-11,w);f.g.position.z=lerp(.7,3.4,w);face(f,-1,1);if(w<1)runPose(f,t*9,.5);else reset(f)}
     if(s<.3){p.g.position.x=lerp(GX-9.5-k*.8,GX-8.95,ease(s/.3));p.g.position.z=lerp(1.6+k*.4,.7,ease(s/.3));runPose(p,t*8,.4);ball.position.set(GX-8.4,BR,.5);K.g.rotation.z*=.6;K.g.position.z*=.8;netBack.position.x=GX+ND}
-    else if(s<.42)kick(p,(s-.3)/.12);else{reset(p);const b=clamp((s-.42)/.38,0,1),tz=ok?-1.7:2.2,ty=ok?1.9:2.9;
+    else if(s<.42)kick(p,(s-.3)/.12);else{reset(p);const b=clamp((s-.42)/.38,0,1),tz=ok?RR.tz[k]:RR.over[k]?RR.tz[k]*.5:Math.sign(RR.tz[k])*(GW+.9),ty=ok?1.4+Math.random()*0+.5:RR.over[k]?2.9:1.2;
      ball.position.set(lerp(GX-8.4,ok?GX+.6:GX+.3,b),BR+Math.sin(b*Math.PI)*2.6+(ty-BR)*b*.6,lerp(.5,tz,b)+Math.sin(b*Math.PI)*-.8);
-     const ds=clamp((s-.6)/.25,0,1);K.g.position.z=-1.3*ds;K.g.rotation.z=1.1*ds;K.armL.rotation.z=-2.7*ds;K.armR.rotation.z=2.7*ds;if(b>=1&&ok)netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.2)}}},
-  pas:{t:'🐒 Rondo: keep the ball away!',d:5.6,cam:[-1,6,8,-1,0,0],init(){K.g.visible=false;ppl.forEach((p,i)=>{if(i===N-1){p.g.position.set(-1,0,0)}else{const a=i/(N-1)*Math.PI*2;p.g.position.set(-1+Math.cos(a)*2.8,0,Math.sin(a)*2.8);face(p,-Math.cos(a),-Math.sin(a))}});ball.position.copy(ppl[0].g.position).setY(BR)},
-   up(q,t){const n=N-1,step=q*n*1.5,k=Math.floor(step)%n,s=step-Math.floor(step),a=ppl[k],b=ppl[(k+2)%n],mid=ppl[N-1];
+     const ds=clamp((s-.6)/.25,0,1),kd=tz>0?1:-1,kr=ok?.45:.9;K.g.position.z=kd*1.3*kr*ds;K.g.rotation.z=-kd*1.1*ds;K.armL.rotation.z=-2.7*ds;K.armR.rotation.z=2.7*ds;if(b>=1&&ok)netBack.position.x=lerp(netBack.position.x,GX+ND+.3,.2)}}},
+  pas:{t:'🐒 Rondo: keep the ball away!',d:5.6,cam:[-1,6,8,-1,0,0],init(){RR={seq:seqOf(N-1,12)};K.g.visible=false;ppl.forEach((p,i)=>{if(i===N-1){p.g.position.set(-1,0,0)}else{const a=i/(N-1)*Math.PI*2;p.g.position.set(-1+Math.cos(a)*2.8,0,Math.sin(a)*2.8);face(p,-Math.cos(a),-Math.sin(a))}});ball.position.copy(ppl[0].g.position).setY(BR)},
+   up(q,t){const n=N-1,step=q*n*1.5,k=Math.floor(step),s=step-k,a=ppl[RR.seq[k]],b=ppl[RR.seq[k+1]],mid=ppl[N-1];
     for(let i=0;i<n;i++){const o=ppl[i];if(o!==a)reset(o);face(o,ball.position.x-o.g.position.x,ball.position.z-o.g.position.z)}
     if(s<.22)kick(a,s/.22);else reset(a);const m=clamp((s-.22)/.6,0,1);ball.position.set(lerp(a.g.position.x,b.g.position.x,ease(m)),BR,lerp(a.g.position.z,b.g.position.z,ease(m)));
     const tx=ball.position.x*.5-.5,tz=ball.position.z*.5;const dx=tx-mid.g.position.x,dz=tz-mid.g.position.z;mid.g.position.x+=dx*.04;mid.g.position.z+=dz*.04;face(mid,dx,dz);runPose(mid,t*10,.7)}},
-  def:{t:'🧱 Heading the crosses away',d:5.6,cam:[GX-8,3.6,7.5,GX-3,1,0],init(){K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);ppl.forEach((p,i)=>{reset(p);if(i===0){p.g.position.set(GX-3,0,0);face(p,-1,0)}else if(i===1){p.g.position.set(GX-5,0,-6);face(p,0,1)}else{p.g.position.set(GX-7-i*.6,0,2.5);face(p,1,0)}});ball.position.set(GX-5,BR,-5.5)},
+  def:{t:'🧱 Heading the crosses away',d:5.6,cam:[GX-8,3.6,7.5,GX-3,1,0],init(){RR={head:[coin(.65),coin(.65)],dz:[(Math.random()-.5)*1.2,(Math.random()-.5)*1.2]};K.g.visible=true;K.g.position.set(GX-.6,0,0);face(K,-1,0);ppl.forEach((p,i)=>{reset(p);if(i===0){p.g.position.set(GX-3,0,0);face(p,-1,0)}else if(i===1){p.g.position.set(GX-5,0,-6);face(p,0,1)}else{p.g.position.set(GX-7-i*.6,0,2.5);face(p,1,0)}});ball.position.set(GX-5,BR,-5.5)},
    up(q,t){const k=Math.min(1,Math.floor(q*2)),s=q*2-k,d=ppl[0],cr=ppl[1];keeperReadyT(K);
     if(s<.2){kick(cr,s/.2);ball.position.set(GX-5,BR,-5.5);reset(d)}else{reset(cr);const b=clamp((s-.2)/.45,0,1);
      if(b<1)ball.position.set(lerp(GX-5,GX-3,b),BR+Math.sin(b*Math.PI)*3+(2.4-BR)*b,lerp(-5.5,0,b));
      const jump=clamp((s-.5)/.2,0,1);d.g.position.y=Math.sin(jump*Math.PI)*.6;d.armL.rotation.z=-1.2*Math.sin(jump*Math.PI);d.armR.rotation.z=1.2*Math.sin(jump*Math.PI);d.headG.rotation.x=-.4*Math.sin(jump*Math.PI);
-     if(b>=1){const o=clamp((s-.65)/.3,0,1);ball.position.set(lerp(GX-3,GX-11,o),2.4+Math.sin(o*Math.PI)*2-o*2.2,lerp(0,3,o))}}}},
-  spd:{t:'🔁 Shuttle runs',d:5,cam:[-1,9.5,8.5,-1,0,.3],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-4,0,-2.5+i*1);face(p,1,0)});cones.forEach((c2,i)=>c2.position.set(i<3?-4:2.5,.18,-2.5+(i%3)*2.5));ball.position.set(9,BR,5)},
-   up(q,t){ppl.forEach((p,i)=>{const sp=[1,.95,1.05,.9,1,1.02][i%6],ph=(q*2*sp)%1,leg=Math.floor(q*2*sp);const out=leg%2===0;const g=ease(ph);
+     if(b>=1){const o=clamp((s-.65)/.3,0,1);if(RR.head[k])ball.position.set(lerp(GX-3,GX-11,o),2.4+Math.sin(o*Math.PI)*2-o*2.2,lerp(0,3+RR.dz[k]*2,o));
+      else ball.position.set(lerp(GX-3,GX-1.6,o),Math.max(BR,2.4-o*4)+Math.abs(Math.sin(o*9))*.3*(1-o),lerp(0,RR.dz[k],o))}}}},
+  spd:{t:'🔁 Shuttle runs',d:5,pre(){RR={sp:ppl.map(()=>.86+Math.random()*.22)}},cam:[-1,9.5,8.5,-1,0,.3],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-4,0,-2.5+i*1);face(p,1,0)});cones.forEach((c2,i)=>c2.position.set(i<3?-4:2.5,.18,-2.5+(i%3)*2.5));ball.position.set(9,BR,5)},
+   up(q,t){ppl.forEach((p,i)=>{const sp=RR.sp[i],ph=(q*2*sp)%1,leg=Math.floor(q*2*sp);const out=leg%2===0;const g=ease(ph);
     p.g.position.x=out?lerp(-4,2.5,g):lerp(2.5,-4,g);face(p,out?1:-1,0);runPose(p,t*12+i,.85)})}},
   sta:{t:'🤸 Jumping jacks',d:4.4,cam:[-1,3.6,8,-1,.8,0],init(){K.g.visible=false;ppl.forEach((p,i)=>{p.g.position.set(-3.5+(i%3)*2.5,0,-1+Math.floor(i/3)*2.2);face(p,0,1)});ball.position.set(9,BR,5)},
    up(q,t){ppl.forEach((p,i)=>{reset(p);const j=Math.abs(Math.sin(t*5.5+i*.2));p.armL.rotation.z=-.2-2.6*j;p.armR.rotation.z=.2+2.6*j;p.legL.rotation.z=-.35*j;p.legR.rotation.z=.35*j;p.g.position.y=j*.25})}},
   rest:{t:'💧 Water break',d:4.2,cam:[-1,3.2,6.5,-1,.5,0],init(){K.g.visible=false;ppl.forEach((p,i)=>{const a=i/N*Math.PI*2;p.g.position.set(-1+Math.cos(a)*1.8,0,Math.sin(a)*1.8);face(p,-Math.cos(a),-Math.sin(a))});bottles.forEach(b=>b.position.set(30,.125,30));ball.position.set(-1,BR,0)},
-   up(q,t){ppl.forEach((p,i)=>{reset(p);p.legL.rotation.x=-1.5;p.legR.rotation.x=-1.5;p.g.position.y=-.72;const dr=Math.max(0,Math.sin(t*1.6+i*1.3));p.armR.rotation.x=-2.4*dr;p.headG.rotation.x=-.35*dr})}}
+   up(q,t){ppl.forEach((p,i)=>{reset(p);p.legL.rotation.x=-1.5;p.legR.rotation.x=-1.5;p.g.position.y=-.72;const dr=clamp(Math.sin(t*1.4+i*1.3)*1.4,0,1);drinkPose(p,dr)})}}
  };
  const keeperReadyT=k=>{reset(k);k.armL.rotation.z=-.7;k.armR.rotation.z=.7};
  const order=[...SK,'rest'].filter(k=>plan[k]>0).map((k,i)=>{const opts=[DR[k],DR2[k]].filter(Boolean);return opts[(seed+i)%opts.length]}).filter(Boolean);if(!order.length)order.push((seed%2?DR2:DR).rest);
  let idx=-1,segStart=0,alive=true,raf=0,ended=false;const camT=new T.Vector3(),look=new T.Vector3();
  function next(now){idx++;if(idx>=order.length){if(!ended){ended=true;onDone&&onDone()}return false}fade.classList.remove('on');void fade.offsetWidth;fade.classList.add('on');
-  [...ppl,K].forEach(reset);K.g.visible=true;cones.forEach((c2,i)=>c2.position.set(30+i,.18,30));bottles.forEach(b=>b.position.set(30,.125,30));
-  const D=order[idx];D.init();lastBall.copy(ball.position);onText(D.t);segStart=now;cam.position.set(D.cam[0],D.cam[1],D.cam[2]);look.set(D.cam[3],D.cam[4],D.cam[5]);return true}
+  [...ppl,K].forEach(reset);ppl.forEach(p=>{if(p.bottle)p.bottle.visible=false});K.g.visible=true;cones.forEach((c2,i)=>c2.position.set(30+i,.18,30));bottles.forEach(b=>b.position.set(30,.125,30));
+  const D=order[idx];if(D.pre)D.pre();D.init();lastBall.copy(ball.position);onText(D.t);segStart=now;cam.position.set(D.cam[0],D.cam[1],D.cam[2]);look.set(D.cam[3],D.cam[4],D.cam[5]);return true}
  function loop(now){if(!alive)return;raf=requestAnimationFrame(loop);if(idx<0)next(now);if(ended){r.render(sc,cam);return}const D=order[idx],t=(now-segStart)/1000;
   if(t>=D.d){if(!next(now))return;return}D.up(clamp(t/D.d,0,1),now/1000);roll();
   ppl.forEach(p=>p.eyes.forEach(e=>e.scale.y=(Math.sin(now/770+p.g.position.x*3)>.985)?.2:1));
