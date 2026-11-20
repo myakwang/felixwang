@@ -537,13 +537,13 @@ function watchTraining(show){let el=$('#nego');if(!el){el=document.createElement
   G3&&G3.dispose();G3=makeTeamTraining($('#tt3d'),S.plan,looks,t=>{const c=$('#ttCap');if(c)c.textContent=t},endTraining,(S.week||1)*3+(S.day||1))}).catch(endTraining)}
 function endTraining(){if(!TT)return;const sh=TT.show;TT=null;G3&&G3.dispose();G3=null;const el=$('#nego');if(el)el.style.display='none';sh()}
 
-function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = gone forever. Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
+function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p class="muted">These players finished their trial and want to join! ✅ Accept = pay and they join. 💰 Too much = ask for a lower price (they might get mad!). ❌ Decline = he leaves (he might come back once to try again!). Squad: ${S.players.length}/22 · You have ${money(S.money)}</p></div>
  ${S.trials.length?'':'<div class="card" style="text-align:center">No new players right now. More come every week!</div>'}
- <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`${p.back?'<div class="stb" style="background:#5cf29a;color:#06351b">😔 Came back to say sorry</div>':''}<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
+ <div class="grid">${S.trials.map(p=>pcard(p,{trial:true})+`${p.back?`<div class="stb" style="background:#5cf29a;color:#06351b">${p.decl?'🔁 Came back to try again':'😔 Came back to say sorry'}</div>`:''}<div class="quote">${p.talk?'💬 ':''}"${esc(p.msg)}"</div><div class="price">💰 ${money(p.fee)} + ${money(p.salary)}/week ${p.final?' · FINAL OFFER!':''}</div>
   ${p.tried?`<div class="tip" style="margin-top:6px;font-size:.85em">${p.liked?'😊 He liked training with you! (asks less now)':''} 🏃 Try-out: ${p.tryTxt||''}</div>`:`<div class="act"><button class="small" style="flex:1" onclick="openTryout(${p.id})">🏃 Try him out (${{GK:'saves',DEF:'tackles',MID:'passing',FWD:'shooting'}[p.pos]})</button></div>`}
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
- ${S.gone.length?`<div class="card"><b>👋 Gone forever (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.why==='Declined'?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
+ ${S.gone.length?`<div class="card"><b>👋 Gone (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.back?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
 function acceptT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;
  if(S.players.length>=22)return toast('Your squad is full (22). Kick someone out first!');
  if(S.money<p.fee)return toast(`Not enough money! You have ${money(S.money)}.`);
@@ -554,8 +554,8 @@ function haggle(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const r=Mat
  if(r<.35){p.final=true;p.msg="No way! That's my final offer: "+money(p.fee)+".";}
  else{const old=p.fee;p.fee=Math.max(3,Math.round(p.fee*(rnd(70,85)/100)));if(Math.random()<.5)p.salary=Math.max(1,p.salary-1);p.msg=`Hmm... okay. How about ${money(p.fee)} and ${money(p.salary)} per week? (was ${money(old)})`;if(Math.random()<.3)p.final=true}
  save();render()}
-function declineT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;leave(p,'Declined');toast(p.name+' is gone and will never come back.')}
-function leave(p,why){S.trials=S.trials.filter(x=>x.id!==p.id);S.gone.push({name:p.name,why});save();render()}
+function declineT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;const back=p.back;leave(p,'Declined');toast(back?p.name+' is gone forever.':p.name+' left... but he might come back and try again. 👀')}
+function leave(p,why){if(why==='Declined'&&!p.back){p.decl=true;madLeave(p)}S.trials=S.trials.filter(x=>x.id!==p.id);S.gone.push({name:p.name,why,back:!!p.back&&why==='Declined'});save();render()}
 
 function winChance(R,os,o){const mu=o&&o.sq?matchup(bestXI(),o.sq):{mine:0,theirs:0},oa=o&&o.att?o.att+mu.theirs:os,od=o&&o.def?o.def:os;let w=0,d=0;const N=400;for(let i=0;i<N;i++){let a=0,b=0;for(let t=0;t<18;t++){const pA=clamp(.072*Math.pow((R.att+mu.mine)/od,EXP),.004,.36),pB=clamp(.068*Math.pow(oa/R.def,EXP),.004,.36),x=Math.random();if(x<pA)a++;else if(x<pA+pB)b++}if(a>b)w++;else if(a===b)d++}
  w=Math.round(w/N*100);d=Math.round(d/N*100);return{w,d,l:Math.max(0,100-w-d)}}
@@ -625,8 +625,8 @@ function tableView(){const st=standings();
 const COMPANIES=['FizzPop Soda','ZoomZoom Sneakers','Crunchy Munch Cereal','Rocket Juice','Splashy Water','Comet Chips','Twisty Gum','Turbo Toys','Sunny Shampoo','Mega Burger'];
 function madLeave(p){if(p.back)return;S.angry=S.angry||[];S.angry.push(JSON.parse(JSON.stringify(p)))}
 function maybeComeBack(){if(!S.angry||!S.angry.length||S.trials.length>=4||Math.random()>.2)return false;const i=rnd(0,S.angry.length-1),p=S.angry.splice(i,1)[0];
- p.back=true;p.weeks=0;p.final=false;p.fee=Math.max(3,Math.round(p.fee*.6));delete p.ng;p.salary=Math.max(1,p.salary-1);
- p.msg=p.disliked?`I thought about it again... your team is actually cool! 😊 Can I join for ${money(p.fee)} and ${money(p.salary)} a week?`:`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;p.tried=false;p.liked=false;
+ p.back=true;p.weeks=0;p.final=false;p.fee=Math.max(3,Math.round(p.fee*(p.decl?.85:.6)));delete p.ng;p.salary=Math.max(1,p.salary-1);
+ p.msg=p.decl?`Hi coach! I thought about it. Can I try out for your team again? I'll join for ${money(p.fee)} and ${money(p.salary)} a week.`:p.disliked?`I thought about it again... your team is actually cool! 😊 Can I join for ${money(p.fee)} and ${money(p.salary)} a week?`:`I'm sorry I got so mad last time... 😔 Can I still join? I'll do it for only ${money(p.fee)} and ${money(p.salary)} a week.`;p.tried=false;p.liked=false;
  const g=S.gone.findIndex(x=>x.name===p.name);if(g>=0)S.gone.splice(g,1);S.trials.push(p);return p}
 function ensureTalker(){if(!S||!S.trials)return;let ch=false;
  if(S.tactic==='super'){S.tactic='attack';ch=true}[S.league&&S.league.teams,S.wc&&S.wc.opps].forEach(l=>(l||[]).forEach(t=>{if(t.sq&&t.sq.tac==='super'){t.sq.tac='attack';ch=true}}));
@@ -1585,7 +1585,7 @@ function endLeague(){const st=standings(),n=st.length,pos=st.findIndex(t=>t.i===
 function endWeek(prize){const wage=S.players.reduce((a,p)=>a+p.salary,0);S.money+=money2(15)-wage;
  S.players.forEach(p=>p.energy=clamp(p.energy+16,5,100));
  const left=[];S.trials.forEach(t=>{t.weeks++;if(t.weeks>=3)left.push(t)});left.forEach(t=>{S.trials=S.trials.filter(x=>x.id!==t.id);S.gone.push({name:t.name,why:'Joined another team'})});
- const back=maybeComeBack();if(back)setTimeout(()=>toast(`😔 ${back.name} came back to say sorry!`),2600);const before=S.trials.length;addTrials(rnd(1,2));const nw=S.trials.length-before;S.week++;S.trained=false;S.day=1;S.dayStart=Date.now();
+ const back=maybeComeBack();if(back)setTimeout(()=>toast(back.decl?`🔁 ${back.name} came back to try again!`:`😔 ${back.name} came back to say sorry!`),2600);const before=S.trials.length;addTrials(rnd(1,2));const nw=S.trials.length-before;S.week++;S.trained=false;S.day=1;S.dayStart=Date.now();
  const net=prize+money2(15)-wage;setTimeout(()=>toast(`💰 ${net>=0?'+':''}${money(net)} this week${nw?` · 📝 ${nw} new`:''}`),300)}
 function nextSeason(){S.season++;S.country=null;S.players.forEach(p=>{p.age++;p.energy=100});S.result='';setupLeague();addTrials(2);S.tab='team';save();render();
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
