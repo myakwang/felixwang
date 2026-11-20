@@ -543,7 +543,7 @@ function trialsView(){return `<div class="card"><h2>📝 Trial Players</h2><p cl
   ${p.tried?`<div class="tip" style="margin-top:6px;font-size:.85em">${p.liked?'😊 He liked training with you! (asks less now)':''} 🏃 Try-out: ${p.tryTxt||''}</div>`:`<div class="act"><button class="small" style="flex:1" onclick="openTryout(${p.id})">🏃 Try him out (${{GK:'saves',DEF:'tackles',MID:'passing',FWD:'shooting'}[p.pos]})</button></div>`}
   ${p.talk?`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="openTalk(${p.id})">💬 Talk with him</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`
    :`<div class="act"><button class="small green" onclick="acceptT(${p.id})">✅ Accept</button><button class="small gold" onclick="haggle(${p.id})">💰 Too much</button><button class="small red" onclick="declineT(${p.id})">❌</button></div>`}</div>`).join('')}</div>
- ${S.gone.length?`<div class="card"><b>👋 Gone (${S.gone.length})</b><div class="muted">${S.gone.slice(-30).reverse().map(g=>esc(g.name)+' — '+g.why+(g.back?'':' (might come back...)')).join('<br>')}</div></div>`:''}`}
+ `}
 function acceptT(id){const p=S.trials.find(x=>x.id===id);if(!p)return;
  if(S.players.length>=22)return toast('Your squad is full (22). Kick someone out first!');
  if(S.money<p.fee)return toast(`Not enough money! You have ${money(S.money)}.`);
