@@ -519,12 +519,13 @@ function trainView(){if(Object.values(S.plan).reduce((a,b)=>a+b,0)>HOURS)S.plan=
   ${avgE<55&&!S.trained?'<div class="tip">💡 Your team is tired. Add more Rest hours this week!</div>':''}
   <p class="muted">Young players (22 and under) learn the fastest.</p></div>`}
 function plan(k,d){if(S.trained)return;const used=Object.values(S.plan).reduce((a,b)=>a+b,0);if(d>0&&used>=HOURS)return;S.plan[k]=clamp(S.plan[k]+d,0,HOURS);save();render()}
-function doTraining(){if(S.trained)return;const g={};SK.forEach(k=>g[k]=0);const th=SK.reduce((a,k)=>a+S.plan[k],0);let best=null,bestN=0;
- S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(.6+.16*(p.pot||3))*(p.energy>30?1:.5)*(p.s[k]>=120?.25:p.s[k]>=95?.45:p.s[k]>85?.7:1);
-   if(Math.random()<ch&&p.s[k]<150){p.s[k]++;g[k]++;n++}}});if(n>bestN){bestN=n;best=p}
+function doTraining(){if(S.trained)return;const g={},L={},jumps=[];SK.forEach(k=>{g[k]=0;const r=Math.random();L[k]=r<.18?.2+Math.random()*.25:r>.82?1.7+Math.random()*.7:.6+Math.random()*.8});const th=SK.reduce((a,k)=>a+S.plan[k],0);let best=null,bestN=0;
+ S.players.forEach(p=>{let n=0;SK.forEach(k=>{for(let h=0;h<S.plan[k];h++){const ch=(p.age<=22?.4:p.age<=28?.32:.22)*(.6+.16*(p.pot||3))*(p.energy>30?1:.5)*(p.s[k]>=120?.25:p.s[k]>=95?.45:p.s[k]>85?.7:1)*L[k]*(.75+Math.random()*.5);
+   if(Math.random()<ch&&p.s[k]<150){const up=Math.random()<.1?3:1,d=Math.min(up,150-p.s[k]);p.s[k]+=d;g[k]+=d;n+=d;if(d>=3)jumps.push(`${p.name} (${SKN[k]})`)}}});if(n>bestN){bestN=n;best=p}
   p.energy=clamp(p.energy-th*2+S.plan.rest*8,5,100)});
  S.trained=true;save();render();
- const show=()=>modal(`<div class="big">💪</div><h2>Training complete!</h2><div class="sks" style="color:#fff">${SK.map(k=>`<div><span>${SKN[k]}</span><b style="color:var(--good)">+${g[k]}</b></div>`).join('')}</div>
+ const show=()=>modal(`<div class="big">💪</div><h2>Training complete!</h2><div class="sks" style="color:#fff">${SK.map(k=>`<div><span>${SKN[k]} ${S.plan[k]?(L[k]>1.6?'🔥':L[k]<.5?'😴':''):''}</span><b style="color:${g[k]?'var(--good)':'#ff8a8a'}">+${g[k]}</b></div>`).join('')}</div>
+  ${SK.some(k=>S.plan[k]&&L[k]>1.6)?'<p>🔥 Amazing session!</p>':SK.some(k=>S.plan[k]&&L[k]<.5)?'<p>😴 Tough session… the team was sleepy.</p>':''}${jumps.length?`<p>⚡ Big jump: <b>${esc(jumps.slice(0,3).join(', '))}</b> (+3)</p>`:''}
   ${best?`<p>🌟 Best trainer: <b>${esc(best.name)}</b> (+${bestN})</p>`:''}`);
  watchTraining(show)}
 let TT=null;
