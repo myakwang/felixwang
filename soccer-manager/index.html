@@ -87,7 +87,7 @@ canvas#pitch{display:block;width:100%;height:auto}
 .flash.go{animation:pop 1.5s ease-out}
 @keyframes pop{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1.15)}35%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
 .feed{height:150px;overflow:auto;background:#04101d;border-radius:14px;padding:6px 10px;font-size:.9em;margin-top:10px}
-.feed div{padding:5px 0;border-bottom:1px solid #ffffff10;animation:fadein .3s}
+.feed div.comm{color:#8fd3ff;font-style:italic}.feed div{padding:5px 0;border-bottom:1px solid #ffffff10;animation:fadein .3s}
 .feed .g{color:var(--gold);font-weight:900}.feed .b{color:var(--bad)}
 @keyframes fadein{from{opacity:0;transform:translateY(-4px)}}
 .vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:8px}
@@ -1292,7 +1292,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
  $('#app').innerHTML=`<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   <div class="sb"><div class="tm">${M.online?crest(S.teamName,S.color,40):myCrest(40)}<br>${esc(M.online?S.teamName:TN())}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
   <div class="pitchwrap"><div id="pitch3d" class="pitch3d" style="display:none"></div><canvas id="pitch" width="720" height="460"></canvas><div class="flash" id="flash">GOAL!</div><div id="ftOv" class="ftov" style="display:none"><div class="disp" style="font-size:1.6em">FULL TIME</div><div class="disp" id="ftScore" style="font-size:2.4em;color:var(--gold)"></div><button class="gold" style="font-size:1.3em;padding:14px 30px" onclick="afterMatch()">Continue ▶</button></div></div>
-  <div class="row" style="margin-top:8px;justify-content:center"><button id="viewB" class="small gray" onclick="setView(!VIEW3D)">${VIEW3D?'🗺️ 2D view':'🎥 3D view'}</button></div>
+  <div class="row" style="margin-top:8px;justify-content:center"><button id="viewB" class="small gray" onclick="setView(!VIEW3D)">${VIEW3D?'🗺️ 2D view':'🎥 3D view'}</button> <button id="cmB" class="small gray" onclick="toggleComm()">${COMM_ON?'🎙️ Commentator ON':'🎙️ Commentator OFF'}</button></div>
   <div class="row" style="margin-top:10px;justify-content:center" id="ctrl">
    <span class="muted">Speed:</span>${[1,2,4].map(s=>`<button class="small ${s===1?'gold':'gray'}" data-sp="${s}" onclick="setSpeed(${s})">${s}x</button>`).join('')}
 </div>
@@ -1323,7 +1323,24 @@ function matchSub(slot,id){if(M.subs>=5)return toast('You already made 5 subs!')
  M.R=matchR();sendR();sendXI();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);selSlot=null;refreshPanel()}
 function matchSwap(a,b){setTimeout(()=>{sendR();sendXI()},0);[M.xi[a].p,M.xi[b].p]=[M.xi[b].p,M.xi[a].p];const A=P.teams[0][a],B=P.teams[0][b];for(const k of ['name','num','spd']){const t=A[k];A[k]=B[k];B[k]=t}M.R=matchR();selSlot=null;refreshPanel()}
 function setSpeed(s){if(P)P.speed=s;document.querySelectorAll('#ctrl [data-sp]').forEach(b=>b.className='small '+(+b.dataset.sp===s?'gold':'gray'))}
-function say(t,c){const f=$('#feed');if(!f)return;const d=document.createElement('div');if(c)d.className=c;d.innerHTML=`<b>${M.min}'</b> ${t}`;f.prepend(d)}
+function say(t,c,quiet){const f=$('#feed');if(!f)return;const d=document.createElement('div');if(c)d.className=c;d.innerHTML=`<b>${M.min}'</b> ${t}`;f.prepend(d);if(!quiet)commAuto(t)}
+// ---- 🎙️ commentator (uses the device's own voices; nothing is sent anywhere) ----
+let COMM_ON=true;try{COMM_ON=localStorage.getItem('soccerMgrComm')!=='0'}catch(e){}
+const CM={t:0,voice:undefined};
+const spokenTxt=t=>String(t).replace(/<[^>]*>/g,'').replace(/#(\d+)/g,'number $1').replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[^\w\s.,!?'’-]/g,' ');
+function commSpeak(text,hi){if(!COMM_ON||!text)return;try{const ss=window.speechSynthesis;if(!ss)return;
+ if(CM.voice===undefined)CM.voice=pickVoice('comm');const now=Date.now();
+ if(!hi){if(P&&P.speed>1)return;if(ss.speaking||now-CM.t<2200)return}
+ const u=new SpeechSynthesisUtterance(spokenTxt(text));if(CM.voice&&CM.voice!=='default'){u.voice=CM.voice;u.lang=CM.voice.lang}else u.lang='en-US';
+ u.pitch=hi?1.05:.82;u.rate=hi?1.3:1.18;u.volume=1;if(hi)ss.cancel();ss.speak(u);CM.t=now}catch(e){}}
+function commAuto(t){if(!COMM_ON)return;const hi=/GOAL|GOAAAL|Full time|Half time|red card|yellow|Offside|CAT save|big save|saved/i.test(t);
+ if(/GOAL|GOAAAL/.test(t))return commSpeak(pick(['Oh my god! ','Unbelievable! ','What a goal! '])+t,true);commSpeak(t,hi)}
+function commLine(text,hi){say('🎙️ '+text,'comm',true);commSpeak(text,hi)}
+const cmTeam=t=>t===0?esc(TN()):esc(M.o.name);
+const cmWho=p=>p.t===0&&p.name?`number ${p.num||''} ${esc(p.name.split(' ')[0])}`.replace('number  ','').trim():`number ${p.num}`;
+function commGot(p){if(Math.random()<.3)commLine(pick([`Oh my god, ${cmWho(p)} got the ball!`,`${cmWho(p)} has it now!`,`Okay, ${cmWho(p)} on the ball.`,`Nice pass! ${cmWho(p)} receives it.`]))}
+function commSteal(opp,from){commLine(pick([`Oh no! ${cmTeam(opp.t)} stole it! Now ${cmWho(opp)} has the ball.`,`Okay! The other team stole it! ${cmTeam(from)} have to get it back now!`,`Stolen! ${cmWho(opp)} takes it away! ${cmTeam(1-opp.t)} must win it back!`]),true)}
+function toggleComm(){COMM_ON=!COMM_ON;try{localStorage.setItem('soccerMgrComm',COMM_ON?'1':'0')}catch(e){}if(!COMM_ON)try{speechSynthesis.cancel()}catch(e){}const b=$('#cmB');if(b)b.textContent=COMM_ON?'🎙️ Commentator ON':'🎙️ Commentator OFF'}
 function upd(){const a=$('#sMy');if(a){a.textContent=M.my;$('#sOp').textContent=M.op;$('#clock').textContent=M.min+"'"}}
 function flash(t,sad){const f=$('#flash');if(!f)return;f.textContent=t;f.style.color=sad?'#ff7a7a':'#fff';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');if(!sad)confetti(60)}
 
@@ -1436,8 +1453,8 @@ function pickTarget(c,forward){const mates=P.teams[c.t].filter(p=>p!==c&&!p.off&
 function passTo(c,r,intercept){P.last=c;const tx=clamp(r.x+dirOf(r.t)*.025,.02,.98),ty=r.y,L=Math.hypot(tx-c.x,ty-c.y),h=L>.3?.07:.01;
  if(intercept){const mx=c.x+(tx-c.x)*.55,my=c.y+(ty-c.y)*.55,opp=P.teams[1-c.t].filter(p=>p.role!=='GK'&&!p.off).sort((a,b)=>dist(a,{x:mx,y:my})-dist(b,{x:mx,y:my}))[0];
   const ix=opp.x+(mx-opp.x)*.4,iy=opp.y+(my-opp.y)*.4;
-  fly(ix,iy,.016,.01,opp,()=>{setCarrier(opp);if(opp.t===0&&Math.random()<.5)say(`${pname(opp)} wins the ball! 💪`);P.wait=18;P.after=next});return}
- fly(tx,ty,.017+(h>.02?.002:0),h,r,()=>{setCarrier(r);P.wait=rnd(8,22);P.after=next})}
+  fly(ix,iy,.016,.01,opp,()=>{setCarrier(opp);commSteal(opp,c.t);P.wait=18;P.after=next});return}
+ fly(tx,ty,.017+(h>.02?.002:0),h,r,()=>{setCarrier(r);commGot(r);P.wait=rnd(8,22);P.after=next})}
 
 function next(){const pl=P.plan,c=P.carrier;if(!pl)return endChunk();if(!c){P.wait=10;P.after=next;return}
  pl.steps=(pl.steps||0)+1;
@@ -1487,7 +1504,7 @@ function nextChunk(){if(M.done)return;
  if(M.online)netSend({t:'ev',min:M.min,team:P.plan.team,kind:P.plan.kind,result:P.plan.result||'',card:P.plan.card||'',passes:P.plan.passes});
  if(!P.carrier){P.wait=10;P.after=next;return}next()}
 
-function skipMatch(){if(M.done)return;if(P){P.foul=null;P.offside=null;if(P.mode==='half'){P.mode='play'}}if(P)P.paused=false;const mp=$('#mPanel');if(mp)mp.style.display='none';const pl=P&&P.plan;if(pl&&pl.kind==='goal'&&!(P.mode==='celebrate')){pl.team===0?M.my++:M.op++}
+function skipMatch(){if(M.done)return;try{speechSynthesis.cancel()}catch(e){}if(P){P.foul=null;P.offside=null;if(P.mode==='half'){P.mode='play'}}if(P)P.paused=false;const mp=$('#mPanel');if(mp)mp.style.display='none';const pl=P&&P.plan;if(pl&&pl.kind==='goal'&&!(P.mode==='celebrate')){pl.team===0?M.my++:M.op++}
  while(M.min<90){M.min+=5;fatigue();M.R=matchR();const e=decideEvent();if(e.kind==='goal'){if(e.team===0){M.my++;say(`⚽ GOAL! <b>${esc(scorer().name)}</b> scores!`,'g')}else{M.op++;say(`😱 Goal for ${esc(M.o.name)}.`,'b')}}}
  if(P){P.plan=null;P.after=null;P.wait=0;P.ball.fly=null}upd();endMatch()}
 function scorer(){const w=M.xi.map(x=>({x,w:({FWD:4,MID:2,DEF:.5,GK:0})[x.pos]*x.p.s.sho}));let t=w.reduce((a,b)=>a+b.w,0)*Math.random();for(const e of w){t-=e.w;if(t<=0)return e.x.p}return M.xi[0].p}
