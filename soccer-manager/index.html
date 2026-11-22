@@ -201,6 +201,7 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .stb.lv3{background:linear-gradient(135deg,#e9c8ff,#9b4dff 55%,#5a189a);color:#fff;box-shadow:0 0 9px #b15cffcc}
 .stb em{font-style:normal;font-size:.85em;opacity:.9}
 .pc-ovr i.lv2{filter:drop-shadow(0 0 4px #ffd54a)}.pc-ovr i.lv3{filter:drop-shadow(0 0 5px #b15cff)}
+#musB{position:fixed;left:10px;bottom:10px;z-index:30;width:44px;height:44px;border-radius:50%;border:2px solid #ffffff44;background:#000a;color:#fff;font-size:1.3em;cursor:pointer;padding:0}
 </style>
 </head>
 <body>
@@ -1325,6 +1326,39 @@ function matchSub(slot,id){if(M.subs>=5)return toast('You already made 5 subs!')
 function matchSwap(a,b){setTimeout(()=>{sendR();sendXI()},0);[M.xi[a].p,M.xi[b].p]=[M.xi[b].p,M.xi[a].p];const A=P.teams[0][a],B=P.teams[0][b];for(const k of ['name','num','spd']){const t=A[k];A[k]=B[k];B[k]=t}M.R=matchR();selSlot=null;refreshPanel()}
 function setSpeed(s){if(P)P.speed=s;document.querySelectorAll('#ctrl [data-sp]').forEach(b=>b.className='small '+(+b.dataset.sp===s?'gold':'gray'))}
 function say(t,c,quiet){const f=$('#feed');if(!f)return;const d=document.createElement('div');if(c)d.className=c;d.innerHTML=`<b>${M.min}'</b> ${t}`;f.prepend(d);if(!quiet)commAuto(t)}
+
+// ---------- 🎵 Soccer anthem (made live with WebAudio — no files, nothing downloaded) ----------
+let MUS_ON=true;try{MUS_ON=localStorage.getItem('soccerMgrMusic')!=='0'}catch(e){}
+const MUS={ctx:null,gain:null,timer:null,step:0,next:0,noise:null};
+const mf=n=>440*Math.pow(2,(n-69)/12);
+// 8 bars: C G Am F | C G F G   (original tune, 16 sixteenth-steps per bar, melody on eighths)
+const MCH=[[48,60,64,67],[43,59,62,67],[45,57,60,64],[41,57,60,65],[48,60,64,67],[43,59,62,67],[41,57,60,65],[43,59,62,67]];
+const MMEL=[[72,72,76,0,79,0,76,0],[74,74,79,0,77,0,74,0],[72,72,76,0,81,0,79,0],[77,0,76,0,74,0,72,0],
+ [79,79,79,0,76,0,79,0],[83,0,81,0,79,0,74,0],[77,77,81,0,79,0,77,0],[79,0,74,0,71,0,74,79]];
+function musInit(){if(MUS.ctx)return true;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;const c=new C();MUS.ctx=c;
+ MUS.gain=c.createGain();MUS.gain.gain.value=0;MUS.gain.connect(c.destination);
+ const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUS.noise=b;return true}catch(e){return false}}
+function mTone(t,f,dur,type,vol,lp){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp||2400;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(fl);fl.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+dur+.05)}
+function mNoise(t,dur,vol,hp,lpf){const c=MUS.ctx,s=c.createBufferSource(),g=c.createGain(),fl=c.createBiquadFilter();s.buffer=MUS.noise;fl.type=lpf?'lowpass':'highpass';fl.frequency.value=hp;
+ g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(fl);fl.connect(g);g.connect(MUS.gain);s.start(t);s.stop(t+dur+.02)}
+function mKick(t){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.14);
+ g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+.22)}
+function musStep(t,st,spd){const bar=Math.floor(st/16)%8,k=st%16,ch=MCH[bar];
+ if(k%8===0)mKick(t);                                   // boom ... boom
+ if(k===4||k===12){mNoise(t,.12,.55,1500);mTone(t,190,.08,'triangle',.25)}  // clap on 2 and 4
+ if(k%2===0)mNoise(t,.04,.12,7000);                     // hi-hat
+ if(k%4===0){const root=ch[0];mTone(t,mf(root),spd*3.4,'triangle',.5,500);}   // bass
+ if(k%8===0||k===6||k===14){ch.slice(1).forEach(n=>mTone(t,mf(n),spd*2.2,'square',.035,1800))} // chord stabs
+ if(k%2===0){const n=MMEL[bar][k/2];if(n){mTone(t,mf(n),spd*3.2,'sawtooth',.16,2600);mTone(t,mf(n)*1.004,spd*3.2,'square',.05,2000)}}} // the tune
+function musTick(){const c=MUS.ctx;if(!c||!MUS_ON)return;const spd=60/132/4;
+ while(MUS.next<c.currentTime+.15){if(MUS.next<c.currentTime-.3)MUS.next=c.currentTime+.05;musStep(MUS.next,MUS.step,spd);MUS.next+=spd;MUS.step=(MUS.step+1)%128}
+ const inM=typeof P!=='undefined'&&P&&typeof M!=='undefined'&&M&&!M.done;MUS.gain.gain.setTargetAtTime(inM?.1:.28,c.currentTime,.4)}
+function musStart(){if(!MUS_ON||!musInit())return;const c=MUS.ctx;if(c.state==='suspended')c.resume();if(MUS.timer)return;MUS.next=c.currentTime+.08;MUS.timer=setInterval(musTick,40)}
+function musStop(){if(MUS.timer){clearInterval(MUS.timer);MUS.timer=null}if(MUS.ctx){MUS.gain.gain.setTargetAtTime(0,MUS.ctx.currentTime,.1)}}
+function toggleMusic(){MUS_ON=!MUS_ON;try{localStorage.setItem('soccerMgrMusic',MUS_ON?'1':'0')}catch(e){}MUS_ON?musStart():musStop();const b=$('#musB');if(b)b.textContent=MUS_ON?'🎵':'🔇'}
+addEventListener('pointerdown',()=>{if(MUS_ON)musStart()},{passive:true});
+document.addEventListener('visibilitychange',()=>{if(!MUS.ctx)return;if(document.hidden)MUS.ctx.suspend();else if(MUS_ON)MUS.ctx.resume()});
 // ---- 🎙️ commentator (uses the device's own voices; nothing is sent anywhere) ----
 let COMM_ON=true;try{COMM_ON=localStorage.getItem('soccerMgrComm')!=='0'}catch(e){}
 const CM={t:0,voice:undefined};
@@ -1609,6 +1643,7 @@ function nextSeason(){S.season++;S.country=null;S.players.forEach(p=>{p.age++;p.
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
 function askReset(){modal('<h2>Start over?</h2><p>Your whole team, money and trophies will be deleted.</p>',[{t:'Yes, new game',c:'red',f:()=>{S=null;try{localStorage.removeItem('soccerMgrSave')}catch(e){}render()}},{t:'Cancel',c:'gray'}])}
 
+{const mb=document.createElement('button');mb.id='musB';mb.setAttribute('aria-label','Music on/off');mb.textContent=MUS_ON?'🎵':'🔇';mb.onclick=toggleMusic;document.body.appendChild(mb)}
 load();ensureTalker();render();try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
 </script>
 <script>
