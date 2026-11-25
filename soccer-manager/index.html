@@ -201,6 +201,8 @@ select{font:inherit;font-weight:800;padding:8px;border-radius:10px;background:#0
 .stb.lv3{background:linear-gradient(135deg,#e9c8ff,#9b4dff 55%,#5a189a);color:#fff;box-shadow:0 0 9px #b15cffcc}
 .stb em{font-style:normal;font-size:.85em;opacity:.9}
 .pc-ovr i.lv2{filter:drop-shadow(0 0 4px #ffd54a)}.pc-ovr i.lv3{filter:drop-shadow(0 0 5px #b15cff)}
+#musN{position:fixed;left:60px;bottom:10px;z-index:30;width:36px;height:36px;border-radius:50%;border:2px solid #ffffff44;background:#000a;color:#fff;font-size:1em;cursor:pointer;padding:0}
+#cmL{background:#ffffff14;color:#fff;border:1px solid #ffffff33;border-radius:10px;padding:4px 6px}
 #musB{position:fixed;left:10px;bottom:10px;z-index:30;width:44px;height:44px;border-radius:50%;border:2px solid #ffffff44;background:#000a;color:#fff;font-size:1.3em;cursor:pointer;padding:0}
 </style>
 </head>
@@ -1294,7 +1296,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
  $('#app').innerHTML=`<div class="card"><div class="muted" style="text-align:center">${o.label}</div>
   <div class="sb"><div class="tm">${M.online?crest(S.teamName,S.color,40):myCrest(40)}<br>${esc(M.online?S.teamName:TN())}</div><div style="text-align:center"><div class="sc"><span id="sMy">0</span> - <span id="sOp">0</span></div><span class="clock" id="clock">0'</span></div><div class="tm">${crest(o.name,o.col,40)}<br>${esc(o.name)}</div></div>
   <div class="pitchwrap"><div id="pitch3d" class="pitch3d" style="display:none"></div><canvas id="pitch" width="720" height="460"></canvas><div class="flash" id="flash">GOAL!</div><div id="ftOv" class="ftov" style="display:none"><div class="disp" style="font-size:1.6em">FULL TIME</div><div class="disp" id="ftScore" style="font-size:2.4em;color:var(--gold)"></div><button class="gold" style="font-size:1.3em;padding:14px 30px" onclick="afterMatch()">Continue ▶</button></div></div>
-  <div class="row" style="margin-top:8px;justify-content:center"><button id="viewB" class="small gray" onclick="setView(!VIEW3D)">${VIEW3D?'🗺️ 2D view':'🎥 3D view'}</button> <button id="cmB" class="small gray" onclick="toggleComm()">${COMM_ON?'🎙️ Commentator ON':'🎙️ Commentator OFF'}</button></div>
+  <div class="row" style="margin-top:8px;justify-content:center"><button id="viewB" class="small gray" onclick="setView(!VIEW3D)">${VIEW3D?'🗺️ 2D view':'🎥 3D view'}</button> <button id="cmB" class="small gray" onclick="toggleComm()">${COMM_ON?'🎙️ Commentator ON':'🎙️ Commentator OFF'}</button> <select id="cmL" class="small gray" onchange="setCommLang(this.value)" aria-label="Commentator language">${COMML.map(x=>`<option value="${x[0]}" ${x[0]===COMM_LANG?'selected':''}>🌍 ${x[1]}</option>`).join('')}</select></div>
   <div class="row" style="margin-top:10px;justify-content:center" id="ctrl">
    <span class="muted">Speed:</span>${[1,2,4].map(s=>`<button class="small ${s===1?'gold':'gray'}" data-sp="${s}" onclick="setSpeed(${s})">${s}x</button>`).join('')}
 </div>
@@ -1303,7 +1305,7 @@ function startMatch(on){const xi=bestXI();if(xi.length<11)return toast('You need
   <div id="mPanel" style="display:none"></div>
   <div class="feed" id="feed"></div>
   <div class="row" style="margin-top:10px;justify-content:center"><button id="contB" class="gold" style="display:none;font-size:1.15em" onclick="afterMatch()">Continue ▶</button></div></div>`;
- initPitch();say('🟢 Kick off! Let\'s go '+esc(M.online?S.teamName:TN())+'!');if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
+ initPitch();say('🟢 Kick off! Let\'s go '+esc(M.online?S.teamName:TN())+'!');cev('kick',{t:M.online?S.teamName:TN()});if(M.online){$('#ctrl').style.display='none';say('🌐 Online match vs '+esc(o.name)+'!')}scrollTo(0,0)}
 function matchR(){return teamRating(M.xi.map(x=>({p:Object.assign({},x.p,{energy:M.en[x.p.id]}),pos:x.pos})))}
 function fatigue(){const d=TACTICS[tacOf()].drain;M.xi.forEach(x=>{M.en[x.p.id]=clamp(M.en[x.p.id]-(2.6-x.p.s.sta/100*1.2)*d*([1,.55,.45,.35][stL(x.p,'engine')]),5,100)})}
 const inMatch=()=>M&&!M.done&&$('#mPanel')&&$('#mPanel').style.display!=='none';
@@ -1322,59 +1324,172 @@ function refreshPanel(){const el=$('#mPanel');if(!el||el.style.display==='none')
   ${sub?`<h3 style="margin-top:10px">🪑 Bench</h3>${bench.length?bench.map(p=>`<div class="benchrow ${selSlot!==null?'can':''}" onclick="tapBench(${p.id})"><span class="pos ${p.pos}">${p.pos}</span><b class="sp">${esc(p.name)}</b><span>⚡${Math.round(p.energy)}</span><span class="ovrs">${ovr(p)}</span></div>`).join(''):'<div class="muted">No players on the bench.</div>'}`:''}</div>`}
 function matchSub(slot,id){if(M.subs>=5)return toast('You already made 5 subs!');const np=S.players.find(p=>p.id===id);if(!np)return;const out=M.xi[slot].p;
  M.xi[slot]={p:np,pos:M.xi[slot].pos};M.en[np.id]=np.energy;M.played.add(np.id);M.subs++;const pp=P.teams[0][slot];pp.name=np.name;pp.num=np.num||slot+1;pp.spd=np.s.spd/100;
- M.R=matchR();sendR();sendXI();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);selSlot=null;refreshPanel()}
+ M.R=matchR();sendR();sendXI();say(`🔄 <b>${esc(np.name)}</b> comes on for ${esc(out.name)}.`);cev('sub',{w:np.name,v:out.name});selSlot=null;refreshPanel()}
 function matchSwap(a,b){setTimeout(()=>{sendR();sendXI()},0);[M.xi[a].p,M.xi[b].p]=[M.xi[b].p,M.xi[a].p];const A=P.teams[0][a],B=P.teams[0][b];for(const k of ['name','num','spd']){const t=A[k];A[k]=B[k];B[k]=t}M.R=matchR();selSlot=null;refreshPanel()}
 function setSpeed(s){if(P)P.speed=s;document.querySelectorAll('#ctrl [data-sp]').forEach(b=>b.className='small '+(+b.dataset.sp===s?'gold':'gray'))}
 function say(t,c,quiet){const f=$('#feed');if(!f)return;const d=document.createElement('div');if(c)d.className=c;d.innerHTML=`<b>${M.min}'</b> ${t}`;f.prepend(d);if(!quiet)commAuto(t)}
 
-// ---------- 🎵 Soccer anthem (made live with WebAudio — no files, nothing downloaded) ----------
+// ---------- 🎵 Music: 5 songs made live with WebAudio (no files, nothing downloaded) ----------
 let MUS_ON=true;try{MUS_ON=localStorage.getItem('soccerMgrMusic')!=='0'}catch(e){}
-const MUS={ctx:null,gain:null,timer:null,step:0,next:0,noise:null};
+const MUS={ctx:null,gain:null,timer:null,step:0,next:0,noise:null,tn:0,tr:null};
 const mf=n=>440*Math.pow(2,(n-69)/12);
-// 8 bars: C G Am F | C G F G   (original tune, 16 sixteenth-steps per bar, melody on eighths)
-const MCH=[[48,60,64,67],[43,59,62,67],[45,57,60,64],[41,57,60,65],[48,60,64,67],[43,59,62,67],[41,57,60,65],[43,59,62,67]];
-const MMEL=[[72,72,76,0,79,0,76,0],[74,74,79,0,77,0,74,0],[72,72,76,0,81,0,79,0],[77,0,76,0,74,0,72,0],
- [79,79,79,0,76,0,79,0],[83,0,81,0,79,0,74,0],[77,77,81,0,79,0,77,0],[79,0,74,0,71,0,74,79]];
+const VOW={a:[800,1200,2800],e:[520,1850,2600],i:[300,2300,3000],o:[500,900,2600],u:[350,750,2500],I:[420,2000,2600],U:[650,1100,2600]};
+// ===== song 1: Stadium Anthem (fanfare + choir singing words) =====
+// "kick it up high | run for goal | hear the crowd roar | we will win | pass and shoot score | goal goal goal | we are the stars | let's go team"
+const MLYR=[['k-I','t-I','-U','h-a'],['r-U','f-o','g-o'],['h-i','th-e','k-a','r-o'],['w-i','w-I','w-I'],['p-a','-a','sh-u','s-o'],['g-o','g-o','g-o'],['w-i','-a','th-e','s-a'],['l-e','g-o','t-i']];
+const MCH=[[48,60,64,67],[48,60,64,67],[48,60,64,67],[43,59,62,67],[45,57,60,64],[41,57,60,65],[48,60,64,67],[43,59,62,67],[41,57,60,65],[43,59,62,67]];
+const MFAN=[[[0,67,2],[2,72,2],[4,76,2],[6,79,10]],[[0,77,2],[2,76,2],[4,74,2],[6,79,2],[8,72,8]]];
+const MTH=[[[0,72,4],[4,76,4],[8,79,6],[14,76,2]],[[0,74,4],[4,79,4],[8,83,8]],[[0,81,6],[6,79,2],[8,76,4],[12,72,4]],[[0,77,6],[6,76,2],[8,74,8]],
+ [[0,72,4],[4,76,4],[8,79,4],[12,84,4]],[[0,83,6],[6,81,2],[8,79,8]],[[0,81,4],[4,77,4],[8,79,4],[12,81,4]],[[0,79,8],[8,74,4],[12,79,4]]];
+// ===== songs 2-5 (chords: [root, ...tones] per bar, lead: [step,note,length] per bar) =====
+const TRACKS=[
+ {n:'Stadium Anthem',kind:'anthem',bpm:100,bars:10,v:1},
+ {n:'Kick-off Groove',kind:'funk',bpm:124,bars:8,v:.9,
+  ch:[[45,57,60,64],[41,57,60,65],[48,60,64,67],[43,59,62,67],[45,57,60,64],[41,57,60,65],[43,59,62,67],[48,60,64,67]],
+  lead:[[[0,69,2],[3,72,2],[6,76,3],[10,72,2],[12,69,4]],[[0,69,2],[3,72,2],[6,77,3],[10,76,2],[12,72,4]],[[0,72,2],[3,76,2],[6,79,3],[10,76,2],[12,72,4]],[[0,74,2],[3,79,2],[6,74,3],[10,71,2],[12,67,4]],
+   [[0,76,2],[3,76,2],[6,81,4],[12,79,2],[14,76,2]],[[0,77,2],[3,77,2],[6,81,4],[12,79,2],[14,77,2]],[[0,79,2],[3,74,2],[6,79,4],[12,83,4]],[[0,84,4],[4,79,4],[8,76,4],[12,72,4]]]},
+ {n:'Victory Parade',kind:'parade',bpm:112,bars:8,v:.95,
+  ch:[[36,60,64,67],[41,60,65,69],[43,59,62,67],[36,60,64,67],[36,60,64,67],[41,60,65,69],[43,59,62,67],[36,60,64,67]],
+  lead:[[[0,72,3],[4,76,3],[8,79,2],[10,76,2],[12,72,4]],[[0,77,3],[4,81,3],[8,77,2],[10,74,2],[12,77,4]],[[0,79,3],[4,83,3],[8,79,2],[10,74,2],[12,71,4]],[[0,72,6],[6,76,2],[8,79,8]],
+   [[0,79,2],[2,79,2],[4,84,6],[10,83,2],[12,79,4]],[[0,81,2],[2,81,2],[4,84,6],[10,81,2],[12,77,4]],[[0,79,2],[2,83,2],[4,86,6],[10,83,2],[12,79,4]],[[0,84,8],[8,79,4],[12,72,4]]]},
+ {n:'Night Match',kind:'night',bpm:84,bars:8,v:1.1,
+  ch:[[38,62,65,69],[34,58,62,65],[41,57,60,65],[36,60,64,67],[38,62,65,69],[34,58,62,65],[41,57,60,65],[36,60,64,67]],
+  lead:[[[0,74,8],[8,72,4],[12,69,4]],[[0,70,8],[8,72,4],[12,74,4]],[[0,77,8],[8,76,4],[12,72,4]],[[0,72,6],[6,74,2],[8,76,8]],
+   [[0,77,6],[6,76,2],[8,74,8]],[[0,74,4],[4,72,4],[8,70,8]],[[0,69,4],[4,72,4],[8,77,8]],[[0,76,8],[8,72,8]]]},
+ {n:'Carnival Cup',kind:'samba',bpm:104,bars:8,v:.95,
+  ch:[[36,64,67,72],[38,65,69,72],[43,62,67,71],[36,64,67,72],[45,64,69,72],[38,65,69,72],[43,62,67,71],[36,64,67,72]],
+  lead:[[[0,76,2],[2,79,2],[4,76,2],[6,72,2],[8,76,4],[12,79,4]],[[0,77,2],[2,81,2],[4,77,2],[6,74,2],[8,77,4],[12,81,4]],[[0,79,2],[2,83,2],[4,79,2],[6,74,2],[8,79,4],[12,71,4]],[[0,72,6],[6,76,2],[8,79,6],[14,76,2]],
+   [[0,81,2],[2,76,2],[4,81,2],[6,84,2],[8,81,4],[12,76,4]],[[0,77,2],[2,74,2],[4,77,2],[6,81,2],[8,77,4],[12,74,4]],[[0,83,2],[2,79,2],[4,74,2],[6,79,2],[8,83,4],[12,86,4]],[[0,84,6],[6,79,2],[8,76,8]]]}];
+const MORDER=[0,1,2,3,4];
 function musInit(){if(MUS.ctx)return true;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;const c=new C();MUS.ctx=c;
  MUS.gain=c.createGain();MUS.gain.gain.value=0;MUS.gain.connect(c.destination);
  const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUS.noise=b;return true}catch(e){return false}}
-function mTone(t,f,dur,type,vol,lp){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp||2400;
- g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(fl);fl.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+dur+.05)}
+function mTone(t,f,dur,type,vol,lp,att){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp||2400;att=att||.012;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.setTargetAtTime(0,t+Math.max(att+.01,dur-.08),.06);o.connect(fl);fl.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+dur+.4)}
+function mSing(t,f,dur,vol,syl){const c=MUS.ctx,sp=(syl||'-a').split('-'),cons=sp[0],vw=VOW[sp[1]]||VOW.a,out=c.createGain(),on=cons?.07:.02;
+ out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(vol,t+on+.05);out.gain.setValueAtTime(vol,t+Math.max(.12,dur-.1));out.gain.linearRampToValueAtTime(0,t+dur+.1);out.connect(MUS.gain);
+ const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=5.5;lg.gain.value=f*.006;lfo.connect(lg);lfo.start(t);lfo.stop(t+dur+.2);
+ [-12,0,12].forEach(dt=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=dt;lg.connect(o.frequency);
+  vw.forEach((fq,ix)=>{const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.setValueAtTime(cons?fq*.8:fq,t);bp.frequency.linearRampToValueAtTime(fq,t+on+.06);bp.Q.value=7+ix*2;const ga=c.createGain();ga.gain.value=[1,.75,.3][ix]*.45;o.connect(bp);bp.connect(ga);ga.connect(out)});o.start(t);o.stop(t+dur+.2)});
+ if(cons){const hard='kptg'.includes(cons[0]);mNoise(t,hard?.05:.12,hard?.5:.28,cons==='s'||cons==='sh'||cons==='f'||cons==='th'?4500:cons==='h'?1500:900)}}
 function mNoise(t,dur,vol,hp,lpf){const c=MUS.ctx,s=c.createBufferSource(),g=c.createGain(),fl=c.createBiquadFilter();s.buffer=MUS.noise;fl.type=lpf?'lowpass':'highpass';fl.frequency.value=hp;
  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(fl);fl.connect(g);g.connect(MUS.gain);s.start(t);s.stop(t+dur+.02)}
-function mKick(t){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.14);
- g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+.22)}
-function musStep(t,st,spd){const bar=Math.floor(st/16)%8,k=st%16,ch=MCH[bar];
- if(k%8===0)mKick(t);                                   // boom ... boom
- if(k===4||k===12){mNoise(t,.12,.55,1500);mTone(t,190,.08,'triangle',.25)}  // clap on 2 and 4
- if(k%2===0)mNoise(t,.04,.12,7000);                     // hi-hat
- if(k%4===0){const root=ch[0];mTone(t,mf(root),spd*3.4,'triangle',.5,500);}   // bass
- if(k%8===0||k===6||k===14){ch.slice(1).forEach(n=>mTone(t,mf(n),spd*2.2,'square',.035,1800))} // chord stabs
- if(k%2===0){const n=MMEL[bar][k/2];if(n){mTone(t,mf(n),spd*3.2,'sawtooth',.16,2600);mTone(t,mf(n)*1.004,spd*3.2,'square',.05,2000)}}} // the tune
-function musTick(){const c=MUS.ctx;if(!c||!MUS_ON)return;const spd=60/132/4;
- while(MUS.next<c.currentTime+.15){if(MUS.next<c.currentTime-.3)MUS.next=c.currentTime+.05;musStep(MUS.next,MUS.step,spd);MUS.next+=spd;MUS.step=(MUS.step+1)%128}
- const inM=typeof P!=='undefined'&&P&&typeof M!=='undefined'&&M&&!M.done;MUS.gain.gain.setTargetAtTime(inM?.1:.28,c.currentTime,.4)}
+function mSwell(t,dur,vol){const c=MUS.ctx,s=c.createBufferSource(),g=c.createGain(),bp=c.createBiquadFilter();s.buffer=MUS.noise;s.loop=true;bp.type='bandpass';bp.frequency.value=1300;bp.Q.value=.7;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+dur*.6);g.gain.linearRampToValueAtTime(0,t+dur);s.connect(bp);bp.connect(g);g.connect(MUS.gain);s.start(t);s.stop(t+dur+.05)}
+function mTimp(t,f){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(f*1.5,t);o.frequency.exponentialRampToValueAtTime(f,t+.12);
+ g.gain.setValueAtTime(1,t);g.gain.exponentialRampToValueAtTime(.001,t+.7);o.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+.75)}
+function mKick(t,vol){const c=MUS.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.14);
+ g.gain.setValueAtTime(vol||.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(MUS.gain);o.start(t);o.stop(t+.22)}
+const leadAt=(tr,bar,k,t,spd,vol,type)=>tr.lead[bar].forEach(([ps,n,len])=>{if(ps!==k)return;mTone(t,mf(n),len*spd,type||'sawtooth',vol,3200,.02);mTone(t,mf(n)*1.004,len*spd,'square',vol*.35,2200,.02)});
+function musAnthem(t,st,spd){const bar=Math.floor(st/16),k=st%16,ch=MCH[bar],fan=bar<2,th=bar-2;
+ if(k===0){ch.slice(1).forEach(n=>mTone(t,mf(n),spd*15,'sawtooth',fan?.03:.045,900,.25));mTone(t,mf(ch[0]),spd*15,'triangle',.5,400,.05)}
+ if(k===0||k===8)mTimp(t,mf(ch[0]-12>30?ch[0]-12:ch[0]));
+ if(!fan&&(k===4||k===12))mNoise(t,.1,.3,2000);
+ if(!fan&&k%2===0&&k!==0)mNoise(t,.03,.07,7500);
+ if(bar===9&&k>=8&&k%2===0)mNoise(t,.08,.4+(k-8)*.04,1800);
+ if(k===0&&(bar===0||bar===2||bar===6))mNoise(t,1.3,.45,5000);
+ if(k===0&&(bar===1||bar===5))mSwell(t,spd*16,.14);
+ const mel=fan?MFAN[bar]:MTH[th];mel.forEach(([ps,n,len],ix)=>{if(ps!==k)return;
+  if(fan){mTone(t,mf(n),len*spd,'sawtooth',.2,3200,.02);mTone(t,mf(n)*1.003,len*spd,'square',.06,2200,.02)}
+  else{const sy=MLYR[th][ix];mSing(t,mf(n-12),len*spd,.55,sy);mSing(t,mf(n),len*spd,.3,sy);mTone(t,mf(n),len*spd,'sawtooth',.02,1800,.05)}})}
+function musFunk(tr,t,bar,k,spd){const ch=tr.ch[bar],r=ch[0];
+ if(k%4===0)mKick(t,.85);
+ if(k===4||k===12){mNoise(t,.1,.5,1800);mTone(t,200,.07,'triangle',.2)}
+ if(k%2===0)mNoise(t,k%4===2?.09:.03,k%4===2?.14:.09,7000);
+ if([0,3,6,8,11,14].includes(k))mTone(t,mf(r+([3,11,14].includes(k)?12:k===8?7:0)),spd*2.4,'triangle',.5,700);
+ if(k===2||k===10||k===14)ch.slice(1).forEach(n=>mTone(t,mf(n),spd*1.5,'square',.035,2200));
+ leadAt(tr,bar,k,t,spd,.12,'sawtooth');if(k===0&&bar%4===0)mNoise(t,1,.3,5000)}
+function musParade(tr,t,bar,k,spd){const ch=tr.ch[bar],r=ch[0];
+ if(k===0||k===8)mTone(t,mf(r+(k===8&&bar%2?7:0)),spd*3.2,'square',.3,500);        // oom
+ if(k===4||k===12){ch.slice(1).forEach(n=>mTone(t,mf(n),spd*2,'square',.05,1900));mNoise(t,.09,.4,2200)}  // pah + snare
+ if(k===0||k===8)mKick(t,.8);
+ if(bar===7&&k>=8&&k%2===0)mNoise(t,.07,.35,2000);
+ if(k===0&&(bar===0||bar===4))mNoise(t,1.1,.35,5000);
+ leadAt(tr,bar,k,t,spd,.17,'sawtooth')}
+function musNight(tr,t,bar,k,spd){const ch=tr.ch[bar];
+ if(k===0){ch.slice(1).forEach(n=>mTone(t,mf(n),spd*16,'sawtooth',.03,700,.4));mTone(t,mf(ch[0]),spd*16,'triangle',.45,300,.08)}
+ if(k%2===0){const j=(k/2)%4,n=ch[1+[0,1,2,1][j%4]]+(j>=2?12:0);mTone(t,mf(n),spd*3,'triangle',.11,2200)}
+ if(k===0||k===10)mKick(t,.5);
+ if(k%4===2)mNoise(t,.04,.07,8000);
+ if(k===8)mNoise(t,.06,.14,3000);
+ tr.lead[bar].forEach(([ps,n,len])=>{if(ps!==k)return;mTone(t,mf(n),len*spd,'sine',.2,2000,.06);mTone(t,mf(n)*2,len*spd,'sine',.04,3000,.06)})}
+function musSamba(tr,t,bar,k,spd){const ch=tr.ch[bar],r=ch[0];
+ mNoise(t,.03,k%4===0?.14:.07,8000);
+ if(k===0)mTimp(t,75);if(k===8)mTimp(t,88);
+ if([0,3,6,10,12].includes(k)){mNoise(t,.05,.18,5000);mTone(t,880,.04,'triangle',.07,4000)}
+ if([0,6,8,14].includes(k))mTone(t,mf(r+([6,14].includes(k)?7:0)),spd*2.6,'triangle',.5,700);
+ if(k===0||k===6||k===10)ch.slice(1).forEach(n=>mTone(t,mf(n),spd*1.8,'triangle',.07,2000));
+ leadAt(tr,bar,k,t,spd,.15,'sawtooth')}
+function musStep(t,st,spd,tr){tr=tr||MUS.tr;const bar=Math.floor(st/16);
+ if(tr.kind==='anthem')musAnthem(t,st,spd);else{const k=st%16;({funk:musFunk,parade:musParade,night:musNight,samba:musSamba})[tr.kind](tr,t,bar,k,spd)}}
+function musNowPlaying(tr,delay){setTimeout(()=>{if(MUS_ON&&typeof toast==='function')toast('🎵 Now playing: '+tr.n)},Math.max(0,delay*1000))}
+function musTick(){const c=MUS.ctx;if(!c||!MUS_ON)return;
+ while(MUS.next<c.currentTime+.15){if(MUS.next<c.currentTime-.3)MUS.next=c.currentTime+.05;
+  if(!MUS.tr||MUS.step>=MUS.tr.bars*16){const first=!MUS.tr;if(!first)MUS.tn=(MUS.tn+1)%MORDER.length;MUS.tr=TRACKS[MORDER[MUS.tn]];MUS.step=0;if(!first||MUS.tn>0)musNowPlaying(MUS.tr,MUS.next-c.currentTime)}
+  const spd=60/MUS.tr.bpm/4;musStep(MUS.next,MUS.step,spd);MUS.next+=spd;MUS.step++}
+ const inM=typeof P!=='undefined'&&P&&typeof M!=='undefined'&&M&&!M.done;
+ const quiet=(typeof TT!=='undefined'&&TT)||(typeof TRY!=='undefined'&&TRY);                       // training & try-out scenes: no music
+ const talk=typeof NG!=='undefined'&&NG;
+ let g=quiet?0:talk?.07:inM?.1:.28;if(inM&&COMM_ON&&window.speechSynthesis&&speechSynthesis.speaking)g=.04;
+ MUS.gain.gain.setTargetAtTime(g*(MUS.tr?MUS.tr.v:1),c.currentTime,.25)}
 function musStart(){if(!MUS_ON||!musInit())return;const c=MUS.ctx;if(c.state==='suspended')c.resume();if(MUS.timer)return;MUS.next=c.currentTime+.08;MUS.timer=setInterval(musTick,40)}
 function musStop(){if(MUS.timer){clearInterval(MUS.timer);MUS.timer=null}if(MUS.ctx){MUS.gain.gain.setTargetAtTime(0,MUS.ctx.currentTime,.1)}}
+function musNext(){if(!MUS_ON){MUS_ON=true;try{localStorage.setItem('soccerMgrMusic','1')}catch(e){}const b=$('#musB');if(b)b.textContent='🎵'}musStart();if(MUS.tr)MUS.step=MUS.tr.bars*16}
 function toggleMusic(){MUS_ON=!MUS_ON;try{localStorage.setItem('soccerMgrMusic',MUS_ON?'1':'0')}catch(e){}MUS_ON?musStart():musStop();const b=$('#musB');if(b)b.textContent=MUS_ON?'🎵':'🔇'}
 addEventListener('pointerdown',()=>{if(MUS_ON)musStart()},{passive:true});
 document.addEventListener('visibilitychange',()=>{if(!MUS.ctx)return;if(document.hidden)MUS.ctx.suspend();else if(MUS_ON)MUS.ctx.resume()});
-// ---- 🎙️ commentator (uses the device's own voices; nothing is sent anywhere) ----
+
+// ---- 🎙️ commentator: speaks in the language you pick, with a voice of that language (uses the device's own voices; nothing is sent anywhere) ----
 let COMM_ON=true;try{COMM_ON=localStorage.getItem('soccerMgrComm')!=='0'}catch(e){}
-const CM={t:0,voice:undefined};
-const spokenTxt=t=>String(t).replace(/<[^>]*>/g,'').replace(/#(\d+)/g,'number $1').replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[^\w\s.,!?'’-]/g,' ');
-function commSpeak(text,hi){if(!COMM_ON||!text)return;try{const ss=window.speechSynthesis;if(!ss)return;
- if(CM.voice===undefined)CM.voice=pickVoice('comm');const now=Date.now();
+const COMML=[['en','English','en-US'],['es','Español','es-ES'],['fr','Français','fr-FR'],['de','Deutsch','de-DE'],['pt','Português','pt-BR'],['zh','中文','zh-CN'],['ja','日本語','ja-JP'],['ko','한국어','ko-KR']];
+let COMM_LANG='en';try{COMM_LANG=localStorage.getItem('soccerMgrCommLang')||'';if(!COMML.some(x=>x[0]===COMM_LANG)){const n=(navigator.language||'en').slice(0,2).toLowerCase();COMM_LANG=COMML.some(x=>x[0]===n)?n:'en'}}catch(e){COMM_LANG='en'}
+const CM={t:0,v:{},warned:{}};
+const CNUM={en:n=>'number '+n,es:n=>'número '+n,fr:n=>'numéro '+n,de:n=>'Nummer '+n,pt:n=>'número '+n,zh:n=>n+'号',ja:n=>n+'番',ko:n=>n+'번'};
+const CT={
+en:{kick:["Kick off! Let's go {t}!"],got:["Oh my god, {w} got the ball!","{w} has it now!","Nice pass! {w} receives it."],steal:["Oh no! {t} stole it! Now {w} has the ball.","Stolen! {w} takes it away! {o} must win it back!","Okay, the other team stole it! {o} have to get it back now!"],
+ goal:["Goal! {w} scores! What a shot!","Goal! {w} scores! The crowd goes wild!"],conc:["Goal for {t}. {w} scores. Ouch!"],save:["Shot! Saved by the keeper!"],bigsave:["What a save by {w}!"],wide:["{w} shoots wide. So close!"],post:["{w} hits the post!"],
+ foul:["{w} slide tackles {v}! Foul!"],yellow:["Yellow card for {w}!"],red:["Red card! {w} is sent off!"],offside:["Offside! The linesman raises his flag."],half:["Half time! Time for a water break."],second:["Second half! Let's go!"],full:["Full time!"],skill:["{w} does a skill move! Wow!"],sub:["{w} comes on for {v}."]},
+es:{kick:["¡Comienza el partido! ¡Vamos {t}!"],got:["¡Dios mío, {w} tiene el balón!","¡{w} la tiene ahora!","¡Buen pase! {w} la recibe."],steal:["¡Oh no! ¡{t} la robó! Ahora {w} tiene el balón.","¡Robada! ¡{w} se la lleva! ¡{o} debe recuperarla!"],
+ goal:["¡Gol! ¡{w} anota! ¡Qué disparo!","¡Gol! ¡{w} marca! ¡La multitud enloquece!"],conc:["Gol de {t}. {w} anota. ¡Ay!"],save:["¡Disparo! ¡Parada del portero!"],bigsave:["¡Qué parada de {w}!"],wide:["{w} dispara afuera. ¡Qué cerca!"],post:["¡{w} pega en el poste!"],
+ foul:["¡{w} derriba a {v}! ¡Falta!"],yellow:["¡Tarjeta amarilla para {w}!"],red:["¡Tarjeta roja! ¡{w} es expulsado!"],offside:["¡Fuera de juego! El juez de línea levanta la bandera."],half:["¡Medio tiempo! Descanso para beber agua."],second:["¡Segundo tiempo! ¡Vamos!"],full:["¡Final del partido!"],skill:["¡{w} hace una jugada de habilidad! ¡Guau!"],sub:["{w} entra por {v}."]},
+fr:{kick:["Coup d'envoi ! Allez {t} !"],got:["Oh mon dieu, {w} a le ballon !","{w} l'a maintenant !","Belle passe ! {w} la reçoit."],steal:["Oh non ! {t} l'a volé ! {w} a le ballon.","Volé ! {w} l'emporte ! {o} doit le récupérer !"],
+ goal:["But ! {w} marque ! Quel tir !","But ! {w} marque ! La foule est en folie !"],conc:["But pour {t}. {w} marque. Aïe !"],save:["Tir ! Arrêt du gardien !"],bigsave:["Quel arrêt de {w} !"],wide:["{w} tire à côté. Si proche !"],post:["{w} touche le poteau !"],
+ foul:["{w} tacle {v} ! Faute !"],yellow:["Carton jaune pour {w} !"],red:["Carton rouge ! {w} est expulsé !"],offside:["Hors-jeu ! Le juge de touche lève son drapeau."],half:["Mi-temps ! Pause pour boire de l'eau."],second:["Deuxième mi-temps ! Allez !"],full:["Fin du match !"],skill:["{w} fait un geste technique ! Wow !"],sub:["{w} remplace {v}."]},
+de:{kick:["Anstoß! Los, {t}!"],got:["Oh mein Gott, {w} hat den Ball!","{w} hat ihn jetzt!","Schöner Pass! {w} nimmt ihn an."],steal:["Oh nein! {t} hat den Ball erobert! Jetzt hat {w} ihn.","Ballverlust! {w} schnappt ihn sich! {o} muss ihn zurückholen!"],
+ goal:["Tor! {w} trifft! Was für ein Schuss!","Tor! {w} trifft! Das Publikum tobt!"],conc:["Tor für {t}. {w} trifft. Autsch!"],save:["Schuss! Der Torwart hält!"],bigsave:["Was für eine Parade von {w}!"],wide:["{w} schießt vorbei. So knapp!"],post:["{w} trifft den Pfosten!"],
+ foul:["{w} grätscht {v} um! Foul!"],yellow:["Gelbe Karte für {w}!"],red:["Rote Karte! {w} fliegt vom Platz!"],offside:["Abseits! Der Linienrichter hebt die Fahne."],half:["Halbzeit! Zeit für eine Trinkpause."],second:["Zweite Halbzeit! Los geht's!"],full:["Abpfiff!"],skill:["{w} zeigt einen Trick! Wow!"],sub:["{w} kommt für {v}."]},
+pt:{kick:["Começa o jogo! Vamos {t}!"],got:["Meu Deus, {w} pegou a bola!","{w} está com ela agora!","Belo passe! {w} recebe."],steal:["Ah não! {t} roubou a bola! Agora {w} está com ela.","Roubou! {w} leva a bola! {o} precisa recuperar!"],
+ goal:["Gol! {w} marca! Que chute!","Gol! {w} marca! A torcida vai à loucura!"],conc:["Gol do {t}. {w} marca. Ai!"],save:["Chute! O goleiro defendeu!"],bigsave:["Que defesa de {w}!"],wide:["{w} chuta para fora. Foi por pouco!"],post:["{w} acerta a trave!"],
+ foul:["{w} derruba {v}! Falta!"],yellow:["Cartão amarelo para {w}!"],red:["Cartão vermelho! {w} foi expulso!"],offside:["Impedimento! O bandeirinha levanta a bandeira."],half:["Intervalo! Hora de beber água."],second:["Segundo tempo! Vamos!"],full:["Fim de jogo!"],skill:["{w} faz uma jogada de habilidade! Uau!"],sub:["{w} entra no lugar de {v}."]},
+zh:{kick:["比赛开始!加油,{t}!"],got:["天哪,{w}拿到球了!","{w}现在控球!","漂亮的传球!{w}接到了球。"],steal:["糟糕!{t}抢断了!现在{w}控球。","被抢了!{w}把球带走了!{o}必须把球抢回来!"],
+ goal:["进球了!{w}破门!好球!","进球了!{w}破门!球迷沸腾了!"],conc:["{t}进球了。{w}破门。哎呀!"],save:["射门!门将扑出来了!"],bigsave:["{w}太精彩的扑救!"],wide:["{w}射偏了。差一点!"],post:["{w}打中了门柱!"],
+ foul:["{w}铲倒了{v}!犯规!"],yellow:["{w}吃到黄牌!"],red:["红牌!{w}被罚下场!"],offside:["越位!边裁举起了旗子。"],half:["中场休息!喝水时间。"],second:["下半场开始!加油!"],full:["比赛结束!"],skill:["{w}来了一个花式过人!哇!"],sub:["{w}替换{v}上场。"]},
+ja:{kick:["キックオフ!頑張れ、{t}!"],got:["うわあ、{w}がボールを持った!","{w}がボールを持っています!","ナイスパス!{w}が受けた。"],steal:["ああ!{t}に奪われた!今は{w}がボールを持っています。","奪われた!{w}が持っていく!{o}は取り返さなければ!"],
+ goal:["ゴール!{w}が決めた!すごいシュート!","ゴール!{w}が決めた!観客が大興奮!"],conc:["{t}のゴール。{w}が決めました。うわあ!"],save:["シュート!キーパーが止めた!"],bigsave:["{w}のスーパーセーブ!"],wide:["{w}のシュートは外れた。惜しい!"],post:["{w}のシュートがポストに当たった!"],
+ foul:["{w}が{v}にスライディング!ファウル!"],yellow:["{w}にイエローカード!"],red:["レッドカード!{w}は退場です!"],offside:["オフサイド!副審が旗を上げました。"],half:["ハーフタイム!水分補給の時間です。"],second:["後半開始!行くぞ!"],full:["試合終了!"],skill:["{w}がテクニックを見せた!すごい!"],sub:["{w}が{v}と交代。"]},
+ko:{kick:["경기 시작! 힘내라, {t}!"],got:["세상에, {w}가 공을 잡았어요!","{w}가 공을 가졌어요!","멋진 패스! {w}가 받았어요."],steal:["아니! {t}가 공을 뺏었어요! 이제 {w}가 공을 가졌어요.","빼앗겼어요! {w}가 가져가요! {o}가 되찾아야 해요!"],
+ goal:["골! {w}가 넣었어요! 멋진 슛!","골! {w}가 넣었어요! 관중이 열광해요!"],conc:["{t}의 골. {w}가 넣었어요. 아이고!"],save:["슛! 골키퍼가 막았어요!"],bigsave:["{w}의 슈퍼 세이브!"],wide:["{w}의 슛이 빗나갔어요. 아까워요!"],post:["{w}의 슛이 골대를 맞혔어요!"],
+ foul:["{w}가 {v}에게 슬라이딩 태클! 반칙!"],yellow:["{w}에게 옐로카드!"],red:["레드카드! {w}가 퇴장당했어요!"],offside:["오프사이드! 선심이 깃발을 들었어요."],half:["하프타임! 물 마시는 시간이에요."],second:["후반전 시작! 가자!"],full:["경기 종료!"],skill:["{w}가 화려한 기술을 보여줘요! 와!"],sub:["{w}가 {v}와 교체돼요."]}};
+const CHI=new Set(['goal','conc','red','yellow','full','half','second','offside','bigsave','kick','post']);
+// never spell words out: "GOAL" -> "Goal", strip emoji/tags, say numbers in the commentary language
+const spokenTxt=t=>String(t).replace(/<[^>]*>/g,'').replace(/\b[A-Z]{2,}\b/g,w=>w[0]+w.slice(1).toLowerCase()).replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,' ');
+function commVoice(code){try{if(CM.v[code]!==undefined)return CM.v[code];const all=speechSynthesis.getVoices();if(!all.length)return undefined;
+ const c=all.filter(v=>v.lang.toLowerCase().replace('_','-').startsWith(code));if(!c.length){CM.v[code]=null;return null}
+ const loc=c.filter(v=>v.localService),pool=loc.length?loc:c,m=code==='en'?pool.filter(v=>/male|david|daniel|alex|fred|tom|aaron|arthur|gordon|rishi|guy|mark|james|oliver/i.test(v.name)&&!/female/i.test(v.name)):[];
+ return CM.v[code]=(m.length?m:pool)[0]}catch(e){return undefined}}
+function commSpeak(text,hi,code){if(!COMM_ON||!text)return;try{const ss=window.speechSynthesis;if(!ss)return;code=code||'en';const now=Date.now();
  if(!hi){if(P&&P.speed>1)return;if(ss.speaking||now-CM.t<2200)return}
- const u=new SpeechSynthesisUtterance(spokenTxt(text));if(CM.voice&&CM.voice!=='default'){u.voice=CM.voice;u.lang=CM.voice.lang}else u.lang='en-US';
- u.pitch=hi?1.05:.82;u.rate=hi?1.3:1.18;u.volume=1;if(hi)ss.cancel();ss.speak(u);CM.t=now}catch(e){}}
-function commAuto(t){if(!COMM_ON)return;const hi=/GOAL|GOAAAL|Full time|Half time|red card|yellow|Offside|CAT save|big save|saved/i.test(t);
- if(/GOAL|GOAAAL/.test(t))return commSpeak(pick(['Oh my god! ','Unbelievable! ','What a goal! '])+t,true);commSpeak(t,hi)}
-function commLine(text,hi){say('🎙️ '+text,'comm',true);commSpeak(text,hi)}
-const cmTeam=t=>t===0?esc(TN()):esc(M.o.name);
-const cmWho=p=>p.t===0&&p.name?`number ${p.num||''} ${esc(p.name.split(' ')[0])}`.replace('number  ','').trim():`number ${p.num}`;
-function commGot(p){if(Math.random()<.3)commLine(pick([`Oh my god, ${cmWho(p)} got the ball!`,`${cmWho(p)} has it now!`,`Okay, ${cmWho(p)} on the ball.`,`Nice pass! ${cmWho(p)} receives it.`]))}
-function commSteal(opp,from){commLine(pick([`Oh no! ${cmTeam(opp.t)} stole it! Now ${cmWho(opp)} has the ball.`,`Okay! The other team stole it! ${cmTeam(from)} have to get it back now!`,`Stolen! ${cmWho(opp)} takes it away! ${cmTeam(1-opp.t)} must win it back!`]),true)}
+ const u=new SpeechSynthesisUtterance(spokenTxt(text)),vo=commVoice(code),info=COMML.find(x=>x[0]===code);
+ if(vo){u.voice=vo;u.lang=vo.lang}else u.lang=info?info[2]:'en-US';
+ u.pitch=hi?1.05:.85;u.rate=hi?1.25:1.12;u.volume=1;if(hi)ss.cancel();ss.speak(u);CM.t=now}catch(e){}}
+const cmTeam=t=>t===0?TN():M.o.name;
+function cmWho(p){const L=CNUM[COMM_LANG]||CNUM.en,f=p.name?String(p.name).split(' ')[0]:'';return (p.num?L(p.num):'')+(f?(p.num?' ':'')+f:'')}
+function cev(type,d){if(!COMM_ON)return;if(type==='got'&&Math.random()>.3)return;let code=COMM_LANG;
+ if(code!=='en'&&commVoice(code)===null){if(!CM.warned[code]){CM.warned[code]=1;const nm=(COMML.find(x=>x[0]===code)||[])[1];toast(`🎙️ No ${nm} voice on this device. Using English.`)}code='en'}
+ const arr=(CT[code]||CT.en)[type];if(!arr)return;d=d||{};const txt=pick(arr).replace(/\{(\w)\}/g,(m,k)=>d[k]!==undefined?d[k]:'');
+ if(type==='got'||type==='steal')say('🎙️ '+esc(txt),'comm',true);commSpeak(txt,CHI.has(type),code)}
+function commAuto(){}
+function setCommLang(v){COMM_LANG=v;try{localStorage.setItem('soccerMgrCommLang',v)}catch(e){}try{speechSynthesis.cancel()}catch(e){}cev('kick',{t:TN()})}
 function toggleComm(){COMM_ON=!COMM_ON;try{localStorage.setItem('soccerMgrComm',COMM_ON?'1':'0')}catch(e){}if(!COMM_ON)try{speechSynthesis.cancel()}catch(e){}const b=$('#cmB');if(b)b.textContent=COMM_ON?'🎙️ Commentator ON':'🎙️ Commentator OFF'}
 function upd(){const a=$('#sMy');if(a){a.textContent=M.my;$('#sOp').textContent=M.op;$('#clock').textContent=M.min+"'"}}
 function flash(t,sad){const f=$('#flash');if(!f)return;f.textContent=t;f.style.color=sad?'#ff7a7a':'#fff';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');if(!sad)confetti(60)}
@@ -1460,21 +1575,21 @@ function refStep(){const rf=P.ref||(P.ref={x:.45,y:.62,card:null,whistle:0}),ar=
 function startFoul(victim,card){const fouler=P.teams[1-victim.t].filter(p=>p.role!=='GK'&&!p.off).sort((a,b)=>dist(a,victim)-dist(b,victim))[0];if(!fouler)return finishPlan();
  M.cards=M.cards||{};const key=fouler.t+':'+fouler.i;if(card==='yellow'&&M.cards[key])card='red';
  P.foul={f:0,fouler,victim,card,spot:{x:victim.x,y:victim.y}};P.carrier=null;P.dribble=null;P.wait=0;P.after=null;
- say(`🦵 ${pname(fouler)} slide tackles ${pname(victim)}! FOUL! 😣`)}
+ say(`🦵 ${pname(fouler)} slide tackles ${pname(victim)}! FOUL! 😣`);cev('foul',{w:cmWho(fouler),v:cmWho(victim)})}
 function foulStep(){const F=P.foul;F.f++;const end=F.card?(F.card==='red'?240:180):95;
  if(F.f<34)F.fouler.slide=1;if(F.f===34){F.fouler.slide=0;F.victim.down=end-20;P.ref.whistle=40;P.ball.x+=dirOf(F.victim.t)*.02;say('📣 The referee blows his whistle! Free kick.')}
- if(F.card){if(F.f===90){P.ref.card='yellow';if(F.card!=='red'||M.cards[F.fouler.t+':'+F.fouler.i]===undefined)say(`🟨 Yellow card for ${pname(F.fouler)}!`);M.cards[F.fouler.t+':'+F.fouler.i]=(M.cards[F.fouler.t+':'+F.fouler.i]||0)+1}
-  if(F.card==='red'&&F.f===150){P.ref.card='red';say(`🟥 RED CARD! ${pname(F.fouler)} is sent off!`);F.fouler.off=true;if(F.fouler.t===0)M.redMy=(M.redMy||0)+1;else M.redOp=(M.redOp||0)+1;
+ if(F.card){if(F.f===90){P.ref.card='yellow';if(F.card!=='red'||M.cards[F.fouler.t+':'+F.fouler.i]===undefined){say(`🟨 Yellow card for ${pname(F.fouler)}!`);cev('yellow',{w:cmWho(F.fouler)})};M.cards[F.fouler.t+':'+F.fouler.i]=(M.cards[F.fouler.t+':'+F.fouler.i]||0)+1}
+  if(F.card==='red'&&F.f===150){P.ref.card='red';say(`🟥 RED CARD! ${pname(F.fouler)} is sent off!`);cev('red',{w:cmWho(F.fouler)});F.fouler.off=true;if(F.fouler.t===0)M.redMy=(M.redMy||0)+1;else M.redOp=(M.redOp||0)+1;
    if(P.ref.card&&F.fouler.t===0&&!M.online)M.R=matchR()}
   if(F.f===(F.card==='red'?215:160))P.ref.card=null}
  if(F.f>=end){F.victim.down=0;P.ref.card=null;const v=F.victim;P.foul=null;P.ball.x=v.x+dirOf(v.t)*.013;P.ball.y=v.y;setCarrier(v);P.plan={team:v.t,kind:'keep',passes:1};P.wait=25;P.after=next}}
-function startOffside(){P.offside={f:0};P.wait=0;P.after=null;P.dribble=null;say('🚩 Offside! The linesman raises his flag.')}
+function startOffside(){P.offside={f:0};P.wait=0;P.after=null;P.dribble=null;say('🚩 Offside! The linesman raises his flag.');cev('offside')}
 function offsideStep(){const F=P.offside;F.f++;if(F.f===25){P.ref.whistle=40;say('📣 Free kick to the other team.')}
  if(F.f>95){P.offside=null;const t=1-P.poss,b=P.ball,d=P.teams[t].filter(p=>!p.off&&p.role!=='GK').sort((a,c)=>dist(a,b)-dist(c,b))[0]||keeper(t);
   fly(d.x,d.y,.015,.02,d,()=>{setCarrier(d);P.plan={team:d.t,kind:'end'};P.wait=15;P.after=next})}}
 function halfSpot(p){return{x:.18+p.i*.058,y:p.t===0?1.07:-.07}}
-function startHalf(){say('⏸️ Half time! Water break 💧');P.mode='half';P.halfF=0;P.carrier=null;P.dribble=null;P.ball.fly=null;P.ball.x=.5;P.ball.y=.5;P.ball.z=0;P.wait=0;P.after=null;P.foul=null;P.offside=null}
-function halfStep(){P.halfF++;if(P.halfF>540){P.teams.forEach(tm=>tm.forEach(p=>p.sit=false));say('▶️ Second half! Let\'s go!');kickoff(1);P.reset=210;P.wait=40;P.after=nextChunk}}
+function startHalf(){say('⏸️ Half time! Water break 💧');cev('half');P.mode='half';P.halfF=0;P.carrier=null;P.dribble=null;P.ball.fly=null;P.ball.x=.5;P.ball.y=.5;P.ball.z=0;P.wait=0;P.after=null;P.foul=null;P.offside=null}
+function halfStep(){P.halfF++;if(P.halfF>540){P.teams.forEach(tm=>tm.forEach(p=>p.sit=false));say('▶️ Second half! Let\'s go!');cev('second');kickoff(1);P.reset=210;P.wait=40;P.after=nextChunk}}
 function fly(tx,ty,spd,h,to,done){const b=P.ball,L=Math.hypot(tx-b.x,ty-b.y);P.carrier=null;P.dribble=null;
  b.fly={fx:b.x,fy:b.y,tx,ty,k:0,dur:Math.max(10,L/spd),h,to,done}}
 function setCarrier(p){P.carrier=p;P.poss=p.t;p.dive=null}
@@ -1488,8 +1603,8 @@ function pickTarget(c,forward){const mates=P.teams[c.t].filter(p=>p!==c&&!p.off&
 function passTo(c,r,intercept){P.last=c;const tx=clamp(r.x+dirOf(r.t)*.025,.02,.98),ty=r.y,L=Math.hypot(tx-c.x,ty-c.y),h=L>.3?.07:.01;
  if(intercept){const mx=c.x+(tx-c.x)*.55,my=c.y+(ty-c.y)*.55,opp=P.teams[1-c.t].filter(p=>p.role!=='GK'&&!p.off).sort((a,b)=>dist(a,{x:mx,y:my})-dist(b,{x:mx,y:my}))[0];
   const ix=opp.x+(mx-opp.x)*.4,iy=opp.y+(my-opp.y)*.4;
-  fly(ix,iy,.016,.01,opp,()=>{setCarrier(opp);commSteal(opp,c.t);P.wait=18;P.after=next});return}
- fly(tx,ty,.017+(h>.02?.002:0),h,r,()=>{setCarrier(r);commGot(r);P.wait=rnd(8,22);P.after=next})}
+  fly(ix,iy,.016,.01,opp,()=>{setCarrier(opp);cev('steal',{t:cmTeam(opp.t),w:cmWho(opp),o:cmTeam(c.t)});P.wait=18;P.after=next});return}
+ fly(tx,ty,.017+(h>.02?.002:0),h,r,()=>{setCarrier(r);cev('got',{w:cmWho(r)});P.wait=rnd(8,22);P.after=next})}
 
 function next(){const pl=P.plan,c=P.carrier;if(!pl)return endChunk();if(!c){P.wait=10;P.after=next;return}
  pl.steps=(pl.steps||0)+1;
@@ -1509,7 +1624,7 @@ function next(){const pl=P.plan,c=P.carrier;if(!pl)return endChunk();if(!c){P.wa
 
 function keeper(t){return P.teams[t].find(p=>p.role==='GK'&&!p.off)||P.teams[t].slice().sort((a,b)=>a.bu-b.bu)[0]}
 const MOVES=['a rainbow flick','a step-over','a crazy spin','a nutmeg','an elastico','a roulette','a heel flick'];
-function skillMove(c){const j=stOf(c,'joker');if(!j)return;P.skill={p:c,f:0,l:j.l};if(Math.random()<.55+.15*j.l)say(`🃏 ${pname(c)} does ${pick(MOVES)}!${c.t===0?' 🔥':''}`)}
+function skillMove(c){const j=stOf(c,'joker');if(!j)return;P.skill={p:c,f:0,l:j.l};if(Math.random()<.55+.15*j.l){say(`🃏 ${pname(c)} does ${pick(MOVES)}!${c.t===0?' 🔥':''}`);cev('skill',{w:cmWho(c)})}}
 function shoot(c,res){if(stOf(c,'sniper'))say(`🎯 ${pname(c)} the Sniper shoots!`);const t=c.t,gx=t===0?1:0,dir=dirOf(t),gk=keeper(1-t),assist=P.last&&P.last.t===t&&P.last!==c?P.last:null;
  let tx,ty;
  if(res==='goal'){ty=Math.random()<.5?.44+Math.random()*.03:.53+Math.random()*.03;tx=gx+dir*.014;gk.dive={x:gk.x,y:ty>.5?ty-.07:ty+.07}}
@@ -1517,12 +1632,12 @@ function shoot(c,res){if(stOf(c,'sniper'))say(`🎯 ${pname(c)} the Sniper shoot
  else if(res==='wide'){ty=Math.random()<.5?.37:.63;tx=gx+dir*.02}
  else{ty=Math.random()<.5?.438:.562;tx=gx}
  fly(tx,ty,.026,.025,null,()=>{
-  if(res==='goal'){if(t===0){M.my++;say(`⚽ GOAAAL! <b>${esc(c.name)}</b> scores!${assist?` Great pass from ${esc(assist.name)}.`:''} ${pick(['What a shot!','The crowd goes wild!','Amazing!'])}`,'g');flash('GOAL!')}
-   else{M.op++;say(`😱 Goal for ${esc(M.o.name)} — ${pname(c)} scores. ${pick(['Our keeper had no chance.','A sneaky shot.','Ouch!'])}`,'b');flash('😱',true)}
+  if(res==='goal'){if(t===0){M.my++;say(`⚽ GOAAAL! <b>${esc(c.name)}</b> scores!${assist?` Great pass from ${esc(assist.name)}.`:''} ${pick(['What a shot!','The crowd goes wild!','Amazing!'])}`,'g');flash('GOAL!');cev('goal',{w:cmWho(c)})}
+   else{M.op++;say(`😱 Goal for ${esc(M.o.name)} — ${pname(c)} scores. ${pick(['Our keeper had no chance.','A sneaky shot.','Ouch!'])}`,'b');flash('😱',true);cev('conc',{t:M.o.name,w:cmWho(c)})}
    upd();P.ball.x=gx+dir*.03;P.mode='celebrate';P.celebT=t;P.celeb={x:toX(t,.82),y:.5};P.wait=110;P.after=()=>{kickoff(1-t);P.plan=null;P.wait=40;P.after=finishPlan}}
-  else if(res==='save'){say(stOf(gk,'cat')?`🐱 What a CAT save by ${pname(gk)}!`:t===0?`${pname(c)} shoots... saved by their keeper!`:`${esc(M.o.name)} shoot... ${pname(gk)} makes a big save! 🧤`);setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=45;P.after=next}
-  else if(res==='wide'){say(t===0?`${pname(c)} shoots wide. So close!`:`${pname(c)} shoots wide. Phew!`);P.wait=40;P.after=()=>{P.ball.x=gk.x+dirOf(gk.t)*.02;P.ball.y=.5;gk.x=toX(gk.t,.05);gk.y=.5;setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=30;P.after=next}}
-  else{say(t===0?`${pname(c)} hits the post! 😮`:`${pname(c)} hits the post! Lucky us!`);const dfn=P.teams[1-t][rnd(1,4)];
+  else if(res==='save'){cev(t===0?'save':'bigsave',{w:cmWho(gk)});say(stOf(gk,'cat')?`🐱 What a CAT save by ${pname(gk)}!`:t===0?`${pname(c)} shoots... saved by their keeper!`:`${esc(M.o.name)} shoot... ${pname(gk)} makes a big save! 🧤`);setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=45;P.after=next}
+  else if(res==='wide'){cev('wide',{w:cmWho(c)});say(t===0?`${pname(c)} shoots wide. So close!`:`${pname(c)} shoots wide. Phew!`);P.wait=40;P.after=()=>{P.ball.x=gk.x+dirOf(gk.t)*.02;P.ball.y=.5;gk.x=toX(gk.t,.05);gk.y=.5;setCarrier(gk);P.plan={team:gk.t,kind:'keep',passes:1};P.wait=30;P.after=next}}
+  else{cev('post',{w:cmWho(c)});say(t===0?`${pname(c)} hits the post! 😮`:`${pname(c)} hits the post! Lucky us!`);const dfn=P.teams[1-t][rnd(1,4)];
    fly(gx-dir*.14,clamp(.5+(Math.random()-.5)*.4,.1,.9),.012,.02,dfn,()=>{setCarrier(dfn);P.plan={team:dfn.t,kind:'keep',passes:1};P.wait=20;P.after=next})}})}
 
 function finishPlan(){P.plan=null;endChunk()}
@@ -1544,7 +1659,7 @@ function skipMatch(){if(M.done)return;try{speechSynthesis.cancel()}catch(e){}if(
  if(P){P.plan=null;P.after=null;P.wait=0;P.ball.fly=null}upd();endMatch()}
 function scorer(){const w=M.xi.map(x=>({x,w:({FWD:4,MID:2,DEF:.5,GK:0})[x.pos]*x.p.s.sho}));let t=w.reduce((a,b)=>a+b.w,0)*Math.random();for(const e of w){t-=e.w;if(t<=0)return e.x.p}return M.xi[0].p}
 
-function endMatch(){if(M.done)return;M.done=true;say('🏁 Full time!');
+function endMatch(){if(M.done)return;M.done=true;say('🏁 Full time!');cev('full');
  if(S.phase==='wc'&&!M.online&&M.my===M.op){let a=0,b=0;const pa=clamp(.76+(M.R.att-M.o.str)/200,.5,.92),pb=clamp(.72+(M.o.str-M.R.def)/200,.5,.9);
   for(let i=0;i<5;i++){if(Math.random()<pa)a++;if(Math.random()<pb)b++}let n=0;while(a===b&&n<20){if(Math.random()<pa)a++;if(Math.random()<pb)b++;n++}if(a===b)a++;
   M.pens=[a,b];say(`🥅 PENALTY SHOOTOUT! ${a} - ${b} ${a>b?'— WE WIN! 🎉':'— we lose... 😢'}`,a>b?'g':'b')}
@@ -1643,7 +1758,7 @@ function nextSeason(){S.season++;S.country=null;S.players.forEach(p=>{p.age++;p.
  modal(`<h2>Season ${S.season}!</h2>${ladder()}<p>You are in <b>${LEVELS[S.level].name}</b>. ${S.level<TOP?'Finish top 2 to move up!':'Finish top 2 to go to the World Cup!'}</p>`)}
 function askReset(){modal('<h2>Start over?</h2><p>Your whole team, money and trophies will be deleted.</p>',[{t:'Yes, new game',c:'red',f:()=>{S=null;try{localStorage.removeItem('soccerMgrSave')}catch(e){}render()}},{t:'Cancel',c:'gray'}])}
 
-{const mb=document.createElement('button');mb.id='musB';mb.setAttribute('aria-label','Music on/off');mb.textContent=MUS_ON?'🎵':'🔇';mb.onclick=toggleMusic;document.body.appendChild(mb)}
+{const mb=document.createElement('button');mb.id='musB';mb.setAttribute('aria-label','Music on/off');mb.textContent=MUS_ON?'🎵':'🔇';mb.onclick=toggleMusic;document.body.appendChild(mb);const nb=document.createElement('button');nb.id='musN';nb.setAttribute('aria-label','Next song');nb.textContent='⏭';nb.onclick=musNext;document.body.appendChild(nb)}
 load();ensureTalker();render();try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}if(S&&S.migrated){delete S.migrated;save();modal(`<div class="big">🪜</div><h2>New: Flights!</h2>${ladder()}<p>Your team now starts in <b>Flight 4</b> (you keep your players and money). Finish top 2 to move up: F4 → F3 → F2 → F1 → Half National Team → <b>Full National Team</b> ⭐</p>`,[{t:"Let's climb!",c:'gold'}])}
 </script>
 <script>
