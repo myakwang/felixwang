@@ -246,7 +246,8 @@ function army(){return G.units.filter(u=>u.team>0&&!u.dead).length;}
 const UNLOCK_AT={miner:0,sword:0,mine:0,bolt:1,thrower:1,bubble:2,wallcannon:3,titan:5};   // stages you must beat first
 const CARD_NAMES={miner:'Miner',sword:'Swordy',thrower:'Archer',bubble:'Bubble Guard',wallcannon:'Wall Cannon',titan:'Giant',bolt:'Lightning',mine:'Star Mine'};
 function beaten(){return save.unlocked-1;}
-function lockedStory(k){return beaten()<(UNLOCK_AT[k]||0);}
+const TEST_MODE=/[?&]test\b/.test(location.search);   // star-army/?test : every soldier unlocked + infinite stars, nothing is saved
+function lockedStory(k){return !TEST_MODE&&beaten()<(UNLOCK_AT[k]||0);}
 function locked(k){if(G&&G.mode!=='story')return false;return lockedStory(k);}
 const BOLT_LV=[null,{n:1,d:30},{n:2,d:45},{n:3,d:65},{n:5,d:80},{n:99,d:100}];
 const UPGRADES=[
@@ -401,7 +402,7 @@ function updateProj(){for(const p of G.proj){if(p.tg.dead){p.life=0;continue;}
   G.proj=G.proj.filter(p=>p.life>0);}
 function pickMix(mix){let tot=0;for(const k in mix)tot+=mix[k];let r=Math.random()*tot;for(const k in mix){r-=mix[k];if(r<=0)return k;}return 'bug';}
 function defendFull(){return 60*(G.mode==='story'?80-Math.min(30,stageIdx*3):50);}   // seconds of hiding on Defend until the bugs are at full courage (longer on the first stages)
-function spawner(){const s=G.s;
+function spawner(){const s=G.s;if(TEST_MODE)G.stars=cap();
   /* Defend is safe, so the longer you only defend, the braver the bugs get (more, faster, tougher). Attacking cools them down. */
   if(G.cmd==='defend')G.defendT=(G.defendT||0)+1;else G.defendT=Math.max(0,(G.defendT||0)-4);
   const hp=hidePower();
