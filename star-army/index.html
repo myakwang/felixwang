@@ -89,7 +89,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
     <div class="mode"><b>🧟 Zombie Attack</b><span>15 levels of zombies coming out of graveyards. Smash them! Bosses on levels 5, 10 and 15.</span><div class="opts"><button data-m="zsel">Play Zombie Attack</button></div></div>
     <div class="mode"><b>🌙 Survive Till Sunrise</b><span>Zombies attack all night long. Protect your tower for 3 minutes until the sun comes up!</span><div class="opts"><button data-m="night">Start the night</button></div></div>
   </div>
-  <button class="btn" id="modeUp">◆ Upgrades</button><button class="btn" id="modeBack">Back</button>
+  <button class="btn" id="modeUp">◆ Upgrades</button><button class="btn" id="modeArm">🪙 Armory</button><button class="btn" id="modeBack">Back</button>
 </div></div>
 <div id="zSelOv" class="ov"><div class="card">
   <h2>🧟 Zombie Attack</h2>
@@ -101,7 +101,17 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
   <h2>Choose a stage</h2>
   <p class="small">Beat a stage to unlock the next one. Every 5th stage is a <b style="color:#c0392b">BOSS FIGHT</b>!</p>
   <div class="grid" id="selGrid"></div>
-  <button class="btn" id="selUp">◆ Upgrades</button><button class="btn" id="selBack">Back</button>
+  <button class="btn" id="selUp">◆ Upgrades</button><button class="btn" id="selArm">🪙 Armory</button><button class="btn" id="selBack">Back</button>
+</div></div>
+<div id="armOv" class="ov"><div class="card">
+  <h2>🪙 Armory</h2>
+  <p>You have <b id="coinCount">0</b> 🪙 coins. Win games to earn 1 to 3 coins each!</p>
+  <h3>Armor <span class="small">(helps your whole army)</span></h3>
+  <div id="armList"></div>
+  <h3>Sword skins <span class="small">(Swordy's special sword)</span></h3>
+  <div id="swList"></div>
+  <p id="armMsg" class="small">&nbsp;</p>
+  <button class="btn" id="armBack">Done</button>
 </div></div>
 <div id="upOv" class="ov"><div class="card">
   <h2>Upgrades</h2>
@@ -236,10 +246,32 @@ function startBattle(s,mode,key){const vs=mode==='vs';
   if(!vs){spawnEnemy(s.small||'bug',0);spawnEnemy(s.small||'bug',40);}
 }
 
+/* ---------- Armory: armors (whole army) and sword skins (Swordy) are bought with coins ---------- */
+const ARMORS=[
+ {k:'none',name:'No Armor',cost:0,ic:'🧍',col:null,desc:'Plain stick soldiers.'},
+ {k:'iron',name:'Iron Armor',cost:5,ic:'🛡',col:'#9aa5b1',desc:'Your whole army has +25% health.'},
+ {k:'thorn',name:'Thorn Armor',cost:8,ic:'🌵',col:'#4a9a52',desc:'Bugs that hit your soldiers get hurt back (30% of their hit).'},
+ {k:'undead',name:'Undead Armor',cost:8,ic:'💀',col:'#7d9a6a',desc:'When one of your soldiers is defeated, it comes back as a ZOMBIE and fights the bugs for 10 seconds!'},
+ {k:'ice',name:'Ice Armor',cost:10,ic:'❄',col:'#8fd3f4',desc:'Your hits freeze bugs and slow them down.'},
+ {k:'fire',name:'Fire Armor',cost:10,ic:'🔥',col:'#e8643a',desc:'Your hits set bugs on fire so they keep burning.'},
+ {k:'heal',name:'Healing Armor',cost:12,ic:'💚',col:'#58c27a',desc:'Your whole army slowly heals while it fights.'},
+ {k:'gold',name:'Golden Armor',cost:15,ic:'👑',col:'#e0b020',desc:'+10% damage, and every bug you squash gives DOUBLE stars.'}];
+const SWORDS=[
+ {k:'plain',name:'Plain Sword',cost:0,ic:'🗡',col:null,desc:'The classic Swordy sword.'},
+ {k:'fire',name:'Fire Sword',cost:6,ic:'🔥',col:'#ff9a3c',desc:'Every swing sets the bug on fire.'},
+ {k:'vamp',name:'Vampire Sword',cost:8,ic:'🩸',col:'#d8506a',desc:'Swordy heals when he hits (35% of his damage).'},
+ {k:'volt',name:'Lightning Sword',cost:8,ic:'⚡',col:'#ffe74a',desc:'Each hit jumps to another bug nearby for 60% damage.'},
+ {k:'big',name:'Giant Sword',cost:10,ic:'⚔',col:'#9ad0ff',desc:'A bigger sword: +35% damage and it smashes all bugs close to the target.'}];
+const ZFRIEND={name:'Zombie Friend',hp:70,dmg:11,range:20,rate:60,speed:0.7,w:22,h:46};
+function armorNow(){return G&&G.mode!=='vs'&&ARMORS.find(a=>a.k===save.armor)||null;}
+function swordNow(){return G&&G.mode!=='vs'&&SWORDS.find(a=>a.k===save.sword)||null;}
+function aK(){const a=armorNow();return a?a.k:'none';}
+function sK(){const a=swordNow();return a?a.k:'plain';}
+let armorCol=null,bladeCol=null;
 function makeUnit(team,type,def,x,mul){mul=mul||1;return {id:NID++,team,type,def,x,y:GROUND+((NID*37)%21)-10,hp:def.hp*mul,max:def.hp*mul,dmg:def.dmg*(team<0?1+(mul-1)*0.6:mul),reward:Math.max(1,Math.round(def.reward?def.reward*0.7*(0.6+0.4*mul):0)),spawnT:200,cd:20,atk:0,flash:0,walk:Math.random()*6,dead:false};}
 function hidePower(){return (G.mode==='story'||G.mode==='zombie')?Math.min(3,(G.defendT||0)/defendFull()):0;}
 function spawnEnemy(type,dx){const def=ENEMIES[type];const u=makeUnit(-1,type,def,G.ebase.x-G.ebase.w/2-def.w/2+(dx||0),(def.boss?G.s.bmul:G.s.mul)*(1+0.3*Math.min(2,hidePower())));G.units.push(u);return u;}
-function army(){return G.units.filter(u=>u.team>0&&!u.dead).length;}
+function army(){return G.units.filter(u=>u.team>0&&!u.dead&&!u.free).length;}
 
 /* ---------- actions ---------- */
 const UNLOCK_AT={miner:0,sword:0,mine:0,bolt:1,thrower:1,bubble:2,wallcannon:3,titan:5};   // stages you must beat first
@@ -256,8 +288,8 @@ const UPGRADES=[
   {k:'miner',ic:'⛏',name:'Better Pickaxes',max:4,cost:[0,2,3,4,5],desc:l=>'Miners dig '+(l*25)+'% faster and carry +'+l+' ★ each trip'},
   {k:'tower',ic:'⛫',name:'Tower Armor',max:3,cost:[0,2,3,5],desc:l=>'Star Tower has +'+(l*20)+'% health'},
 ];
-let save={zUnlocked:1,zCleared:{},unlocked:1,gems:0,up:{bolt:1,troop:0,cannon:0,tower:0,miner:0},cleared:{}};
-try{const raw=localStorage.getItem('starArmySave');if(raw){const o=JSON.parse(raw);save=Object.assign(save,o);save.zCleared=save.zCleared||{};save.zUnlocked=save.zUnlocked||1;save.up=Object.assign({bolt:1,troop:0,cannon:0,tower:0,miner:0},o.up||{});}
+let save={coins:0,ownA:{none:1},ownS:{plain:1},armor:'none',sword:'plain',zUnlocked:1,zCleared:{},unlocked:1,gems:0,up:{bolt:1,troop:0,cannon:0,tower:0,miner:0},cleared:{}};
+try{const raw=localStorage.getItem('starArmySave');if(raw){const o=JSON.parse(raw);save=Object.assign(save,o);save.zCleared=save.zCleared||{};save.zUnlocked=save.zUnlocked||1;save.up=Object.assign({bolt:1,troop:0,cannon:0,tower:0,miner:0},o.up||{});save.ownA=Object.assign({none:1},o.ownA||{});save.ownS=Object.assign({plain:1},o.ownS||{});}
   else{const old=parseInt(localStorage.getItem('starArmyUnlocked')||'1',10);if(old>1)save.unlocked=old;}}catch(e){}
 function persist(){try{localStorage.setItem('starArmySave',JSON.stringify(save));}catch(e){}}
 function armyMul(){return G.mode==='vs'?1:G.s.pmul*(1+0.06*save.up.troop);}
@@ -267,7 +299,8 @@ function deploy(k){if(state!=='play'||G.ending)return;const def=UNITS[k];
   if(locked(k)){tip('Beat stage '+UNLOCK_AT[k]+' to unlock '+CARD_NAMES[k]+'!');return;}
   if(G.cards[k]>0)return; if(G.stars<def.cost){tip('Need more stars! Miners dig stars from the ore.');return;} if(k==='miner'&&miners()>=MAX_MINERS){tip('You have the most miners!');return;} if(army()>=MAX_ARMY){tip('Your army is full!');return;}
   G.stars-=def.cost;G.cards[k]=def.cool;G.press[k]=8;
-  const nu=makeUnit(1,k,def,G.pbase.x+G.pbase.w/2+def.w/2,armyMul());if(k==='miner'){nu.st='toOre';nu.carry=0;nu.hp=nu.max=def.hp;}G.units.push(nu);sfx('deploy');}
+  const nu=makeUnit(1,k,def,G.pbase.x+G.pbase.w/2+def.w/2,armyMul());if(k==='miner'){nu.st='toOre';nu.carry=0;nu.hp=nu.max=def.hp;}
+  else if(G.mode!=='vs'){if(aK()==='iron'){nu.hp*=1.25;nu.max*=1.25;}if(aK()==='gold')nu.dmg*=1.1;if(k==='sword'&&sK()==='big')nu.dmg*=1.35;}G.units.push(nu);sfx('deploy');}
 function miners(){return G.units.filter(u=>u.type==='miner'&&!u.dead).length;}
 const DEPOT_X=142;
 function makeOres(){return [{id:NID++,x:205,val:5,gold:false,flash:0},{id:NID++,x:360,val:8,gold:false,flash:0},{id:NID++,x:520,val:15,gold:true,flash:0}];}
@@ -352,8 +385,9 @@ function dmg(e,n){if(e.hp<=0)return;if(e.isBase&&e.team<0&&G.mode==='night')retu
   if(e.hp<=0){e.hp=0;
     if(e.isBase){endBattle(e.team<0);}
     else{e.dead=true;heroFell(e);burst(e.x,e.y-e.def.h/2-(e.def.fly?20:0),14,e.team<0?INK:RED);
+      if(e.team>0&&G.mode!=='vs'&&aK()==='undead'&&!e.free&&e.type!=='miner'){const z=makeUnit(1,'zfriend',ZFRIEND,e.x,armyMul());z.free=true;z.life=600;z.hp=z.max=70+e.max*0.25;z.back=false;G.units.push(z);floater(e.x,e.y-e.def.h-30,'It rises!');}
       if(e.team>0&&G.mode==='vs'){const r=Math.round(((UNITS[e.type]||{}).cost||10)*0.3);G.stars2+=r;}
-      if(e.team<0){G.stars=Math.min(cap(),G.stars+e.reward);floater(e.x,e.y-e.def.h-20,'+'+e.reward+' ★');if(e===G.boss){G.bannerText=G.boss.def.name+' defeated!'+(G.mode==='story'?' Now seal The Crack!':G.mode==='zombie'?' Now smash the Graveyard!':'');G.banner=170;sfx('win');}sfx('pop');}}}}
+      if(e.team<0){const rw=e.reward*(aK()==='gold'?2:1);G.stars=Math.min(cap(),G.stars+rw);floater(e.x,e.y-e.def.h-20,'+'+rw+' ★');if(e===G.boss){G.bannerText=G.boss.def.name+' defeated!'+(G.mode==='story'?' Now seal The Crack!':G.mode==='zombie'?' Now smash the Graveyard!':'');G.banner=170;sfx('win');}sfx('pop');}}}}
 function splash(px,team,r,n){for(const o of G.units)if(o.team!==team&&!o.dead&&Math.abs(o.x-px)<r+o.def.w/2)dmg(o,n);
   const b=team>0?G.ebase:G.pbase;if(Math.abs(b.x-px)<r+b.w/2)dmg(b,n);
   burst(px,GROUND-20,8);}
@@ -362,13 +396,27 @@ function findTarget(u){const d=u.team;let best=null,bg=1e9;
   const b=d>0?G.ebase:G.pbase;if(!(d>0&&G.mode==='night')){const g=(b.x-u.x)*d-(b.w+u.def.w)/2;if(g<bg){bg=g;best=b;}}
   return [best,bg];}
 function aimY(o){return o.isBase?GROUND-120:o.y-o.def.h/2-(o.def.fly?20:0);}
+function onHit(u,tg,m){if(G.mode==='vs'||tg.isBase)return;
+  if(u.team>0){const a=aK(),sw=u.type==='sword'?sK():'plain';
+    if(a==='fire'||sw==='fire'){tg.burn=240;}
+    if(a==='ice'){tg.slow=150;}
+    if(sw==='vamp'){u.hp=Math.min(u.max,u.hp+u.dmg*m*0.35);if(G.time%3===0)floater(u.x,u.y-u.def.h-8,'+♥');}
+    if(sw==='volt'){let o=null,bd=140;for(const e of G.units)if(e.team<0&&!e.dead&&e!==tg){const d=Math.abs(e.x-tg.x);if(d<bd){bd=d;o=e;}}
+      if(o){dmg(o,u.dmg*m*0.6);burst(o.x,aimY(o),5);G.zaps=G.zaps||[];G.zaps.push({x1:tg.x,y1:aimY(tg),x2:o.x,y2:aimY(o),t:10});}}
+    if(sw==='big')splash(tg.x,1,50,u.dmg*m*0.5);}
+  else if(tg.team>0&&aK()==='thorn'&&!u.dead&&!u.def.boss)dmg(u,u.dmg*m*0.3);}
 function attack(u,tg,m){m=m||1;
   if(u.def.proj){G.proj.push({kind:u.def.proj,team:u.team,x:u.x+u.team*u.def.w/2,y:u.y-u.def.h*0.7,tg,dmg:u.dmg*m,splash:u.def.splash||0,sp:u.def.proj==='ball'||u.def.proj==='doodle'?5:7,d0:0,prog:0,life:1,id:u.id});
     if(u.type==='titan')u.slamX=tg.x;
     sfx(u.def.proj==='ball'||u.def.proj==='doodle'?'boom':'shoot');}
   else{const px=tg.isBase?u.x+u.team*(u.def.w/2+u.def.range):tg.x;
-    if(u.def.splash){splash(px,u.team,u.def.splash,u.dmg*m);if(u.type==='titan'){G.shakeT=8;u.slamX=px;}}else{dmg(tg,u.dmg*m);burst(px,aimY(tg),3);}sfx('hit');}}
+    if(u.def.splash){splash(px,u.team,u.def.splash,u.dmg*m);if(u.type==='titan'){G.shakeT=8;u.slamX=px;}}else{dmg(tg,u.dmg*m);burst(px,aimY(tg),3);}sfx('hit');}
+  onHit(u,tg,m);}
 function updateUnit(u){if(u.dead)return;if(u.type==='miner'){updateMiner(u);return;}if(u.flash>0)u.flash--;if(u.atk>0)u.atk--;if(u.cd>0)u.cd--;
+  if(u.free&&--u.life<=0){u.dead=true;burst(u.x,u.y-20,8,'#7d9a6a');return;}
+  if(u.burn>0){u.burn--;if(u.burn%30===0){dmg(u,Math.max(2,u.max*0.012));burst(u.x,u.y-u.def.h,2,'#e8643a');if(u.dead)return;}}
+  if(u.team>0&&aK()==='heal'&&G.time%30===0&&u.hp<u.max)u.hp=Math.min(u.max,u.hp+u.max*0.02);
+  if(u.slow>0){u.slow--;if(G.time%5<2)return;}
   const [tg,gap]=findTarget(u);
   if(u.def.summon&&--u.spawnT<=0){u.spawnT=260;const sk=u.def.summon;for(let i=0;i<2;i++){const b=makeUnit(-1,sk,ENEMIES[sk],u.x-u.def.w/2-10-i*30,G.s.mul);G.units.push(b);}burst(u.x,u.y-40,10);}
   if(u===G.ctl){controlHero(u,tg,gap);return;}
@@ -380,7 +428,7 @@ function updateUnit(u){if(u.dead)return;if(u.type==='miner'){updateMiner(u);retu
   if(tg&&gap<=u.def.range){if(u.cd<=0){u.cd=u.def.rate;u.atk=16;attack(u,tg);}}
   else{u.x+=u.def.speed*u.team;u.walk+=0.25*u.def.speed;if(G.mode==='night'&&u.team>0&&u.x>740)u.x=740;}}
 const CTL_BTNS=[{k:'l',x:176,y:330,r:30,label:'◀'},{k:'r',x:252,y:330,r:30,label:'▶'},{k:'atk',x:676,y:326,r:36,label:'HIT'},{k:'off',x:748,y:296,r:20,label:'✖'}];
-const MODE_BTN={x:926,y:106,r:22};
+const MODE_BTN={x:650,y:108,r:22};
 let ctlMode='keys';try{if(localStorage.getItem('starArmyCtlMode')==='mouse')ctlMode='mouse';}catch(e){}   // 'keys' = buttons + keyboard, 'mouse' = click to walk
 function ctlBtns(){return CTL_BTNS.filter(b=>ctlMode==='keys'||b.k==='off');}
 const ctlIn={l:false,r:false,kl:false,kr:false},ctlPtr={};let ctlAtk=0;
@@ -459,7 +507,7 @@ function update(){G.time++;
   G.stars=Math.min(cap(),G.stars+rate()/60);
   for(const k of UNIT_KEYS)if(G.cards[k]>0)G.cards[k]--;
   if(G.boltCd>0)G.boltCd--;
-  updateBlocks();
+  updateBlocks();if(G.zaps){for(const z of G.zaps)z.t--;G.zaps=G.zaps.filter(z=>z.t>0);}
   if(G.mode==='vs'){G.stars2+=(G.vsCpu?VS_RATE*0.95:VS_RATE)/60;for(const k of VS2K)if(G.cards2[k]>0)G.cards2[k]--;if(G.boltCd2>0)G.boltCd2--;if(G.vsCpu)cpuThink();}
   else if(G.mode==='night'){nightSpawner();if(G.time>=NIGHT_LEN){endBattle(true);}}
   else spawner();
@@ -512,7 +560,7 @@ function award(k){save.trophies=save.trophies||{};const isNew=!save.trophies[k];
 renderShelf();
 /* ---------- flow ---------- */
 let prevState=null,upReturn=null;
-function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv'].forEach(id=>$(id).classList.remove('on'));}
+function hideAll(){['title','msgOv','selOv','upOv','modeOv','zSelOv','armOv'].forEach(id=>$(id).classList.remove('on'));}
 function showMsg(title,html,buttons){$('msgTitle').textContent=title;$('msgText').innerHTML=html;const box=$('msgBtns');box.innerHTML='';
   buttons.forEach(([label,fn])=>{const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=()=>{hideAll();fn();};box.appendChild(b);});
   hideAll();$('msgOv').classList.add('on');}
@@ -538,13 +586,29 @@ function renderUpgrades(){$('gemCount').textContent=save.gems;const list=$('upLi
       save.gems-=c;save.up[u.k]++;persist();unlockAudio();sfx('buy');renderUpgrades();$('upMsg').textContent=u.name+' upgraded to level '+save.up[u.k]+'!';};
     row.appendChild(b);list.appendChild(row);});}
 $('upBack').onclick=()=>{hideAll();if(upReturn)upReturn();};
+let armReturn=null;
+function showArmory(back){armReturn=back;renderArmory();$('armMsg').innerHTML='&nbsp;';hideAll();$('armOv').classList.add('on');}
+function renderArmory(){$('coinCount').textContent=save.coins||0;
+  const fill=(listId,items,own,cur,key)=>{const list=$(listId);list.innerHTML='';
+    items.forEach(it=>{const has=!!own[it.k],on=save[cur]===it.k;const row=document.createElement('div');row.className='up';
+      row.innerHTML='<div class="ic">'+it.ic+'</div><div class="tx"><b>'+it.name+'</b><div>'+it.desc+'</div></div>';
+      const b=document.createElement('button');b.textContent=on?'✔ ON':has?'Use':it.cost+' 🪙';b.disabled=on;
+      b.onclick=()=>{unlockAudio();
+        if(!has){if((save.coins||0)<it.cost){$('armMsg').textContent='You need '+(it.cost-(save.coins||0))+' more 🪙 coins. Win more games!';return;}
+          save.coins-=it.cost;own[it.k]=1;}
+        save[cur]=it.k;persist();sfx('buy');renderArmory();$('armMsg').textContent=it.name+' is on!';};
+      row.appendChild(b);list.appendChild(row);});};
+  fill('armList',ARMORS,save.ownA,'armor');fill('swList',SWORDS,save.ownS,'sword');}
+$('armBack').onclick=()=>{hideAll();if(armReturn)armReturn();};
+$('selArm').onclick=()=>showArmory(()=>{$('selOv').classList.add('on');});
+$('modeArm').onclick=()=>showArmory(()=>{$('modeOv').classList.add('on');});
 function finish(won){if(G.mode!=='story'){finishMode(won);return;}state='over';const st=STAGES[stageIdx];
   if(!won){showMsg('Oh no!','The bugs knocked down your Star Tower. Try a different army, use DEFEND to guard the tower, or buy upgrades!',
     [['Try again',()=>go(stageIdx)],['◆ Upgrades',()=>showUpgrades(()=>finish(false))],['Stages',()=>showSelect(true)]]);return;}
   const first=!save.cleared[st.n];const gems=first?(st.boss?6:3):1;
-  if(!finish.paid){save.gems+=gems;save.cleared[st.n]=1;const before=beaten();save.unlocked=Math.min(STAGES.length,Math.max(save.unlocked,st.n+1));if(st.n>=STAGES.length)save.unlocked=STAGES.length+1;persist();
+  if(!finish.paid){finish.coins=st.boss?3:1+((Math.random()*3)|0);save.coins=(save.coins||0)+finish.coins;save.gems+=gems;save.cleared[st.n]=1;const before=beaten();save.unlocked=Math.min(STAGES.length,Math.max(save.unlocked,st.n+1));if(st.n>=STAGES.length)save.unlocked=STAGES.length+1;persist();
     finish.news=Object.keys(UNLOCK_AT).filter(k=>UNLOCK_AT[k]>before&&UNLOCK_AT[k]<=beaten()).map(k=>CARD_NAMES[k]);finish.gems=gems;finish.paid=true;}
-  let html=(st.boss?'You beat the '+ENEMIES[st.boss].name+' and sealed The Crack!':'You sealed The Crack!')+'<br>You earned <b>'+finish.gems+' ◆ gems</b>'+(first?'':' (replay bonus)')+'.';
+  let html=(st.boss?'You beat the '+ENEMIES[st.boss].name+' and sealed The Crack!':'You sealed The Crack!')+'<br>You earned <b>'+finish.gems+' ◆ gems</b>'+(first?'':' (replay bonus)')+' and <b>'+finish.coins+' 🪙 coins</b>.';
   if(finish.news.length)html+='<div class="newbox">NEW UNLOCKED: '+finish.news.join(' + ')+'!</div>';
   const again=()=>{finish.paid=false;};
   if(stageIdx<STAGES.length-1){const nx=STAGES[stageIdx+1];if(nx.boss)html+='<br>Watch out — the next stage is a <b>BOSS FIGHT!</b>';
@@ -565,7 +629,7 @@ $('zBack').onclick=()=>{hideAll();if(state==='over')$('msgOv').classList.add('on
 $('modeUp').onclick=()=>showUpgrades(()=>{$('modeOv').classList.add('on');});
 $('modeBack').onclick=()=>{hideAll();if(modeFromGame&&state==='paused')state='play';else if(state==='over'){$('msgOv').classList.add('on');}else{state='title';$('title').classList.add('on');}};
 function finishMode(won){state='over';const m=G.mode,key=G.modeKey,again=()=>{finishMode.paid=false;startMode(key);},modes=()=>{finishMode.paid=false;showModes(false);};
-  const pay=g=>{if(!finishMode.paid){save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b>'+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
+  const pay=g=>{if(!finishMode.paid){finishMode.coins=1+((Math.random()*3)|0);save.coins=(save.coins||0)+finishMode.coins;save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b> and <b>'+finishMode.coins+' 🪙 coins</b>'+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
   if(m==='vs'){if(G.vsCpu&&won){trophyMsg('YOU WIN! 🏆',{color:'blue',label:'CPU CHAMP'},award('cpu')+'Your Star Army smashed the Bug Army!'+pay(3),[['Rematch',again],['Modes',modes]]);return;}
     if(G.vsCpu)showMsg('The Computer wins!','The bugs knocked down your Star Tower. Try again!',[['Rematch',again],['Modes',modes]]);
     else trophyMsg(won?'PLAYER 1 WINS! ⭐':'PLAYER 2 WINS! 🐛',{color:won?'gold':'bronze',label:won?'PLAYER 1':'PLAYER 2'},won?'The Star Army sealed the Crack!':'The Bug Army knocked down the Star Tower!',[['Rematch',again],['Modes',modes]]);return;}
@@ -650,6 +714,7 @@ function drawBow(x,y,f,sc,pull,col){ctx.save();ctx.translate(x,y);ctx.scale(sc*f
 function drawStick(x,y,f,sc,run,swAng,swLen,col,arc){
   ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;
   cpath(0,-37,7,0.6);ctx.fillStyle=PAPER;ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.fillRect(2,-39,2.4,2.4);
+  if(armorCol){ctx.fillStyle=armorCol;ctx.beginPath();ctx.arc(0,-38,8.3,Math.PI,0);ctx.closePath();ctx.fill();ctx.lineWidth=1.8;ctx.stroke();ctx.beginPath();ctx.moveTo(-8,-31);ctx.lineTo(8,-31);ctx.lineTo(6,-12);ctx.lineTo(-6,-12);ctx.closePath();ctx.fillStyle=armorCol;ctx.globalAlpha=0.9;ctx.fill();ctx.globalAlpha=1;ctx.stroke();ctx.lineWidth=2.6;}
   sline(0,-30,0,-14,0.7);const rs=Math.sin(run);sline(0,-14,rs*9,0,0.7);sline(0,-14,-rs*9,0,0.7);
   sline(0,-26,-9,-17,0.7);const hx=10,hy=-21;sline(0,-26,hx,hy,0.7);
   if(swLen){const dx=Math.cos(swAng),dy=Math.sin(swAng);
@@ -661,7 +726,7 @@ function drawStick(x,y,f,sc,run,swAng,swLen,col,arc){
       ctx.beginPath();ctx.arc(hx-dx*6.5,hy-dy*6.5,2.3,0,7);ctx.fillStyle='#e0b020';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.stroke();  // pommel
       const a=P(g+1,3.2),b=P(L-7,2.4),c=P(L,0),d2=P(L-7,-2.4),e=P(g+1,-3.2);
       ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(d2[0],d2[1]);ctx.lineTo(e[0],e[1]);ctx.closePath();
-      ctx.fillStyle='#eef3f7';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.9;ctx.stroke();                                          // blade
+      ctx.fillStyle=bladeCol||'#eef3f7';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.9;ctx.stroke();                                          // blade
       const m1=P(g+3,0),m2=P(L-9,0);ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(m1[0],m1[1]);ctx.lineTo(m2[0],m2[1]);ctx.stroke();  // shine line
       const g1=P(g,7.5),g2=P(g,-7.5);ctx.strokeStyle=col;ctx.lineWidth=5.2;ctx.beginPath();ctx.moveTo(g1[0],g1[1]);ctx.lineTo(g2[0],g2[1]);ctx.stroke();
       ctx.strokeStyle='#e0b020';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(g1[0],g1[1]);ctx.lineTo(g2[0],g2[1]);ctx.stroke();ctx.lineCap='butt';ctx.lineJoin='miter';}   // gold crossguard
@@ -791,7 +856,8 @@ function drawZombie(x,y,f,sc,col,walk,atk,kind){ctx.save();ctx.translate(x,y);ct
   if(kind==='giant'){ctx.strokeStyle='rgba(0,0,0,.45)';sline(lean-6,-24,lean+8,-18,0.3);sline(lean-6,-18,lean+8,-24,0.3);ctx.strokeStyle=col;
     ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(lean-6,-46);ctx.lineTo(lean-6,-52);ctx.lineTo(lean-2,-48);ctx.lineTo(lean+3,-54);ctx.lineTo(lean+8,-48);ctx.lineTo(lean+12,-52);ctx.lineTo(lean+12,-46);ctx.closePath();ctx.fill();ctx.stroke();}
   ctx.restore();}
-function drawUnit(u){seed(u.id);const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:1),k=u.atk>0?1-u.atk/16:0;
+function drawUnit(u){seed(u.id);{const a=u.team>0&&G.mode!=='vs'?ARMORS.find(q=>q.k===save.armor):null;armorCol=a&&a.col&&u.type!=='miner'?a.col:null;const sw=u.team>0&&u.type==='sword'&&G.mode!=='vs'?SWORDS.find(q=>q.k===save.sword):null;bladeCol=sw&&sw.col?sw.col:null;}
+  const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:1),k=u.atk>0?1-u.atk/16:0;
   switch(u.type){
     case 'miner':drawMiner(u,col,f);break;
     case 'zombie':drawZombie(u.x,u.y,f,1,col,u.walk,u.atk,'');break;
@@ -800,7 +866,8 @@ function drawUnit(u){seed(u.id);const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:
     case 'brute':drawZombie(u.x,u.y,f,1.55,col,u.walk,u.atk,'brute');break;
     case 'giant':drawZombie(u.x,u.y,f,2.7,col,u.walk,u.atk,'giant');break;
     case 'zking':drawZombie(u.x,u.y,f,3.0,col,u.walk,u.atk,'giant');ctx.strokeStyle='rgba(192,57,43,.7)';ctx.lineWidth=3;sline(u.x+8,u.y-100,u.x+40,u.y-20,1);sline(u.x+14,u.y-100,u.x+52,u.y-30,1);break;
-    case 'sword':drawStick(u.x,u.y,f,1,u.walk,u.atk>0?-1.9+k*2.7:-1.0,26,col,u.atk>3);break;
+    case 'sword':drawStick(u.x,u.y,f,1,u.walk,u.atk>0?-1.9+k*2.7:-1.0,bladeCol&&save.sword==='big'?33:26,col,u.atk>3);break;
+    case 'zfriend':drawZombie(u.x,u.y,f,1,'#4f6b3d',u.walk,u.atk,'');break;
     case 'thrower':drawStick(u.x,u.y,f,1,u.walk,0,0,col,false);drawBow(u.x,u.y,f,1,u.atk>0?Math.max(0,1-k*1.4):0.35,col);break;
     case 'bubble':ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1.8;cpath(u.x,u.y-27,28,1.4);ctx.fillStyle='rgba(255,255,255,.5)';ctx.fill();ctx.stroke();
       drawStick(u.x,u.y-4,f,0.78,u.walk,-1.0,18,col,false);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.fillStyle='#fff';
@@ -969,6 +1036,7 @@ function draw(){const sc=cv.width/W;ctx.setTransform(sc,0,0,cv.height/H,0,0);ctx
   for(const sh of G.shells){const k=sh.k,x=sh.sx+(sh.tx-sh.sx)*k,y=sh.sy+(sh.ty-sh.sy)*k-Math.sin(Math.PI*k)*sh.h;seed(11);ctx.strokeStyle=INK;ctx.lineWidth=2;cpath(x,y,sh.big?11:8,0.6);ctx.fillStyle='#333';ctx.fill();ctx.stroke();
     if(sh.big){ctx.strokeStyle='rgba(192,57,43,.6)';zigzag(x-4,y,x-26,y+6,3,4);}}
   drawBlocks();
+  for(const z of G.zaps||[]){ctx.strokeStyle='#ffd21e';ctx.lineWidth=3;seed(z.t);zigzag(z.x1,z.y1,z.x2,z.y2,4,6);}
   for(const b of G.bolts){seed(b.x|0);ctx.strokeStyle=b.life%4<2?'#333':(b.red?RED:'#f1c40f');ctx.lineWidth=4;zigzag(b.x+10,0,b.x,b.y,9,12);}
   for(const q of G.parts){ctx.globalAlpha=Math.min(1,q.life/20);if(q.star){starPath(q.x,q.y,7);ctx.fillStyle='#1d1d1d';ctx.fill();continue;}ctx.strokeStyle=q.col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x+Math.cos(q.a)*q.len,q.y+Math.sin(q.a)*q.len);ctx.stroke();}
   ctx.globalAlpha=1;for(const f of G.floats){ctx.globalAlpha=Math.min(1,f.life/25);text(f.txt,f.x,f.y,15,INK);}ctx.globalAlpha=1;
