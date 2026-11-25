@@ -72,7 +72,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
         <li><b>Lightning</b> zaps every bug on the screen at once!</li>
     <li>Use <b>ATTACK</b> and <b>DEFEND</b> at the top to tell your army to charge or guard the tower.</li>
     <li>You start with only <b>Swordy</b>. Win stages to unlock new soldiers and earn <b>◆ gems</b> for upgrades!</li>
-    <li>30 stages, with a <b>BOSS</b> every 5 stages!</li>
+    <li>50 stages, with a <b>BOSS</b> every 5 stages!</li>
     <li>Tap one of your soldiers to <b>control it yourself</b>! Use ◀ ▶ to move and HIT to attack.</li>
     <li>More modes: <b>VS</b> a friend or the computer, <b>Zombie Attack</b>, and <b>Survive Till Sunrise</b>!</li>
   </ul>
@@ -84,7 +84,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
 <div id="modeOv" class="ov"><div class="card">
   <h2>Choose a mode</h2>
   <div class="modes">
-    <div class="mode"><b>⭐ Story</b><span>30 stages and 6 bosses. Unlock new soldiers and earn gems!</span><div class="opts"><button data-m="story">Play Story</button></div></div>
+    <div class="mode"><b>⭐ Story</b><span>50 stages and 10 bosses. Unlock new soldiers and earn gems!</span><div class="opts"><button data-m="story">Play Story</button></div></div>
     <div class="mode"><b>⚔ VS Mode</b><span>Star Army vs. Bug Army. Player 2 (or the computer) controls the bugs!</span><div class="opts"><button data-m="vs2">2 Players</button><button data-m="vscpu">vs Computer</button></div></div>
     <div class="mode"><b>🧟 Zombie Attack</b><span>15 levels of zombies coming out of graveyards. Smash them! Bosses on levels 5, 10 and 15.</span><div class="opts"><button data-m="zsel">Play Zombie Attack</button></div></div>
     <div class="mode"><b>🌙 Survive Till Sunrise</b><span>Zombies attack all night long. Protect your tower for 3 minutes until the sun comes up!</span><div class="opts"><button data-m="night">Start the night</button></div></div>
@@ -149,10 +149,10 @@ function clamp(v,a,b){return v<a?a:v>b?b:v;}
 /* ---------- game data ---------- */
 const UNITS={
   miner:  {name:'Miner',         cost:25, cool:60,  hp:40,  dmg:0, range:0,  rate:60, speed:1.3, w:20,h:44},
-  sword:  {name:'Swordy',        cost:15, cool:50,  hp:70,  dmg:11,range:14, rate:38, speed:1.05,w:20,h:44},
-  thrower:{name:'Archer',cost:30, cool:110, hp:45,  dmg:9, range:170,rate:60, speed:0.8, w:20,h:44,proj:'arrow'},
-  bubble: {name:'Bubble Guard',  cost:45, cool:200, hp:300, dmg:5, range:14, rate:50, speed:0.55,w:48,h:56},
-  titan:  {name:'Giant',         cost:120,cool:420, hp:380, dmg:24,range:16, rate:72, speed:0.5, w:40,h:76,splash:55},
+  sword:  {name:'Swordy',        cost:15, cool:50,  hp:60,  dmg:9, range:14, rate:38, speed:1.05,w:20,h:44},
+  thrower:{name:'Archer',cost:30, cool:110, hp:38,  dmg:8, range:170,rate:60, speed:0.8, w:20,h:44,proj:'arrow'},
+  bubble: {name:'Bubble Guard',  cost:45, cool:200, hp:255, dmg:4, range:14, rate:50, speed:0.55,w:48,h:56},
+  titan:  {name:'Giant',         cost:140,cool:600, hp:1000,dmg:72,range:18, rate:78, speed:0.5, w:40,h:76,splash:85},
 };
 const UNIT_KEYS=['miner','sword','thrower','bubble','titan'];
 const ENEMIES={
@@ -160,12 +160,14 @@ const ENEMIES={
   err:    {name:'Err Blob',   hp:95,  dmg:12,range:14, rate:50,speed:0.7, w:44,h:44,reward:10,fly:true},
   blaster:{name:'1010 Blaster',hp:50, dmg:9, range:150,rate:70,speed:0.6, w:34,h:34,reward:10,proj:'bin'},
   beetle: {name:'Big Beetle', hp:340, dmg:22,range:18, rate:55,speed:0.42,w:66,h:38,reward:30},
+  giantbug:{name:'Giant Bug',  hp:900, dmg:30,range:22, rate:62,speed:0.36,w:96,h:56,reward:60,splash:35},
   zombie: {name:'Zombie',     hp:45,  dmg:7, range:12, rate:50,speed:0.45,w:22,h:46,reward:5},
   runner: {name:'Runner Zombie',hp:28,dmg:6, range:12, rate:35,speed:1.4, w:20,h:42,reward:5},
   spitter:{name:'Spitter',    hp:38,  dmg:7, range:140,rate:75,speed:0.5, w:22,h:46,reward:8,proj:'goo'},
   brute:  {name:'Brute Zombie',hp:240,dmg:18,range:18, rate:60,speed:0.35,w:44,h:70,reward:30},
   giant:  {name:'Giant Zombie',hp:1500,dmg:30,range:24,rate:70,speed:0.25,w:84,h:124,reward:200,splash:40,boss:true},
   spider: {name:'Mega Spider',summon:'bug',hp:2600,dmg:30,range:20,rate:60,speed:0.34,w:120,h:62,reward:300,splash:40,boss:true},
+  bugemperor:{name:'Bug Emperor',summon:'bug',hp:6500,dmg:48,range:30,rate:75,speed:0.24,w:150,h:96,reward:800,splash:60,boss:true},
   crackking:{name:'Crack King',summon:'err',hp:3400,dmg:42,range:24,rate:70,speed:0.24,w:104,h:118,reward:500,splash:50,boss:true},
   zking:  {name:'Zombie King',hp:2600,dmg:34,range:24,rate:70,speed:0.22,w:90,h:134,reward:300,splash:45,boss:true,summon:'zombie'},
   king:   {name:'Glitch King',hp:1000,dmg:20,range:24, rate:70,speed:0.3, w:92,h:96,reward:200,splash:40,boss:true},
@@ -173,17 +175,22 @@ const ENEMIES={
   queen:  {name:'Bug Queen',  summon:'bug',hp:2000,dmg:24,range:20, rate:65,speed:0.3, w:96,h:84,reward:250,splash:30,boss:true},
   golem:  {name:'Crack Golem',hp:2800,dmg:38,range:24, rate:80,speed:0.26,w:110,h:132,reward:400,splash:55,boss:true},
 };
-const BOSSES=['king','megabeetle','queen','golem','spider','crackking'];
+for(const k in ENEMIES){const e=ENEMIES[k];if(!e.boss){e.hp=Math.round(e.hp*0.85);e.dmg=Math.max(1,Math.round(e.dmg*0.85));}}   // everyday bugs and zombies are a little weaker
+const BOSSES=['king','megabeetle','queen','golem','spider','crackking','golem','queen','megabeetle','bugemperor'];
 const STAGE_NAMES=['Sunny Park','The Playground','Deep Forest','Dusty Desert','BOSS: Glitch King','Beach Day','Snowy Hills','Big City','Farm Town','BOSS: Mega Beetle',
   'Candy Land','Rocky Mountains','Swampy Swamp','Campfire Night','BOSS: Bug Queen','Under the Sea','School Yard','Moon Base','Inside the Computer','BOSS: Crack Golem',
-  'Sunset Park','Night Playground','Autumn Forest','Desert Storm','BOSS: Mega Spider','Stormy Beach','Frozen City','Candy Night','Lava Mountains','FINAL BOSS: Crack King'];
+  'Sunset Park','Night Playground','Autumn Forest','Desert Storm','BOSS: Mega Spider','Stormy Beach','Frozen City','Candy Night','Lava Mountains','BOSS: Crack King',
+  'Neon City','Haunted Classroom','Mushroom Forest','Pirate Cove','BOSS: Crack Golem','Volcano Beach','Cloud Castle','Robot Factory','Ice Palace','BOSS: Bug Queen','Jungle Ruins','Space Station','Toy Land','Storm Desert','BOSS: Mega Beetle','Deep Cave','Dragon Mountains','Glitch World','The Crack Gate','FINAL BOSS: Bug Emperor'];
 // stages 21-30 reuse a place with a new time of day or weather
-const STAGE_THEMES=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 0,1,2,3,4,5,7,10,11,19];
+const STAGE_THEMES=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 0,1,2,3,4,5,7,10,11,19, 7,16,2,5,19,13,9,17,6,14,2,17,10,3,11,12,19,18,7,19];   // stages 31-50: new times of day and weather
 const STAGE_TINTS=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,
-  'rgba(255,140,60,.22)','rgba(20,24,80,.35)','rgba(200,110,30,.2)','rgba(200,150,70,.3)','rgba(20,24,80,.38)','rgba(70,80,100,.3)','rgba(150,200,255,.3)','rgba(90,40,140,.3)','rgba(220,60,30,.25)','rgba(120,0,0,.25)'];
-const STAGES=STAGE_NAMES.map((nm,i)=>{const n=i+1,mix={bug:7,err:n>=8?4:3};if(n>=3)mix.blaster=Math.min(4,1+(n>>2));
-  return {n,name:'Stage '+n+': '+nm,short:nm,baseHp:1600+n*300,int:n>20?Math.max(50,90-(n-20)*4):Math.max(90,185-n*5),mix,beetle:[n>=2?Math.max(n>20?400:700,2600-n*100):1e9,n>20?Math.max(260,500-(n-20)*25):Math.max(500,1900-n*70)],
-    start:80+n*6,mul:1+(n-1)*0.065+Math.max(0,n-20)*0.3,pmul:1+(n-1)*0.055,bmul:0.85+(n-5)*0.035+Math.max(0,n-20)*0.2,boss:n%5===0?BOSSES[n/5-1]:null,towerHp:1000+n*40};});
+  'rgba(255,140,60,.22)','rgba(20,24,80,.35)','rgba(200,110,30,.2)','rgba(200,150,70,.3)','rgba(20,24,80,.38)','rgba(70,80,100,.3)','rgba(150,200,255,.3)','rgba(90,40,140,.3)','rgba(220,60,30,.25)','rgba(120,0,0,.25)',
+  'rgba(120,0,200,.28)','rgba(10,30,60,.4)','rgba(0,120,60,.28)','rgba(0,90,140,.3)','rgba(200,40,0,.3)','rgba(255,90,0,.3)','rgba(180,220,255,.32)','rgba(40,50,70,.4)','rgba(160,230,255,.3)','rgba(90,0,60,.32)',
+  'rgba(20,90,20,.35)','rgba(10,10,40,.45)','rgba(255,60,160,.25)','rgba(120,60,0,.4)','rgba(150,0,0,.32)','rgba(10,10,20,.5)','rgba(60,0,100,.4)','rgba(0,200,120,.25)','rgba(30,0,0,.5)','rgba(0,0,0,.55)'];
+const STAGES=STAGE_NAMES.map((nm,i)=>{const n=i+1,mix={bug:7,err:n>30?6:n>=8?4:3};if(n>=3)mix.blaster=Math.min(n>30?6:4,1+(n>>2));
+  return {n,name:'Stage '+n+': '+nm,short:nm,baseHp:1600+n*300,int:n>30?Math.max(34,50-(n-30)*0.8):n>20?Math.max(50,90-(n-20)*4):Math.max(90,185-n*5),mix,beetle:[n>=2?Math.max(n>30?300:n>20?400:700,2600-n*100):1e9,n>30?Math.max(170,260-(n-30)*4):n>20?Math.max(260,500-(n-20)*25):Math.max(500,1900-n*70)],
+    giant:n>=12?[Math.max(2400,5400-n*80),Math.max(n>30?1100:1500,3600-n*60)]:null,   // Giant Bugs: a normal bug, but bigger than the Big Beetle
+    start:80+n*6,mul:1+(n-1)*0.065+Math.max(0,n-20)*0.3+Math.max(0,n-30)*0.9+(n>30?1.5:0),pmul:1+(n-1)*0.055,bmul:0.85+(n-5)*0.035+Math.max(0,n-20)*0.2+Math.max(0,n-30)*0.5,boss:n%5===0?BOSSES[n/5-1]:null,towerHp:1000+n*40};});
 const BOLT_COST=50,BOLT_CD=1200,BOLT_DMG=90,MAX_MINE=6,MAX_ARMY=30;
 const TRICKLE=1.5,MAX_MINERS=9;
 function rate(){return G&&G.mode==='vs'?VS_RATE:TRICKLE;}
@@ -402,6 +409,7 @@ function spawner(){const s=G.s;
   if(G.defendT===0)G.hideWarn=false;
   if(--G.spawnT<=0){spawnEnemy(pickMix(s.mix),0);const k=Math.max(0.55,1-G.time/(60*180));G.spawnT=s.int*k*(0.7+Math.random()*0.6)/(1+0.9*hp);}
   if(--G.beetleT<=0){spawnEnemy(s.big||'beetle',0);G.beetleT=s.beetle[1]/(1+0.6*hp);}
+  if(s.giant){G.giantT=(G.giantT??s.giant[0])-1;if(G.giantT<=0){spawnEnemy('giantbug',0);G.giantT=s.giant[1]/(1+0.6*hp);if(!G.giantSeen){G.giantSeen=true;G.bannerText='A GIANT BUG is coming!';G.banner=120;}}}
   G.swarmT=(G.swarmT??600)-1;if(hp>=1&&G.swarmT<=0){G.swarmT=600;const n=2+Math.min(4,(G.mode==='story'?stageIdx/8:2)|0);for(let i=0;i<n;i++)spawnEnemy(pickMix(s.mix),i*30);}
   if(!G.panic&&G.ebase.hp<G.ebase.max*0.7){G.panic=true;for(let i=0;i<3;i++)spawnEnemy(s.small||'bug',i*36);G.bannerText=G.mode==='zombie'?'The zombies are angry!':'The bugs are angry!';G.banner=120;}
   if(s.boss&&!G.bossSpawned&&(G.mode==='zombie'?G.ebase.hp<G.ebase.max*(s.bossAt||0.6):G.time>2700)){G.bossSpawned=true;G.boss=spawnEnemy(s.boss,0);if(s.boss2)spawnEnemy(s.boss2,70);G.bannerText='BOSS: '+G.boss.def.name+'!';G.banner=170;sfx('boom');G.flash=8;}
@@ -433,7 +441,7 @@ function update(){G.time++;
   G.units=G.units.filter(u=>!u.dead);}
 
 /* ---------- trophies ---------- */
-const TROPHY_COLORS={gold:['#f4c430','#c99a06'],silver:['#d9dde3','#9aa3ad'],sun:['#ffb347','#e07b00'],blue:['#7fb3ff','#2f6fd6'],bronze:['#e0a46a','#a8662c']};
+const TROPHY_COLORS={ruby:['#ff6b6b','#b71c1c'],gold:['#f4c430','#c99a06'],silver:['#d9dde3','#9aa3ad'],sun:['#ffb347','#e07b00'],blue:['#7fb3ff','#2f6fd6'],bronze:['#e0a46a','#a8662c']};
 let trophyAnim=0;
 function drawTrophy(c,color,label,f){const x=c.getContext('2d'),w=c.width,h=c.height,[fill,dark]=TROPHY_COLORS[color]||TROPHY_COLORS.gold;
   const prev=ctx,pb=boil,psb=SB,psc=SC;ctx=x;boil=Math.floor(f/8);seed(777);x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,w,h);
@@ -468,7 +476,7 @@ function startTrophyAnim(color,label){cancelAnimationFrame(trophyAnim);const c=d
 function trophyMsg(title,trophy,html,buttons){showMsg(title,trophyHTML()+'<br>'+html,buttons);startTrophyAnim(trophy.color,trophy.label);}
 function shelfCanvas(color,label,got){const c=document.createElement('canvas');c.width=176;c.height=144;c.className='shelfT'+(got?'':' off');
   c.title=got?label+' trophy':'Not won yet: '+label;drawTrophy(c,got?color:'silver',got?'':'?',0);return c;}
-const TROPHIES=[['story','gold','BUG BUSTER','Beat all 30 stages'],['zombie','silver','ZOMBIE KING','Beat zombie level 15'],['night','sun','SUNRISE HERO','Survive till sunrise'],['cpu','blue','CPU CHAMP','Beat the computer in VS']];
+const TROPHIES=[['story','gold','BUG BUSTER','Beat stage 30'],['legend','ruby','BUG LEGEND','Beat all 50 stages'],['zombie','silver','ZOMBIE KING','Beat zombie level 15'],['night','sun','SUNRISE HERO','Survive till sunrise'],['cpu','blue','CPU CHAMP','Beat the computer in VS']];
 function renderShelf(){const el=$('shelf');if(!el)return;el.innerHTML='';const got=save.trophies||{};
   TROPHIES.forEach(([k,c,l,how])=>{const d=document.createElement('div');d.className='slot';d.appendChild(shelfCanvas(c,l,got[k]));d.appendChild(document.createTextNode(got[k]?l:how));el.appendChild(d);});}
 function award(k){save.trophies=save.trophies||{};const isNew=!save.trophies[k];save.trophies[k]=1;persist();renderShelf();return isNew?'<div class="newbox">NEW TROPHY! It is on your trophy shelf.</div>':'';}
@@ -511,8 +519,10 @@ function finish(won){if(G.mode!=='story'){finishMode(won);return;}state='over';c
   if(finish.news.length)html+='<div class="newbox">NEW UNLOCKED: '+finish.news.join(' + ')+'!</div>';
   const again=()=>{finish.paid=false;};
   if(stageIdx<STAGES.length-1){const nx=STAGES[stageIdx+1];if(nx.boss)html+='<br>Watch out — the next stage is a <b>BOSS FIGHT!</b>';
-    showMsg('Stage '+st.n+' cleared! 🎉',html,[['Next: Stage '+nx.n+' ▶',()=>{again();go(stageIdx+1);}],['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
-  else trophyMsg('YOU WIN! 🏆',{color:'gold',label:'BUG BUSTER'},award('story')+'Your Star Army beat the '+ENEMIES[st.boss].name+' and sealed every crack in the computer! You are a true bug buster!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
+    const btns=[['Next: Stage '+nx.n+' ▶',()=>{again();go(stageIdx+1);}],['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]];
+    if(st.n===30)trophyMsg('YOU BEAT STAGE 30! 🏆',{color:'gold',label:'BUG BUSTER'},award('story')+html+'<br>But the bugs are not done... <b>20 MUCH harder stages</b> are waiting!',btns);
+    else showMsg('Stage '+st.n+' cleared! 🎉',html,btns);}
+  else trophyMsg('YOU WIN! 🏆',{color:'ruby',label:'BUG LEGEND'},award('legend')+'Your Star Army beat the '+ENEMIES[st.boss].name+' and sealed every crack in the computer! You are the BUG LEGEND!<br>You earned <b>'+finish.gems+' ◆ gems</b>.',
     [['◆ Upgrades',()=>showUpgrades(()=>finish(true))],['Stages',()=>{again();showSelect(true);}]]);}
 function playStory(){if(save.unlocked<=1){hideAll();go(0);}else showSelect(false);}
 let modeFromGame=false;
@@ -584,11 +594,23 @@ function sfx(k){if(muted||!AC)return;if(k==='hit'||k==='shoot'){if(t-lastHit<4)r
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent='sound '+(muted?'off':'on');unlockAudio();};
 
 /* ---------- drawing: characters ---------- */
-function drawBow(x,y,f,sc,pull,col){ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;
-  const bx=17,by=-21;ctx.beginPath();ctx.moveTo(bx-4,by-17);ctx.quadraticCurveTo(bx+9,by,bx-4,by+17);ctx.stroke();
-  ctx.lineWidth=1.2;const sx=bx-4-pull*9;ctx.beginPath();ctx.moveTo(bx-4,by-17);ctx.lineTo(sx,by);ctx.lineTo(bx-4,by+17);ctx.stroke();
-  if(pull>0){ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(bx+12,by);ctx.stroke();ctx.beginPath();ctx.moveTo(bx+12,by);ctx.lineTo(bx+7,by-3);ctx.moveTo(bx+12,by);ctx.lineTo(bx+7,by+3);ctx.stroke();}
-  ctx.restore();}
+function drawBow(x,y,f,sc,pull,col){ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.lineCap='round';ctx.lineJoin='round';
+  /* quiver on the back, with arrow tails sticking out */
+  ctx.save();ctx.translate(-5,-24);ctx.rotate(-0.35);ctx.beginPath();ctx.rect(-3.5,-9,7,17);ctx.fillStyle='#b98550';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();
+  for(const q of [-2,0.4,2.6]){ctx.beginPath();ctx.moveTo(q,-9);ctx.lineTo(q-0.6,-15);ctx.strokeStyle=col;ctx.lineWidth=1.3;ctx.stroke();ctx.beginPath();ctx.moveTo(q-0.6,-15);ctx.lineTo(q-2.6,-17);ctx.moveTo(q-0.6,-13);ctx.lineTo(q-2.6,-15);ctx.strokeStyle=RED;ctx.stroke();}
+  ctx.restore();
+  /* green hunter hat with a red feather */
+  ctx.beginPath();ctx.moveTo(-8.5,-40);ctx.lineTo(8.5,-40);ctx.lineTo(1,-53);ctx.closePath();ctx.fillStyle='#6aa84f';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.9;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-9.5,-40);ctx.lineTo(10.5,-40);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(1,-52);ctx.quadraticCurveTo(-7,-56,-10,-49);ctx.strokeStyle=RED;ctx.lineWidth=2.2;ctx.stroke();
+  /* wooden bow + string + arrow */
+  const bx=17,by=-21,top=[bx-4,by-18],bot=[bx-4,by+18],sx=bx-4-pull*9;
+  for(const [c,w] of [[col,5],['#8a5a2b',2.8]]){ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(top[0],top[1]);ctx.quadraticCurveTo(bx+10,by,bot[0],bot[1]);ctx.stroke();}
+  ctx.beginPath();ctx.arc(bx+2.4,by,2.4,0,7);ctx.fillStyle='#5a3a1a';ctx.fill();   // grip
+  ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(top[0],top[1]);ctx.lineTo(sx,by);ctx.lineTo(bot[0],bot[1]);ctx.stroke();
+  if(pull>0){ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(bx+13,by);ctx.stroke();ctx.beginPath();ctx.moveTo(bx+13,by);ctx.lineTo(bx+8,by-3.2);ctx.lineTo(bx+8,by+3.2);ctx.closePath();ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle=RED;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(sx-3,by-3);ctx.moveTo(sx,by);ctx.lineTo(sx-3,by+3);ctx.stroke();}
+  ctx.lineCap='butt';ctx.lineJoin='miter';ctx.restore();}
 function drawStick(x,y,f,sc,run,swAng,swLen,col,arc){
   ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;
   cpath(0,-37,7,0.6);ctx.fillStyle=PAPER;ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.fillRect(2,-39,2.4,2.4);
@@ -596,8 +618,18 @@ function drawStick(x,y,f,sc,run,swAng,swLen,col,arc){
   sline(0,-26,-9,-17,0.7);const hx=10,hy=-21;sline(0,-26,hx,hy,0.7);
   if(swLen){const dx=Math.cos(swAng),dy=Math.sin(swAng);
     if(arc){ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=5;ctx.beginPath();ctx.arc(hx,hy,swLen*0.9,-1.9,swAng);ctx.stroke();ctx.strokeStyle=col;}
-    ctx.lineWidth=3.2;sline(hx,hy,hx+dx*swLen,hy+dy*swLen,0.5);ctx.lineWidth=2.2;
-    if(swLen>20){const gx=hx+dx*5,gy=hy+dy*5;sline(gx+dy*6,gy-dx*6,gx-dy*6,gy+dx*6,0.4);}}
+    if(swLen>=24){const nx=-dy,ny=dx,L=swLen,g=6,P=(d,w)=>[hx+dx*d+nx*w,hy+dy*d+ny*w];
+      ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.strokeStyle=col;ctx.lineWidth=3.4;ctx.beginPath();ctx.moveTo(hx-dx*5,hy-dy*5);ctx.lineTo(hx+dx*g,hy+dy*g);ctx.stroke();       // grip
+      ctx.strokeStyle='#8a5a2b';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(hx-dx*5,hy-dy*5);ctx.lineTo(hx+dx*g,hy+dy*g);ctx.stroke();
+      ctx.beginPath();ctx.arc(hx-dx*6.5,hy-dy*6.5,2.3,0,7);ctx.fillStyle='#e0b020';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.stroke();  // pommel
+      const a=P(g+1,3.2),b=P(L-7,2.4),c=P(L,0),d2=P(L-7,-2.4),e=P(g+1,-3.2);
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(d2[0],d2[1]);ctx.lineTo(e[0],e[1]);ctx.closePath();
+      ctx.fillStyle='#eef3f7';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.9;ctx.stroke();                                          // blade
+      const m1=P(g+3,0),m2=P(L-9,0);ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(m1[0],m1[1]);ctx.lineTo(m2[0],m2[1]);ctx.stroke();  // shine line
+      const g1=P(g,7.5),g2=P(g,-7.5);ctx.strokeStyle=col;ctx.lineWidth=5.2;ctx.beginPath();ctx.moveTo(g1[0],g1[1]);ctx.lineTo(g2[0],g2[1]);ctx.stroke();
+      ctx.strokeStyle='#e0b020';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(g1[0],g1[1]);ctx.lineTo(g2[0],g2[1]);ctx.stroke();ctx.lineCap='butt';ctx.lineJoin='miter';}   // gold crossguard
+    else{ctx.lineWidth=3.2;sline(hx,hy,hx+dx*swLen,hy+dy*swLen,0.5);ctx.lineWidth=2.2;}}
   ctx.restore();}
 function drawBotShape(x,y,f,sc,col,punch,walk){ctx.save();ctx.translate(x,y);ctx.scale(sc*f,sc);ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.fillStyle='#fff';
   const l=Math.sin(walk)*3;ctx.fillRect(-16,-14,12,14);srect(-16,-14+l*0.3,12,14,0.8);ctx.fillRect(4,-14,12,14);srect(4,-14-l*0.3,12,14,0.8);
@@ -674,13 +706,34 @@ function drawMiner(u,col,f){const k=u.atk>0?1-u.atk/16:0,mining=u.st==='mining';
   ctx.lineWidth=2;ctx.beginPath();ctx.arc(u.x+f*1,u.y-41,8,Math.PI,0);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();
   if(u.carry>0){starPath(u.x,u.y-58,9);ctx.fillStyle='#1d1d1d';ctx.fill();text(String(u.carry),u.x+14,u.y-62,10,INK);}
   if(u.fleeing){text('!',u.x,u.y-72,16,RED);}}
+function drawBigPencil(col){const h=6;   /* drawn along +x: eraser at the back, sharp tip at the front */
+  ctx.lineJoin='round';ctx.strokeStyle=col;ctx.lineWidth=2.3;
+  ctx.beginPath();ctx.rect(-20,-h,11,2*h);ctx.fillStyle='#f08fa0';ctx.fill();ctx.stroke();            // eraser
+  ctx.beginPath();ctx.rect(-9,-h,6,2*h);ctx.fillStyle='#c8ccd2';ctx.fill();ctx.stroke();               // metal band
+  sline(-7.5,-h,-7.5,h,0.2);sline(-5,-h,-5,h,0.2);
+  ctx.beginPath();ctx.rect(-3,-h,48,2*h);ctx.fillStyle='#f6c945';ctx.fill();ctx.stroke();               // yellow body
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-1,-2);ctx.lineTo(43,-2);ctx.moveTo(-1,2.5);ctx.lineTo(43,2.5);ctx.stroke();
+  ctx.strokeStyle=col;ctx.lineWidth=2.3;ctx.beginPath();ctx.moveTo(45,-h);ctx.lineTo(65,0);ctx.lineTo(45,h);ctx.closePath();ctx.fillStyle='#e8c8a0';ctx.fill();ctx.stroke();   // wood tip
+  ctx.beginPath();ctx.moveTo(58,-2.2);ctx.lineTo(65,0);ctx.lineTo(58,2.2);ctx.closePath();ctx.fillStyle=col;ctx.fill();   // lead
+  ctx.lineJoin='miter';}
+function drawBigPencil(col){const h=6;   /* drawn along +x: eraser at the back, sharp tip at the front */
+  ctx.lineJoin='round';ctx.strokeStyle=col;ctx.lineWidth=2.3;
+  ctx.beginPath();ctx.rect(-20,-h,11,2*h);ctx.fillStyle='#f08fa0';ctx.fill();ctx.stroke();            // eraser
+  ctx.beginPath();ctx.rect(-9,-h,6,2*h);ctx.fillStyle='#c8ccd2';ctx.fill();ctx.stroke();               // metal band
+  sline(-7.5,-h,-7.5,h,0.2);sline(-5,-h,-5,h,0.2);
+  ctx.beginPath();ctx.rect(-3,-h,48,2*h);ctx.fillStyle='#f6c945';ctx.fill();ctx.stroke();               // yellow body
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-1,-2);ctx.lineTo(43,-2);ctx.moveTo(-1,2.5);ctx.lineTo(43,2.5);ctx.stroke();
+  ctx.strokeStyle=col;ctx.lineWidth=2.3;ctx.beginPath();ctx.moveTo(45,-h);ctx.lineTo(65,0);ctx.lineTo(45,h);ctx.closePath();ctx.fillStyle='#e8c8a0';ctx.fill();ctx.stroke();   // wood tip
+  ctx.beginPath();ctx.moveTo(58,-2.2);ctx.lineTo(65,0);ctx.lineTo(58,2.2);ctx.closePath();ctx.fillStyle=col;ctx.fill();   // lead
+  ctx.lineJoin='miter';}
 function drawTitan(u,col,f,sc){const k=u.atk>0?1-u.atk/16:0;let ang=-1.25;if(u.atk>0)ang=k<0.45?-1.25-k/0.45*1.0:-2.25+(k-0.45)/0.55*3.0;
   ctx.save();ctx.translate(u.x,u.y);ctx.scale(sc,sc);
-  drawStick(0,0,f,1.75,u.walk,ang,24,col,false);
-  const hx=f*10*1.75,hy=-21*1.75,tx=hx+Math.cos(ang)*24*1.75*f,ty=hy+Math.sin(ang)*24*1.75;
-  seed((u.id||1)+7);ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();ctx.ellipse(tx,ty,13,9,ang,0,7);ctx.fillStyle='#d9c3a5';ctx.fill();ctx.stroke();
+  drawStick(0,0,f,1.75,u.walk,ang,0,col,false);
+  const hx=f*10*1.75,hy=-21*1.75;
+  ctx.save();ctx.translate(hx,hy);ctx.scale(f*1.25,1.25);ctx.rotate(ang);drawBigPencil(col);ctx.restore();
   ctx.save();ctx.scale(f,1);ctx.fillStyle=RED;ctx.fillRect(-13,-73,26,5);ctx.fillRect(-15,-72,4,10);ctx.restore();
-  if(u.atk>0&&u.atk<8&&sc===1){const r=(8-u.atk)*9;ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f*60,0,r,r*0.25,0,Math.PI,0);ctx.stroke();}
+  if(u.atk>0&&u.atk<8&&sc===1){const r=(8-u.atk)*9;ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f*60,0,r,r*0.25,0,Math.PI,0);ctx.stroke();
+    ctx.strokeStyle=col;ctx.lineWidth=2.2;zigzag(f*32,-4,f*88,-8,7,5);zigzag(f*88,-14,f*36,-20,6,5);zigzag(f*40,-26,f*84,-30,5,4);}   // scribbles where the pencil lands
   ctx.restore();}
 function drawControls(){const h=G.ctl;if(!h||h.dead)return;seed(h.id+3);
   ctx.strokeStyle='#e8a33a';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(h.x,h.y+2,Math.max(16,h.def.w*0.6),6,0,0,7);ctx.stroke();
@@ -719,6 +772,8 @@ function drawUnit(u){seed(u.id);const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:
     case 'titan':drawTitan(u,col,f,1);break;
     case 'bug':drawBugShape(u.x,u.y,f,1,col,u.id,false);break;
     case 'beetle':drawBugShape(u.x,u.y,f,2,col,u.id,true);break;
+    case 'giantbug':drawBugShape(u.x,u.y,f,3.2,col,u.id,false);break;
+    case 'bugemperor':drawBugShape(u.x,u.y,f,5,col,u.id,true);ctx.strokeStyle=col;ctx.lineWidth=3.4;ctx.fillStyle='#f4c430';{const cx=u.x+f*40,cy=u.y-84;ctx.beginPath();ctx.moveTo(cx-22,cy);ctx.lineTo(cx-24,cy-24);ctx.lineTo(cx-11,cy-10);ctx.lineTo(cx,cy-30);ctx.lineTo(cx+11,cy-10);ctx.lineTo(cx+24,cy-24);ctx.lineTo(cx+22,cy);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle=RED;for(const dx of[-12,0,12]){ctx.beginPath();ctx.arc(cx+dx,cy-5,2.6,0,7);ctx.fill();}}break;
     case 'err':drawErrShape(u.x,u.y-42+Math.sin(t*0.08+u.id)*5,22,col,'Err');break;
     case 'blaster':drawBlasterShape(u.x,u.y,f,col);break;
     case 'king':drawKing(u,col);break;
