@@ -254,7 +254,7 @@ function startBattle(s,mode,key){const vs=mode==='vs';
 }
 
 /* ---------- Armory: armors (whole army) and sword skins (Swordy) are bought with coins ---------- */
-const PREVIEW=false;   // extras (coins, Armory, skins, Keys/Mouse switch, party mode) exist only in the Claude preview build: that build flips this to true
+const PREVIEW=true;   // extras: coins, Armory, skins, Keys/Mouse switch, party mode (set to false to hide them). The infinite stars/coins/unlocks cheats exist only in the Claude preview build.
 const ARMORS=[
  {k:'none',name:'No Armor',cost:0,ic:'🧍',col:null,desc:'Plain stick soldiers.'},
  {k:'iron',name:'Iron Armor',cost:5,ic:'🛡',col:'#9aa5b1',desc:'Your whole army has +25% health.'},
