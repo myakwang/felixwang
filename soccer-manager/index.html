@@ -707,13 +707,23 @@ function openSponsor(){const c=S.call;if(!c)return;const p=S.players.find(x=>x.i
  const sv=c.ng;NG={kind:'sponsor',name:c.co,player:p.name,ask:sv?sv.ask:c.amt,floor:c.max,pat:sv?sv.pat:rnd(3,4),max:sv?sv.max:4,used:sv?sv.used:{},offer:Math.round(c.amt*1.2),busy:false,
   log:[{w:'him',t:`Hello! This is ${c.co}. We want ${p.name} in our TV ad! We will pay you ${money(sv?sv.ask:c.amt)}.`}],look:{shirt:'#2d3436',skin:pick(SKINS),hair:pick(HAIRS),hs:0,suit:true}};openNego()}
 let VOICE_ON=true;try{VOICE_ON=localStorage.getItem('soccerMgrVoice')!=='0'}catch(e){}
-function pickVoice(kind){try{if(!window.speechSynthesis)return null;const all=speechSynthesis.getVoices();if(!all.length)return 'default';const vs=all.filter(v=>v.localService&&/^en/i.test(v.lang));if(!vs.length)return 'default';
- const m=vs.filter(v=>/male|david|daniel|alex|fred|tom|aaron|arthur|gordon|rishi|guy|mark|james|oliver/i.test(v.name)&&!/female/i.test(v.name));return pick(m.length?m:vs)}catch(e){return null}}
-function speak(text){if(!VOICE_ON||!NG)return;try{const ss=window.speechSynthesis;if(!ss)return;let code='en',tx=String(text);if(LANG!=='en'){const lv=commVoice(LANG);if(lv!==null){code=LANG;tx=trText(tx);if(lv&&NG.vlang!==LANG){NG.voice=lv;NG.vlang=LANG}}}
+const NOVELTY=/albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical|pipe|junior|ralph|kathy|princess|fred|grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley/i;
+const MALEV=/\bmale\b|david|daniel|alex|aaron|arthur|gordon|guy|mark|james|oliver|tom|matthew|ryan|andrew|brian|christopher|eric|roger|steffan|ethan|william|george|thomas|lee\b|reed|xander|jorge|diego|juan|carlos|jacques|thomas|hans|markus|stefan|yuki|ichiro|otoya|kangkang|yunxi|yunjian|injoon|hyunsu|henrique|felipe|antonio/i;
+const FEMV=/female|samantha|karen|victoria|susan|zira|moira|tessa|fiona|allison|ava|joanna|kendra|kimberly|salli|ivy|emma|amy|mei|ting|sin-ji|yuna|paulina|monica|marie|amelie|anna|helena|kyoko|haruka|sara/i;
+function voiceScore(v,code){let sc=0;const l=v.lang.toLowerCase().replace('_','-'),n=v.name;
+ if(code==='en'){if(l==='en-us')sc+=4;else if(l==='en-gb')sc+=3;else if(l==='en-au'||l==='en-ca')sc+=1;else if(l==='en-in')sc-=9;else sc-=2}
+ if(NOVELTY.test(n))sc-=10;if(/natural|enhanced|premium|neural|google/i.test(n))sc+=3;if(v.localService)sc+=1;if(/compact/i.test(n))sc-=1;return sc}
+function goodVoices(code,male){try{const all=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-').startsWith(code));if(!all.length)return[];
+ const sc=v=>voiceScore(v,code)+(male&&MALEV.test(v.name)&&!FEMV.test(v.name)?2:0)+(male&&FEMV.test(v.name)?-1:0);
+ const a=all.map(v=>[sc(v),v]).sort((x,y)=>y[0]-x[0]||(x[1].name<y[1].name?-1:1));const best=a[0][0];return a.filter(x=>x[0]>=best-2).map(x=>x[1])}catch(e){return[]}}
+const hashStr=t=>{let h=7;for(const c of String(t))h=(h*31+c.charCodeAt(0))>>>0;return h};
+function pickVoice(kind){try{if(!window.speechSynthesis)return null;if(!speechSynthesis.getVoices().length)return 'default';const g=goodVoices('en',true);if(!g.length)return 'default';return g[hashStr((NG&&NG.name)||'x')%g.length]}catch(e){return null}}
+function talkVoice(code){const g=goodVoices(code,true);if(!g.length)return null;return g[hashStr((NG&&NG.name)||'x')%g.length]}
+function speak(text){if(!VOICE_ON||!NG)return;try{const ss=window.speechSynthesis;if(!ss)return;let code='en',tx=String(text);if(LANG!=='en'){const lv=commVoice(LANG)===null?null:talkVoice(LANG);if(lv!==null){code=LANG;tx=trText(tx);if(lv&&NG.vlang!==LANG){NG.voice=lv;NG.vlang=LANG}}}
  if(code==='en'&&NG.vlang){NG.voice=null;NG.vlang=null}
  if(!NG.voice)NG.voice=pickVoice(NG.kind);if(!NG.voice)return;
  const TH={en:'thousand dollars',zh:'千美元',es:'mil dólares',fr:'mille dollars',pt:'mil dólares',de:'tausend Dollar',ja:'千ドル',ko:'천 달러'}[code];const say=tx.replace(/\$(\d+)k/g,'$1 '+TH).replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu,' ');const u=new SpeechSynthesisUtterance(say);if(NG.voice==='default'){u.lang='en-US';NG.voice=null}else{u.voice=NG.voice;u.lang=NG.voice.lang}
- const mad=NG.pat<=1||/!!|WHAT|THAT'S IT|RIDICULOUS/.test(text);u.pitch=NG.kind==='player'?(mad?1.35:1.15):(mad?1.1:.85);u.rate=mad?1.25:1.02;u.volume=1;ss.cancel();ss.speak(u)}catch(e){}}
+ const mad=NG.pat<=1||/!!|WHAT|THAT'S IT|RIDICULOUS/.test(text);const po=((hashStr(NG.name||'x')>>3)%5-2)*.05;u.pitch=clamp((NG.kind==='player'?(mad?1.3:1.08):(mad?1.1:.9))+po,.6,1.6);u.rate=mad?1.25:1.02;u.volume=1;ss.cancel();ss.speak(u)}catch(e){}}
 function toggleVoice(){VOICE_ON=!VOICE_ON;try{localStorage.setItem('soccerMgrVoice',VOICE_ON?'1':'0')}catch(e){}if(!VOICE_ON)try{speechSynthesis.cancel()}catch(e){}const b=$('#vBtn');if(b)b.textContent=VOICE_ON?'🔊':'🔇'}
 function moodFace(){const r=NG.pat/NG.max;return r>.7?'😊':r>.45?'😐':r>.2?'😠':'🤬'}
 function openNego(){let el=$('#nego');if(!el){el=document.createElement('div');el.id='nego';document.body.appendChild(el)}
@@ -1484,9 +1494,24 @@ let COMM_LANG='en';try{COMM_LANG=localStorage.getItem('soccerMgrCommLang')||loca
 const CM={t:0,v:{},warned:{}};
 const CNUM={en:n=>'number '+n,es:n=>'número '+n,fr:n=>'numéro '+n,de:n=>'Nummer '+n,pt:n=>'número '+n,zh:n=>n+'号',ja:n=>n+'番',ko:n=>n+'번'};
 const CT={
-en:{kick:["Kick off! Let's go {t}!"],got:["Oh my god, {w} got the ball!","{w} has it now!","Nice pass! {w} receives it."],steal:["Oh no! {t} stole it! Now {w} has the ball.","Stolen! {w} takes it away! {o} must win it back!","Okay, the other team stole it! {o} have to get it back now!"],
- goal:["Goal! {w} scores! What a shot!","Goal! {w} scores! The crowd goes wild!"],conc:["Goal for {t}. {w} scores. Ouch!"],save:["Shot! Saved by the keeper!"],bigsave:["What a save by {w}!"],wide:["{w} shoots wide. So close!"],post:["{w} hits the post!"],
- foul:["{w} slide tackles {v}! Foul!"],yellow:["Yellow card for {w}!"],red:["Red card! {w} is sent off!"],offside:["Offside! The linesman raises his flag."],half:["Half time! Time for a water break."],second:["Second half! Let's go!"],full:["Full time!"],skill:["{w} does a skill move! Wow!"],sub:["{w} comes on for {v}."]},
+en:{kick:["Kick off! Let's go {t}!","And we are underway! Come on {t}!","The match begins! Go {t}!"],
+ got:["Oh my goodness, {w} got the ball!","{w} has it now!","Nice pass! {w} receives it.","{w} on the ball. Looking for space.","{w} controls it nicely.","Here comes {w}!"],
+ steal:["Oh no! {t} stole it! Now {w} has the ball.","Stolen! {w} takes it away! {o} must win it back!","Okay, the other team stole it! {o} have to get it back now!","Turnover! {w} wins it for {t}!","What a tackle! {w} takes the ball!"],
+ goal:["Goal! Goal! {w} scores! What a shot!","Goal! {w} finds the net! Unbelievable!","He scores! {w} scores! The crowd goes wild!","Goal! A beautiful finish by {w}!","It is in! {w} scores for {t}!"],
+ conc:["Goal for {t}. {w} scores. Ouch!","Oh no. {w} puts it away for {t}. We have to fight back!","{t} score! {w} finishes it. Heads up, everyone!"],
+ save:["Shot! Saved by the keeper!","A big save! Still no goal!","The keeper holds on!"],
+ bigsave:["What a save by {w}! Incredible!","{w} dives across the goal! Amazing save!","{w} keeps it out! Wow!"],
+ wide:["{w} shoots wide. So close!","Oh! {w} puts it just wide.","Missed! {w} should have scored!"],
+ post:["{w} hits the post! So unlucky!","Off the post! {w} cannot believe it!"],
+ foul:["{w} slide tackles {v}! Foul!","Foul! {w} brings down {v}.","The referee stops play. A foul on {w}."],
+ yellow:["Yellow card for {w}!","The referee shows a yellow card to {w}."],
+ red:["Red card! {w} is sent off!","Oh no! A red card for {w}! He has to go!"],
+ offside:["Offside! The linesman raises his flag.","Flag is up! Offside!"],
+ half:["Half time! Time for a water break.","That is the half time whistle. Water break!"],
+ second:["Second half! Let's go!","We are back for the second half! Here we go!"],
+ full:["Full time! What a match!","That is the final whistle!"],
+ skill:["{w} does a skill move! Wow!","Look at that! {w} dances past!","What skill from {w}!"],
+ sub:["{w} comes on for {v}.","A change! {w} replaces {v}."]},
 es:{kick:["¡Comienza el partido! ¡Vamos {t}!"],got:["¡Dios mío, {w} tiene el balón!","¡{w} la tiene ahora!","¡Buen pase! {w} la recibe."],steal:["¡Oh no! ¡{t} la robó! Ahora {w} tiene el balón.","¡Robada! ¡{w} se la lleva! ¡{o} debe recuperarla!"],
  goal:["¡Gol! ¡{w} anota! ¡Qué disparo!","¡Gol! ¡{w} marca! ¡La multitud enloquece!"],conc:["Gol de {t}. {w} anota. ¡Ay!"],save:["¡Disparo! ¡Parada del portero!"],bigsave:["¡Qué parada de {w}!"],wide:["{w} dispara afuera. ¡Qué cerca!"],post:["¡{w} pega en el poste!"],
  foul:["¡{w} derriba a {v}! ¡Falta!"],yellow:["¡Tarjeta amarilla para {w}!"],red:["¡Tarjeta roja! ¡{w} es expulsado!"],offside:["¡Fuera de juego! El juez de línea levanta la bandera."],half:["¡Medio tiempo! Descanso para beber agua."],second:["¡Segundo tiempo! ¡Vamos!"],full:["¡Final del partido!"],skill:["¡{w} hace una jugada de habilidad! ¡Guau!"],sub:["{w} entra por {v}."]},
@@ -1511,21 +1536,18 @@ ko:{kick:["경기 시작! 힘내라, {t}!"],got:["세상에, {w}가 공을 잡�
 const CHI=new Set(['goal','conc','red','yellow','full','half','second','offside','bigsave','kick','post']);
 // never spell words out: "GOAL" -> "Goal", strip emoji/tags, say numbers in the commentary language
 const spokenTxt=t=>String(t).replace(/<[^>]*>/g,'').replace(/\b[A-Z]{2,}\b/g,w=>w[0]+w.slice(1).toLowerCase()).replace(/\$(\d+)k/g,'$1 thousand dollars').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,' ');
-function commVoice(code){try{if(CM.v[code]!==undefined)return CM.v[code];const all=speechSynthesis.getVoices();if(!all.length)return undefined;
- const c=all.filter(v=>v.lang.toLowerCase().replace('_','-').startsWith(code));if(!c.length){CM.v[code]=null;return null}
- const loc=c.filter(v=>v.localService),pool=loc.length?loc:c,m=code==='en'?pool.filter(v=>/male|david|daniel|alex|fred|tom|aaron|arthur|gordon|rishi|guy|mark|james|oliver/i.test(v.name)&&!/female/i.test(v.name)):[];
- return CM.v[code]=(m.length?m:pool)[0]}catch(e){return undefined}}
-function commSpeak(text,hi,code){if(!COMM_ON||!text)return;try{const ss=window.speechSynthesis;if(!ss)return;code=code||'en';const now=Date.now();
+function commVoice(code){try{if(CM.v[code]!==undefined)return CM.v[code];if(!speechSynthesis.getVoices().length)return undefined;const g=goodVoices(code,true);return CM.v[code]=g.length?g[0]:null}catch(e){return undefined}}
+function commSpeak(text,hi,code,type){if(!COMM_ON||!text)return;try{const ss=window.speechSynthesis;if(!ss)return;code=code||'en';const now=Date.now();
  if(!hi){if(P&&P.speed>1)return;if(ss.speaking||now-CM.t<2200)return}
  const u=new SpeechSynthesisUtterance(spokenTxt(text)),vo=commVoice(code),info=COMML.find(x=>x[0]===code);
  if(vo){u.voice=vo;u.lang=vo.lang}else u.lang=info?info[2]:'en-US';
- u.pitch=hi?1.05:.85;u.rate=hi?1.25:1.12;u.volume=1;if(hi)ss.cancel();ss.speak(u);CM.t=now}catch(e){}}
+ const PR={goal:[1.18,1.15],conc:[.85,1.0],bigsave:[1.1,1.15],post:[1.1,1.15],wide:[1.05,1.1],red:[.9,1.02],yellow:[.95,1.05],full:[1,1.0],half:[1,1.0],kick:[1.08,1.08],steal:[1,1.12],got:[.98,1.1],skill:[1.12,1.15]}[type]||(hi?[1.05,1.1]:[.95,1.08]);u.pitch=PR[0];u.rate=PR[1];u.volume=1;if(hi)ss.cancel();ss.speak(u);CM.t=now}catch(e){}}
 const cmTeam=t=>t===0?TN():M.o.name;
 function cmWho(p){const L=CNUM[COMM_LANG]||CNUM.en,f=p.name?String(p.name).split(' ')[0]:'';return (p.num?L(p.num):'')+(f?(p.num?' ':'')+f:'')}
 function cev(type,d){if(!COMM_ON)return;if(type==='got'&&Math.random()>.3)return;let code=COMM_LANG;
  if(code!=='en'&&commVoice(code)===null){if(!CM.warned[code]){CM.warned[code]=1;const nm=(COMML.find(x=>x[0]===code)||[])[1];toast(`🎙️ No ${nm} voice on this device. Using English.`)}code='en'}
  const arr=(CT[code]||CT.en)[type];if(!arr)return;d=d||{};const txt=pick(arr).replace(/\{(\w)\}/g,(m,k)=>d[k]!==undefined?d[k]:'');
- if(type==='got'||type==='steal')say('🎙️ '+esc(txt),'comm',true);commSpeak(txt,CHI.has(type),code)}
+ if(type==='got'||type==='steal')say('🎙️ '+esc(txt),'comm',true);commSpeak(txt,CHI.has(type),code,type)}
 function commAuto(){}
 function setCommLang(v){COMM_LANG=v;try{localStorage.setItem('soccerMgrCommLang',v)}catch(e){}try{speechSynthesis.cancel()}catch(e){}cev('kick',{t:TN()})}
 let EGG=0,EGGT=0;function eggTap(){const n=Date.now();if(n-EGGT>1500)EGG=0;EGGT=n;EGG++;if(EGG<7)return;EGG=0;confetti(400);setTimeout(()=>confetti(300),500);modal(`<div class="big">🥚⚽🥚</div><h2>Secret Easter egg!</h2><p>You found the hidden egg! You are a super fan! 🌟</p>`,[{t:'🥚 Yay!',c:'gold'}])}
