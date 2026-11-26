@@ -372,6 +372,8 @@ $('musBtn').onclick=$('musChip').onclick=e=>{e.stopPropagation();HS.ac();HS.musi
 addEventListener('pointerdown',()=>HS.ac(),{capture:true});
 }
 
+function tickEgg(dt){const e=W&&W.egg;if(!e)return;e.g.rotation.y+=dt*(e.found?6:0.8);e.g.position.y=e.found?Math.abs(Math.sin(T*6))*0.5:0;
+  if(!e.found&&canMove()&&Math.hypot(P.x-e.x,P.z-e.z)<1.3&&Math.abs(P.feet)<1){e.found=true;HS.sfx.win();toast('🦆✨ You found the Golden Duck! Felix\'s secret!',3.6);setTimeout(()=>{if(e.g.parent)e.g.visible=true;},0);}}
 let toastT=0;function toast(t,d){const e=$('toast');e.textContent=t;e.classList.add('show');toastT=d||2;}
 function updateStatus(){const r=myRole();$('status').textContent=(r==='hide'?'🙈 You hide':r==='seek'?'🔍 You seek':'👀 Watching')+' · 👥 '+allIds().length+' · R'+G.round;}
 
@@ -414,7 +416,7 @@ function frame(now){
   const role=myRole();
   // me
   let moving=false;
-  HS.tickOpens(dt);
+  HS.tickOpens(dt);tickEgg(dt);
   if(canMove()){const m=HS.moveVec(dt,role==='hide'&&myPoseSel!=='stand'?2.4:4.3);moving=m[2];HS.movePlayer(m[0],m[1],dt);}else if(!(P.inside>=0))HS.movePlayer(0,0,dt);
   myPose=(moving||!P.ground)?'walk':(role==='hide'?myPoseSel:'stand');
   if(P.inside>=0)myPose=HS.openSpot(W.opens[P.inside]).pose;

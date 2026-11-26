@@ -1463,6 +1463,14 @@ HS.defineMap({
   env:{bg:'#f3e9d8',sky:false,sun:0.42,sunPos:[10,22,16],hemi:0.5,amb:0.22,shadowExt:34,ceil:5.5},
   spawn:{seek:[0,21,0,8],hide:[0,18,0,6],seeker:[0,4.6,0,2],home:[-5,21,0.9,0],dog:[5,13]},
   build(B){
+    // secret: the golden duck (Easter egg) — walk up to it!
+    {const g=new THREE.Group(),Y=HS.mat('#ffd400'),O=HS.mat('#ff8a00'),K=HS.mat('#222222');
+     const body=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,12),Y);body.scale.set(1.2,0.9,0.95);body.position.y=0.28;
+     const head=new THREE.Mesh(new THREE.SphereGeometry(0.18,14,10),Y);head.position.set(0.28,0.6,0);
+     const beak=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.05,0.12),O);beak.position.set(0.5,0.58,0);
+     const tail=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.2,8),Y);tail.rotation.z=PI/2+0.5;tail.position.set(-0.4,0.38,0);
+     [-1,1].forEach(q=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.03,8,6),K);e.position.set(0.41,0.66,q*0.09);g.add(e);});
+     g.add(body,head,beak,tail);g.position.set(20,0,-8);B.W.group.add(g);B.W.egg={g,x:20,z:-8,found:false};}
     const H=5.5,wp=HS.tex.wallpaper(8,2);
     const R={kit:'#fff1b8',lib:'#c9a27a',bed:'#cfe0ff',din:'#f6c9c9',hall:'#f5ecd7',game:'#cdeccd',pool:'#bfefff',foy:'#f8dcc0',toy:'#ffd6a5'};
     const wm=c=>HS.mat(c,{map:wp});
