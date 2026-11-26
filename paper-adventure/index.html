@@ -457,6 +457,13 @@ const ovh=document.getElementById('ovh'),homeB=document.getElementById('home');
 if(ON_SITE){homeB.classList.remove('hide');}
 homeB.addEventListener('click',()=>{if(state==='play'){state='paused';showOv('Go back to all games?','<p>Your unlocked levels are saved.</p>','Keep playing',()=>{state='play';});ovh.classList.remove('hide');}else goHome();});
 ovh.addEventListener('click',goHome);
+/* ---------- secret: tap the title 7 times for Felix's party hat (tap 7 more to take it off) ---------- */
+let hatOn=false;try{hatOn=localStorage.getItem('paperAdventureHat')==='1';}catch(e){}
+let eggTaps=0,eggT=0;
+ovt.addEventListener('click',()=>{if(state!=='title')return;const now=Date.now();if(now-eggT>1500)eggTaps=0;eggT=now;eggTaps++;
+  if(eggTaps<7)return;eggTaps=0;hatOn=!hatOn;try{localStorage.setItem('paperAdventureHat',hatOn?'1':'0');}catch(e){}
+  initAudio();[523,659,784,1047,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.14,'square'),i*90));
+  const old=ovt.textContent;ovt.textContent=hatOn?'🎉 Secret! Party hat on! 🎉':'Party hat off';setTimeout(()=>{if(state==='title')ovt.textContent=old;},2200);});
 function showOv(title,html,btn,action){ovh.classList.add('hide');ovt.textContent=title;ovp.innerHTML=html;ovb.textContent=btn;ovAction=action;ov.classList.remove('hide');}
 ovb.addEventListener('click',()=>{initAudio();ov.classList.add('hide');const a=ovAction;ovAction=null;if(a)a();});
 ovp.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b||b.disabled)return;ov.classList.add('hide');ovAction=null;startLevel(+b.dataset.l);});
@@ -732,9 +739,12 @@ function drawKey(x,y,s,gold){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.li
 function drawLock(x,y){ctx.save();ctx.strokeStyle='#2b2b2b';ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(x,y-4,7,Math.PI,0);ctx.stroke();ctx.fillStyle='#9aa0a6';ctx.fillRect(x-10,y-4,20,15);ctx.strokeRect(x-10,y-4,20,15);ctx.fillStyle='#2b2b2b';ctx.fillRect(x-1.5,y+1,3,6);ctx.restore();}
 function heart(x,y,r,full){ctx.beginPath();ctx.moveTo(x,y+r*0.9);ctx.bezierCurveTo(x-r*1.6,y-r*0.2,x-r*0.6,y-r*1.3,x,y-r*0.4);ctx.bezierCurveTo(x+r*0.6,y-r*1.3,x+r*1.6,y-r*0.2,x,y+r*0.9);ctx.fillStyle=full?'#ff6b6b':'#fff';ctx.fill();ctx.stroke();}
 function flower(x,y,r,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ctx.beginPath();ctx.ellipse(0,-r*.5,r*.28,r*.5,0,0,Math.PI*2);ctx.stroke();}ctx.restore();}
-function stick(x,y,face,walk,airborne,wave,armed){
+function stick(x,y,face,walk,airborne,wave,armed,hat){
   const cx=x+12;ctx.lineWidth=2.4;ctx.strokeStyle='#2b2b2b';
   ctx.beginPath();ctx.arc(cx,y+9,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();
+  if(hat){ctx.save();ctx.lineWidth=1.8;ctx.fillStyle='#ff5fa2';ctx.beginPath();ctx.moveTo(cx-6+face*2,y+3);ctx.lineTo(cx+face*3,y-12);ctx.lineTo(cx+6+face*2,y+3);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.strokeStyle='#ffd646';ctx.beginPath();ctx.moveTo(cx-3.5+face*2,y-2);ctx.lineTo(cx+3.5+face*2,y-2);ctx.stroke();ctx.strokeStyle='#2b2b2b';
+    ctx.fillStyle='#ffd646';ctx.beginPath();ctx.arc(cx+face*3,y-13,2.6,0,7);ctx.fill();ctx.stroke();ctx.restore();}
   ctx.beginPath();ctx.arc(cx+face*3,y+8,1.3,0,Math.PI*2);ctx.fillStyle='#2b2b2b';ctx.fill();
   ctx.beginPath();ctx.moveTo(cx,y+17);ctx.lineTo(cx,y+33);ctx.stroke();
   const sw=airborne?0.9:Math.sin(walk)*0.7;
@@ -998,7 +1008,7 @@ function render(){
   parts.forEach(q=>{ctx.globalAlpha=Math.max(0,Math.min(1,q.life/40));if(q.star){ctx.strokeStyle='#e6b800';ctx.lineWidth=1.5;starShape(q.x,q.y,4,'#ffe36e');}else{ctx.fillStyle=q.col||'#555';ctx.fillRect(q.x,q.y,4,4);}ctx.globalAlpha=1;});
   // player
   const blink=(flash>0&&Math.floor(flash/3)%2)||(p.inv>0&&Math.floor(p.inv/4)%2);
-  if(!blink)stick(p.x,p.y,p.face,p.walk,!p.grounded,false,!!lv.weapon);
+  if(!blink)stick(p.x,p.y,p.face,p.walk,!p.grounded,false,!!lv.weapon,hatOn);
   ctx.restore();
   // HUD
   ctx.lineCap='round';ctx.lineJoin='round';
