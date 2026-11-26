@@ -254,6 +254,7 @@ function startBattle(s,mode,key){const vs=mode==='vs';
 }
 
 /* ---------- Armory: armors (whole army) and sword skins (Swordy) are bought with coins ---------- */
+const PREVIEW=false;   // extras (coins, Armory, skins, Keys/Mouse switch, party mode) exist only in the Claude preview build: that build flips this to true
 const ARMORS=[
  {k:'none',name:'No Armor',cost:0,ic:'🧍',col:null,desc:'Plain stick soldiers.'},
  {k:'iron',name:'Iron Armor',cost:5,ic:'🛡',col:'#9aa5b1',desc:'Your whole army has +25% health.'},
@@ -289,14 +290,14 @@ const PICKS=[
 const SKIN_SETS={sword:SWORDS,bow:BOWS,giant:PENCILS,miner:PICKS};
 const SKIN_OF_TYPE={sword:'sword',thrower:'bow',titan:'giant',miner:'miner'};
 function skinKeyFor(set){return set==='sword'?save.sword:save.skin[set];}
-function unitSkin(u){if(u.team<=0||!G||G.mode==='vs')return 'plain';const st=SKIN_OF_TYPE[u.type];return st?skinKeyFor(st):'plain';}
-function skinItem(u){if(u.team<=0||!G||G.mode==='vs')return null;const st=SKIN_OF_TYPE[u.type];return st?SKIN_SETS[st].find(q=>q.k===skinKeyFor(st))||null:null;}
+function unitSkin(u){if(!PREVIEW||u.team<=0||!G||G.mode==='vs')return 'plain';const st=SKIN_OF_TYPE[u.type];return st?skinKeyFor(st):'plain';}
+function skinItem(u){if(!PREVIEW||u.team<=0||!G||G.mode==='vs')return null;const st=SKIN_OF_TYPE[u.type];return st?SKIN_SETS[st].find(q=>q.k===skinKeyFor(st))||null:null;}
 const ZFRIEND={name:'Zombie Friend',hp:70,dmg:11,range:20,rate:60,speed:0.7,w:22,h:46};
-function armorNow(){return G&&G.mode!=='vs'&&ARMORS.find(a=>a.k===save.armor)||null;}
-function swordNow(){return G&&G.mode!=='vs'&&SWORDS.find(a=>a.k===save.sword)||null;}
+function armorNow(){return PREVIEW&&G&&G.mode!=='vs'&&ARMORS.find(a=>a.k===save.armor)||null;}
+function swordNow(){return PREVIEW&&G&&G.mode!=='vs'&&SWORDS.find(a=>a.k===save.sword)||null;}
 function aK(){const a=armorNow();return a?a.k:'none';}
 function sK(){const a=swordNow();return a?a.k:'plain';}
-let armorCol=null,bladeCol=null,bowCol=null,penCol=null,pickCol=null,partyHat=-1,partyMode=false;try{partyMode=localStorage.getItem('starArmyParty')==='1';}catch(e){}
+let armorCol=null,bladeCol=null,bowCol=null,penCol=null,pickCol=null,partyHat=-1,partyMode=false;try{partyMode=PREVIEW&&localStorage.getItem('starArmyParty')==='1';}catch(e){}
 const HAT_COLS=['#e8643a','#4aa3df','#f4c430','#58c27a','#d86a8a'];
 function makeUnit(team,type,def,x,mul){mul=mul||1;return {id:NID++,team,type,def,x,y:GROUND+((NID*37)%21)-10,hp:def.hp*mul,max:def.hp*mul,dmg:def.dmg*(team<0?1+(mul-1)*0.6:mul),reward:Math.max(1,Math.round(def.reward?def.reward*0.7*(0.6+0.4*mul):0)),spawnT:200,cd:20,atk:0,flash:0,walk:Math.random()*6,dead:false};}
 function hidePower(){return (G.mode==='story'||G.mode==='zombie')?Math.min(3,(G.defendT||0)/defendFull()):0;}
@@ -345,9 +346,9 @@ function updateMiner(u){if(u.flash>0)u.flash--;if(u.atk>0)u.atk--;
     if(u.st==='mining')u.st='toOre';return;}
   if(!u.ore||u.st==='toOre'&&!u.oreSet){u.ore=pickOre(u);u.oreSet=true;u.slot=G.units.filter(m=>m.type==='miner'&&m.ore===u.ore&&m!==u).length%3;}
   const tx=u.ore.x-30-u.slot*12;
-  if(u.st==='toOre'){u.back=u.x>tx;if(Math.abs(u.x-tx)<2){u.st='mining';u.mt=150/(1+0.25*save.up.miner)/(save.skin.miner==='speed'&&G.mode!=='vs'?1.35:1);}else{u.x+=Math.sign(tx-u.x)*Math.min(sp,Math.abs(tx-u.x));u.walk+=0.3*sp;}return;}
+  if(u.st==='toOre'){u.back=u.x>tx;if(Math.abs(u.x-tx)<2){u.st='mining';u.mt=150/(1+0.25*save.up.miner)/(PREVIEW&&save.skin.miner==='speed'&&G.mode!=='vs'?1.35:1);}else{u.x+=Math.sign(tx-u.x)*Math.min(sp,Math.abs(tx-u.x));u.walk+=0.3*sp;}return;}
   if(u.st==='mining'){u.back=false;if(u.atk<=0)u.atk=16;if(u.atk===8){u.ore.flash=5;burst(u.ore.x-14,GROUND-20,2);sfx('hit');}
-    if(--u.mt<=0){u.carry=u.ore.val+save.up.miner;if(G.mode!=='vs'){const pk=save.skin.miner;if(pk==='gold')u.carry=Math.round(u.carry*1.3);else if(pk==='lucky'&&Math.random()<0.25){u.carry*=2;floater(u.x,u.y-70,'LUCKY!');}}u.st='toBase';u.oreSet=false;G.parts.push({x:u.ore.x,y:GROUND-40,vx:0,vy:-2,life:30,a:0,len:0,col:INK,star:true});}}}
+    if(--u.mt<=0){u.carry=u.ore.val+save.up.miner;if(PREVIEW&&G.mode!=='vs'){const pk=save.skin.miner;if(pk==='gold')u.carry=Math.round(u.carry*1.3);else if(pk==='lucky'&&Math.random()<0.25){u.carry*=2;floater(u.x,u.y-70,'LUCKY!');}}u.st='toBase';u.oreSet=false;G.parts.push({x:u.ore.x,y:GROUND-40,vx:0,vy:-2,life:30,a:0,len:0,col:INK,star:true});}}}
 function lightning(){if(state!=='play'||G.ending)return;G.press.bolt=8;
   if(locked('bolt')){tip('Beat stage 1 to unlock Lightning!');return;}
   if(G.boltCd>0)return; if(G.stars<BOLT_COST){tip('Need more stars!');return;}
@@ -459,7 +460,7 @@ function updateUnit(u){if(u.dead)return;if(u.type==='miner'){updateMiner(u);retu
   else{u.x+=u.def.speed*u.team;u.walk+=0.25*u.def.speed;if(G.mode==='night'&&u.team>0&&u.x>740)u.x=740;}}
 const CTL_BTNS=[{k:'l',x:176,y:330,r:30,label:'◀'},{k:'r',x:252,y:330,r:30,label:'▶'},{k:'atk',x:676,y:326,r:36,label:'HIT'},{k:'off',x:748,y:296,r:20,label:'✖'}];
 const MODE_BTN={x:650,y:108,r:22};
-let ctlMode='keys';try{if(localStorage.getItem('starArmyCtlMode')==='mouse')ctlMode='mouse';}catch(e){}   // 'keys' = buttons + keyboard, 'mouse' = click to walk
+let ctlMode='keys';try{if(PREVIEW&&localStorage.getItem('starArmyCtlMode')==='mouse')ctlMode='mouse';}catch(e){}   // 'keys' = buttons + keyboard, 'mouse' = click to walk
 function ctlBtns(){return CTL_BTNS.filter(b=>ctlMode==='keys'||(b.k!=='l'&&b.k!=='r'));}
 const ctlIn={l:false,r:false,kl:false,kr:false},ctlPtr={};let ctlAtk=0;
 function takeControl(u){if(!G||G.ending)return;if(G.ctl===u)return;G.ctl=u;u.goX=null;G.ctlEver=true;G.bannerText='You are the '+u.def.name+'!'+(ctlMode==='mouse'?' Click to walk':'');G.banner=110;sfx('buy');}
@@ -596,7 +597,7 @@ function renderUpgrades(){$('gemCount').textContent=save.gems;const list=$('upLi
     row.appendChild(b);list.appendChild(row);});}
 $('upBack').onclick=()=>{hideAll();if(upReturn)upReturn();};
 let eggN=0,eggT=0;
-$('titleH1').onclick=()=>{const now=performance.now();if(now-eggT>1500)eggN=0;eggT=now;eggN++;
+$('titleH1').onclick=()=>{if(!PREVIEW)return;const now=performance.now();if(now-eggT>1500)eggN=0;eggT=now;eggN++;
   if(eggN>=7){eggN=0;partyMode=!partyMode;try{localStorage.setItem('starArmyParty',partyMode?'1':'0');}catch(e){}unlockAudio();sfx('win');
     $('eggMsg').textContent=partyMode?'🥚🎉 You found Felix\'s secret egg! PARTY MODE is ON — your soldiers wear party hats and bugs pop into confetti! (Tap the title 7 times again to turn it off.)':'Party mode is off. Tap the title 7 times to bring it back!';}};
 function armorPic(kind,it){const c=document.createElement('canvas');c.width=180;c.height=160;c.style.width='90px';c.style.height='80px';
@@ -610,6 +611,7 @@ function armorPic(kind,it){const c=document.createElement('canvas');c.width=180;
     if(kind==='armor'&&it.k==='undead')drawZombie(70,72,-1,0.8,'#4f6b3d',0,0,'');
   }catch(e){}
   ctx=saveCtx;armorCol=sa;bladeCol=sb;partyHat=sh;bowCol=sbw;penCol=sp;pickCol=spk;SB=sk;SC=sc;return c;}
+if(!PREVIEW){for(const id of ['modeArm','selArm'])$(id).style.display='none';}
 let armReturn=null;
 function showArmory(back){armReturn=back;renderArmory();$('armMsg').innerHTML='&nbsp;';hideAll();$('armOv').classList.add('on');}
 function renderArmory(){$('coinCount').textContent=save.coins||0;
@@ -634,9 +636,9 @@ function finish(won){if(G.mode!=='story'){finishMode(won);return;}state='over';c
   if(!won){showMsg('Oh no!','The bugs knocked down your Star Tower. Try a different army, use DEFEND to guard the tower, or buy upgrades!',
     [['Try again',()=>go(stageIdx)],['◆ Upgrades',()=>showUpgrades(()=>finish(false))],['Stages',()=>showSelect(true)]]);return;}
   const first=!save.cleared[st.n];const gems=first?(st.boss?6:3):1;
-  if(!finish.paid){finish.coins=st.boss?3:1+((Math.random()*3)|0);save.coins=(save.coins||0)+finish.coins;save.gems+=gems;save.cleared[st.n]=1;const before=beaten();save.unlocked=Math.min(STAGES.length,Math.max(save.unlocked,st.n+1));if(st.n>=STAGES.length)save.unlocked=STAGES.length+1;persist();
+  if(!finish.paid){finish.coins=!PREVIEW?0:st.boss?3:1+((Math.random()*3)|0);save.coins=(save.coins||0)+finish.coins;save.gems+=gems;save.cleared[st.n]=1;const before=beaten();save.unlocked=Math.min(STAGES.length,Math.max(save.unlocked,st.n+1));if(st.n>=STAGES.length)save.unlocked=STAGES.length+1;persist();
     finish.news=Object.keys(UNLOCK_AT).filter(k=>UNLOCK_AT[k]>before&&UNLOCK_AT[k]<=beaten()).map(k=>CARD_NAMES[k]);finish.gems=gems;finish.paid=true;}
-  let html=(st.boss?'You beat the '+ENEMIES[st.boss].name+' and sealed The Crack!':'You sealed The Crack!')+'<br>You earned <b>'+finish.gems+' ◆ gems</b>'+(first?'':' (replay bonus)')+' and <b>'+finish.coins+' 🪙 coins</b>.';
+  let html=(st.boss?'You beat the '+ENEMIES[st.boss].name+' and sealed The Crack!':'You sealed The Crack!')+'<br>You earned <b>'+finish.gems+' ◆ gems</b>'+(first?'':' (replay bonus)')+(PREVIEW?' and <b>'+finish.coins+' 🪙 coins</b>':'')+'.';
   if(finish.news.length)html+='<div class="newbox">NEW UNLOCKED: '+finish.news.join(' + ')+'!</div>';
   const again=()=>{finish.paid=false;};
   if(stageIdx<STAGES.length-1){const nx=STAGES[stageIdx+1];if(nx.boss)html+='<br>Watch out — the next stage is a <b>BOSS FIGHT!</b>';
@@ -657,7 +659,7 @@ $('zBack').onclick=()=>{hideAll();if(state==='over')$('msgOv').classList.add('on
 $('modeUp').onclick=()=>showUpgrades(()=>{$('modeOv').classList.add('on');});
 $('modeBack').onclick=()=>{hideAll();if(modeFromGame&&state==='paused')state='play';else if(state==='over'){$('msgOv').classList.add('on');}else{state='title';$('title').classList.add('on');}};
 function finishMode(won){state='over';const m=G.mode,key=G.modeKey,again=()=>{finishMode.paid=false;startMode(key);},modes=()=>{finishMode.paid=false;showModes(false);};
-  const pay=g=>{if(!finishMode.paid){finishMode.coins=1+((Math.random()*3)|0);save.coins=(save.coins||0)+finishMode.coins;save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b> and <b>'+finishMode.coins+' 🪙 coins</b>'+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
+  const pay=g=>{if(!finishMode.paid){finishMode.coins=!PREVIEW?0:1+((Math.random()*3)|0);save.coins=(save.coins||0)+finishMode.coins;save.gems+=g;persist();finishMode.paid=true;}return '<br>You earned <b>'+g+' ◆ gems</b>'+(PREVIEW?' and <b>'+finishMode.coins+' 🪙 coins</b>':'')+(G.mode==='zombie'&&g===1?' (replay bonus)':'')+'.';};
   if(m==='vs'){if(G.vsCpu&&won){trophyMsg('YOU WIN! 🏆',{color:'blue',label:'CPU CHAMP'},award('cpu')+'Your Star Army smashed the Bug Army!'+pay(3),[['Rematch',again],['Modes',modes]]);return;}
     if(G.vsCpu)showMsg('The Computer wins!','The bugs knocked down your Star Tower. Try again!',[['Rematch',again],['Modes',modes]]);
     else trophyMsg(won?'PLAYER 1 WINS! ⭐':'PLAYER 2 WINS! 🐛',{color:won?'gold':'bronze',label:won?'PLAYER 1':'PLAYER 2'},won?'The Star Army sealed the Crack!':'The Bug Army knocked down the Star Tower!',[['Rematch',again],['Modes',modes]]);return;}
@@ -679,7 +681,7 @@ const CARDS=['miner','sword','thrower','bubble','wallcannon','titan','bolt'];
 function cardX(i){return 30+i*130;}
 cv.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();if(state!=='play')return;const r=cv.getBoundingClientRect();
   const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
-  if(G.mode!=='vs'&&Math.hypot(MODE_BTN.x-x,MODE_BTN.y-y)<MODE_BTN.r+8){ctlMode=ctlMode==='keys'?'mouse':'keys';try{localStorage.setItem('starArmyCtlMode',ctlMode);}catch(e){}ctlIn.l=ctlIn.r=false;for(const k in ctlPtr)delete ctlPtr[k];if(G.ctl)G.ctl.goX=null;G.bannerText=ctlMode==='mouse'?'MOUSE: click to walk':'KEYS: use ◀ ▶ or Z / X';G.banner=110;sfx('buy');return;}
+  if(PREVIEW&&G.mode!=='vs'&&Math.hypot(MODE_BTN.x-x,MODE_BTN.y-y)<MODE_BTN.r+8){ctlMode=ctlMode==='keys'?'mouse':'keys';try{localStorage.setItem('starArmyCtlMode',ctlMode);}catch(e){}ctlIn.l=ctlIn.r=false;for(const k in ctlPtr)delete ctlPtr[k];if(G.ctl)G.ctl.goX=null;G.bannerText=ctlMode==='mouse'?'MOUSE: click to walk':'KEYS: use ◀ ▶ or Z / X';G.banner=110;sfx('buy');return;}
   if(G.ctl&&!G.ctl.dead){for(const b of ctlBtns())if(Math.hypot(b.x-x,b.y-y)<b.r+6){if(b.k==='atk')ctlAtk=8;else if(b.k==='off')releaseControl();else{ctlPtr[e.pointerId]=b.k;syncCtl();}return;}}
   for(const c of G.cannons)if(Math.hypot(c.x-x,c.y-y)<36){clickCannon(c);return;}
   for(const b of G.cmdBtns)if(x>=b.x-4&&x<=b.x+b.w+4&&y>=b.y-6&&y<=b.y+b.h+6){setCmd(b.k,b.team);return;}
@@ -871,7 +873,7 @@ function drawZombie(x,y,f,sc,col,walk,atk,kind){ctx.save();ctx.translate(x,y);ct
   if(kind==='giant'){ctx.strokeStyle='rgba(0,0,0,.45)';sline(lean-6,-24,lean+8,-18,0.3);sline(lean-6,-18,lean+8,-24,0.3);ctx.strokeStyle=col;
     ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(lean-6,-46);ctx.lineTo(lean-6,-52);ctx.lineTo(lean-2,-48);ctx.lineTo(lean+3,-54);ctx.lineTo(lean+8,-48);ctx.lineTo(lean+12,-52);ctx.lineTo(lean+12,-46);ctx.closePath();ctx.fill();ctx.stroke();}
   ctx.restore();}
-function drawUnit(u){seed(u.id);{const a=u.team>0&&G.mode!=='vs'?ARMORS.find(q=>q.k===save.armor):null;armorCol=a&&a.col&&u.type!=='miner'?a.col:null;const sw=u.team>0&&u.type==='sword'&&G.mode!=='vs'?SWORDS.find(q=>q.k===save.sword):null;bladeCol=sw&&sw.col?sw.col:null;partyHat=partyMode&&u.team>0&&u.type!=='miner'?u.id%5:-1;{const it=skinItem(u),c=it&&it.col?it.col:null;bladeCol=u.type==='sword'?c:null;bowCol=u.type==='thrower'?c:null;penCol=u.type==='titan'?c:null;pickCol=u.type==='miner'?c:null;}}
+function drawUnit(u){seed(u.id);{const a=PREVIEW&&u.team>0&&G.mode!=='vs'?ARMORS.find(q=>q.k===save.armor):null;armorCol=a&&a.col&&u.type!=='miner'?a.col:null;const sw=u.team>0&&u.type==='sword'&&G.mode!=='vs'?SWORDS.find(q=>q.k===save.sword):null;bladeCol=sw&&sw.col?sw.col:null;partyHat=partyMode&&u.team>0&&u.type!=='miner'?u.id%5:-1;{const it=skinItem(u),c=it&&it.col?it.col:null;bladeCol=u.type==='sword'?c:null;bowCol=u.type==='thrower'?c:null;penCol=u.type==='titan'?c:null;pickCol=u.type==='miner'?c:null;}}
   const col=u.flash>0?RED:INK,f=u.team*(u.back?-1:1),k=u.atk>0?1-u.atk/16:0;
   switch(u.type){
     case 'miner':drawMiner(u,col,f);break;
@@ -1024,7 +1026,7 @@ function drawHUD(){seed(3);
   if(G.banner>0){const a=Math.min(1,G.banner/40);ctx.save();ctx.globalAlpha=a;ctx.fillStyle=PAPER;ctx.fillRect(W/2-270,150,540,74);ctx.strokeStyle=INK;ctx.lineWidth=3;srect(W/2-270,150,540,74,2);
     text(G.bannerText,W/2,187,30,INK);ctx.restore();}}
 
-function drawModeBtn(){if(G.mode==='vs')return;{const b=MODE_BTN;ctx.save();ctx.globalAlpha=0.95;cpath(b.x,b.y,b.r,0.6);ctx.fillStyle=PAPER;ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.stroke();text(ctlMode==='keys'?'⌨':'🖱',b.x,b.y+1,20,INK);text(ctlMode==='keys'?'KEYS':'MOUSE',b.x,b.y+34,11,INK);ctx.restore();}}
+function drawModeBtn(){if(!PREVIEW||G.mode==='vs')return;{const b=MODE_BTN;ctx.save();ctx.globalAlpha=0.95;cpath(b.x,b.y,b.r,0.6);ctx.fillStyle=PAPER;ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.stroke();text(ctlMode==='keys'?'⌨':'🖱',b.x,b.y+1,20,INK);text(ctlMode==='keys'?'KEYS':'MOUSE',b.x,b.y+34,11,INK);ctx.restore();}}
 function draw(){const sc=cv.width/W;ctx.setTransform(sc,0,0,cv.height/H,0,0);ctx.lineCap='round';ctx.lineJoin='round';
   ctx.fillStyle=PAPER;ctx.fillRect(0,0,W,H);
   if(!G)return;
