@@ -390,7 +390,7 @@ function setupLeague(){const teams=[{name:S.teamName,str:0,col:S.color}].concat(
  S.league={teams,fixtures:makeFixtures(teams.length),round:0};S.phase='league';S.wc=null;S.week=1}
 
 function addTrials(n){setTimeout(ensureTalker,0);for(let i=0;i<n&&S.trials.length<4;i++){
- let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week));if(Math.random()<.1)t+=8;
+ const wcw=(S.trophies||[]).filter(x=>x.type==='wc').length;let t=rnd(47,57)+S.level*6+rnd(0,Math.min(10,S.week))+Math.min(18,wcw*8);if(Math.random()<.1+Math.min(.3,wcw*.1))t+=8;
  const p=makePlayer(t,pick(['GK','DEF','DEF','MID','MID','FWD','FWD']));const o=ovr(p);
  p.fee=Math.max(5,Math.round(((o-45)*2.6+rnd(-4,6))*(1+.15*stsOf(p).length)));p.salary=Math.max(1,p.salary+rnd(0,1));p.weeks=0;p.final=false;p.talk=true;
  p.msg=pick(["I completed the trial! ","Trial done, coach! ","I finished the trial and I'm ready! ","That trial was easy! "])+`I want ${money(p.fee)} to join, and ${money(p.salary)} every week.`;
