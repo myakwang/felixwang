@@ -69,7 +69,7 @@ button{font-family:inherit;font-weight:bold;cursor:pointer;border:0;border-radiu
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><span id="hHome" style="display:none;pointer-events:auto;cursor:pointer" role="button" aria-label="All games">🏠</span><span id="hLives"></span><span id="hHunger" title="Food"><b>🍽</b><u><i></i></u></span><span id="hStars"></span><span id="hKey"></span><span id="hCode"></span><span id="hNote" style="display:none"></span><span id="hTro"></span><span id="hMus" style="pointer-events:auto;cursor:pointer">🎵 On</span></div>
+<div id="hud"><span id="hHome" style="display:none;pointer-events:auto;cursor:pointer" role="button" aria-label="All games">🏠</span><span id="hLives"></span><span id="hHunger" title="Food"><b>🍽</b><u><i></i></u></span><span id="hStars"></span><span id="hKey"></span><span id="hCode"></span><span id="hNote" style="display:none"></span><span id="hTro"></span><span id="hDuck" style="display:none"></span><span id="hMus" style="pointer-events:auto;cursor:pointer">🎵 On</span></div>
 <div id="hint"></div>
 <div id="toast"></div>
 <div id="joy"><i></i></div>
@@ -190,6 +190,7 @@ function hud(){
  $('#hKey').textContent=hasKey?'🗝 Key!':'🗝 —';
  $('#hCode').textContent='🔢 '+(hasCode?code.join(' '):code.map(()=>'?').join(' '));
  $('#hTro').textContent='🏆 '+trophies;
+ $('#hDuck').style.display=ducks>0?'':'none';$('#hDuck').textContent='🦆 '+ducks;
  $('#hNote').style.display=knowsNote?'':'none';$('#hNote').textContent='📝 '+chestCode;
 }
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600);}
@@ -199,7 +200,7 @@ function fillButtons(first){
  const n=buttons.length-types.length,ng=Math.round(n*.27),nb=Math.round(n*.28);
  for(let i=0;i<n;i++)types.push(i<ng?'good':i<ng+nb?'bad':'chal');
  shuffle(types);
- buttons.forEach((b,i)=>{b.type=types[i];b.used=false;b.tz=.1;const c=BCOL[rnd(BCOL.length)];b.cap.material.color.set(c);b.cap.material.emissive.set(c);b.base.material.color.set(0x333a44);b.cap.visible=b.base.visible=true;
+ buttons.forEach((b,i)=>{b.type=types[i];b.used=false;b.tz=.1;const c=BCOL[rnd(BCOL.length)];b.col=c;b.cap.material.color.set(c);b.cap.material.emissive.set(c);b.base.material.color.set(0x333a44);b.cap.visible=b.base.visible=true;
   if(b.type==='door'){wallG[b.wall].add(door);}});
 }
 function setLights(on){amb.intensity=on?.65:.07;lamp.intensity=on?.75:.12;}
@@ -212,7 +213,7 @@ function reset(){
  fillButtons(true);
  const a=Math.random()*Math.PI*2;chest.position.set(Math.sin(a)*2.6,0,Math.cos(a)*2.6);chest.rotation.y=a+Math.PI;
  camera.position.set(0,1.6,0);yaw=0;pitch=0;
- hunger=100;lowWarned=false;knowsNote=false;chestCode=''+rnd(10)+rnd(10)+rnd(10);clearSpawned();placeNotes();hud();
+ hunger=100;lowWarned=false;knowsNote=false;chestCode=''+rnd(10)+rnd(10)+rnd(10);clearSpawned();placeNotes();resetDuck();hud();
 }
 
 /* ---------- cards ---------- */
@@ -531,6 +532,39 @@ function updSpawned(dt,now){
   if(h.m.position.y<.05){h.m.position.y=.05;h.vel.multiplyScalar(.3);}h.life-=dt;if(h.life<=0){scene.remove(h.m);spawned.shards.splice(i,1);}}
 }
 
+/* ---------- secret duck (Easter egg) ---------- */
+let ducks=0;try{ducks=parseInt(localStorage.getItem('buttonRoomDucks'))||0;}catch(e){}
+const duck=new THREE.Group();scene.add(duck);
+const dk={found:false,falling:false,vy:0,hop:0,party:0,hint:90};
+(function(){const yl=M({color:0xffd60a,roughness:.5}),og=M({color:0xff8c00,roughness:.5}),bk=new THREE.MeshBasicMaterial({color:0x111111});
+ const body=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),yl);body.scale.set(1,.75,1.2);body.position.y=.4;duck.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.3,16,12),yl);head.position.set(0,.88,.4);duck.add(head);
+ const beak=new THREE.Mesh(new THREE.BoxGeometry(.24,.08,.24),og);beak.position.set(0,.84,.68);duck.add(beak);
+ [-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),bk);e.position.set(sd*.13,.95,.62);duck.add(e);});
+ const tail=new THREE.Mesh(new THREE.ConeGeometry(.16,.3,8),yl);tail.rotation.x=-1.2;tail.position.set(0,.55,-.62);duck.add(tail);
+ duck.traverse(m=>{if(m.isMesh){m.userData={kind:'duck'};clickables.push(m);}});})();
+function quack(v){tone(520,.08,'sawtooth',v||.12);tone(380,.14,'sawtooth',v||.12,.09);}
+function resetDuck(){const c=[[5.2,5.2],[-5.2,5.2],[5.2,-5.2],[-5.2,-5.2]][rnd(4)];
+ duck.scale.setScalar(.6);duck.position.set(c[0],H,c[1]);duck.rotation.set(Math.PI,Math.atan2(-c[0],-c[1]),0);
+ dk.found=false;dk.falling=false;dk.vy=0;dk.hop=0;dk.party=0;dk.hint=70+Math.random()*70;partyOff();}
+function partyOff(){buttons.forEach(b=>{if(!b.used&&b.col!==undefined){b.cap.material.color.set(b.col);b.cap.material.emissive.set(b.col);}});}
+function confetti(n){const em=['🎉','⭐','🎊','✨','🦆'];for(let i=0;i<n;i++){const sp=document.createElement('span');sp.className='conf';sp.textContent=em[rnd(em.length)];sp.style.left=rnd(100)+'vw';sp.style.animationDuration=(2+Math.random()*3)+'s';sp.style.animationDelay=(Math.random()*1.5)+'s';document.body.appendChild(sp);setTimeout(()=>sp.remove(),6500);}}
+function hitDuck(){
+ quack();
+ if(dk.found){toast('🦆 Quack!');dk.hop=.3;return;}
+ dk.found=true;dk.falling=true;dk.vy=0;ducks++;try{localStorage.setItem('buttonRoomDucks',ducks);}catch(e){}
+ hunger=100;lowWarned=false;let gift;if(lives<3){lives++;gift='an extra ❤️';}else{shield=true;gift='a 🛡 shield';}
+ addStars(3);dk.party=14;confetti(40);sfx.win();hud();
+ info('🦆','You found the secret duck!','Quack quack! It was hiding on the ceiling. It gave you a full 🍽 bar, 3 ⭐ and '+gift+'. Click the duck again to hear it quack!');
+}
+function updDuck(dt,now){
+ if(dk.falling){dk.vy-=9*dt;duck.position.y+=dk.vy*dt;duck.rotation.x+=(0-duck.rotation.x)*.12;
+  if(duck.position.y<=0){duck.position.y=0;if(dk.vy<-3)dk.vy=-dk.vy*.4;else{dk.falling=false;dk.vy=0;}}}
+ else if(dk.found){duck.rotation.x+=(0-duck.rotation.x)*.2;if(dk.hop>0){dk.hop-=dt;duck.position.y=Math.abs(Math.sin(dk.hop*20))*.25*Math.max(0,dk.hop/.3);}else duck.position.y=0;}
+ else{duck.rotation.z=Math.sin(now/700)*.05;if(started&&!won&&!busy){dk.hint-=dt;if(dk.hint<=0){dk.hint=90+Math.random()*80;quack(.035);}}}
+ if(dk.party>0){dk.party-=dt;buttons.forEach((b,i)=>{if(!b.used){const col=new THREE.Color().setHSL((now/700+i*.06)%1,.9,.55);b.cap.material.color.copy(col);b.cap.material.emissive.copy(col);}});if(dk.party<=0)partyOff();}
+}
+
 /* ---------- controls ---------- */
 let yaw=0,pitch=0;const keys={};
 window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.indexOf('Arrow')===0)e.preventDefault();});
@@ -548,7 +582,7 @@ cv.addEventListener('pointermove',e=>{
  else if(e.pointerType==='mouse'&&!busy)cv.style.cursor=pick(e.clientX,e.clientY)?'pointer':'grab';});
 const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;const m=drag.m;drag=null;if(e.type==='pointerup'&&m<12&&!busy&&!won){const u=pick(e.clientX,e.clientY);if(!u)return;
  if(u.kind==='btn')press(u.b);else if(u.kind==='door')clickDoor();else if(u.kind==='chest')clickChest();
- else if(u.kind==='food')eat(u.f);else if(u.kind==='vase')hitVase(u.v);else if(u.kind==='lootBody')hitLoot(u.ch);else if(u.kind==='lootLock')lockLoot(u.ch);else if(u.kind==='note')showNote();}};
+ else if(u.kind==='food')eat(u.f);else if(u.kind==='vase')hitVase(u.v);else if(u.kind==='lootBody')hitLoot(u.ch);else if(u.kind==='lootLock')lockLoot(u.ch);else if(u.kind==='note')showNote();else if(u.kind==='duck')hitDuck();}};
 cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 // joystick for touch screens
 let jx=0,jy=0;const joy=$('#joy'),jk=joy.querySelector('i');
@@ -580,7 +614,7 @@ function frame(now){
  lidP.rotation.x+=((hasKey?-1.2:0)-lidP.rotation.x)*.1;
  hinge.rotation.y+=((doorOpen?-1.9:0)-hinge.rotation.y)*.06;
  if(trophy.visible){const s=Math.min(1,trophy.scale.x+dt*1.2);trophy.scale.set(s,s,s);trophy.rotation.y+=dt*1.6;trophy.position.y=.55+Math.sin(now/400)*.08;}
- updSpawned(dt,now);updHunger(dt);
+ updSpawned(dt,now);updHunger(dt);updDuck(dt,now);
  renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 reset();requestAnimationFrame(frame);
