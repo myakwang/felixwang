@@ -33,7 +33,7 @@ ul{text-align:left;margin:6px auto;padding-left:22px;max-width:480px;font-size:1
 #tools{position:fixed;top:8px;right:10px;z-index:6;display:flex;gap:6px}
 #tools button{font:inherit;font-size:14px;font-weight:bold;background:rgba(255,255,255,.8);border:2px solid #222;border-radius:8px;padding:3px 9px;cursor:pointer;touch-action:manipulation}
 .up{display:flex;align-items:center;gap:10px;border:2px solid #222;border-radius:8px 12px 9px 11px;background:#fff;padding:8px 10px;margin:8px 0;text-align:left}
-.up .ic{font-size:28px;width:40px;text-align:center;font-weight:bold}.up .tx{flex:1}.up .tx b{font-size:16px}.up .tx div{font-size:13px;opacity:.8}
+.up .ic{font-size:28px;width:40px;min-width:40px;text-align:center;font-weight:bold}.up .tx{flex:1}.up .tx b{font-size:16px}.up .tx div{font-size:13px;opacity:.8}
 .pips{letter-spacing:2px;font-size:14px}.up button{font:inherit;font-weight:bold;font-size:15px;background:#fff;border:2px solid #222;border-radius:9px;padding:6px 10px;cursor:pointer;min-width:84px;touch-action:manipulation}
 .up button:disabled{opacity:.4;cursor:default}
 .newbox{border:2px dashed #c0392b;border-radius:8px;padding:6px;margin:8px 0;color:#c0392b;font-weight:bold}
@@ -252,11 +252,11 @@ const ARMORS=[
  {k:'none',name:'No Armor',cost:0,ic:'🧍',col:null,desc:'Plain stick soldiers.'},
  {k:'iron',name:'Iron Armor',cost:5,ic:'🛡',col:'#9aa5b1',desc:'Your whole army has +25% health.'},
  {k:'thorn',name:'Thorn Armor',cost:8,ic:'🌵',col:'#4a9a52',desc:'Bugs that hit your soldiers get hurt back (30% of their hit).'},
- {k:'undead',name:'Undead Armor',cost:8,ic:'💀',col:'#7d9a6a',desc:'When one of your soldiers is defeated, it comes back as a ZOMBIE and fights the bugs for 10 seconds!'},
  {k:'ice',name:'Ice Armor',cost:10,ic:'❄',col:'#8fd3f4',desc:'Your hits freeze bugs and slow them down.'},
- {k:'fire',name:'Fire Armor',cost:10,ic:'🔥',col:'#e8643a',desc:'Your hits set bugs on fire so they keep burning.'},
- {k:'heal',name:'Healing Armor',cost:12,ic:'💚',col:'#58c27a',desc:'Your whole army slowly heals while it fights.'},
- {k:'gold',name:'Golden Armor',cost:15,ic:'👑',col:'#e0b020',desc:'+10% damage, and every bug you squash gives DOUBLE stars.'}];
+ {k:'fire',name:'Fire Armor',cost:12,ic:'🔥',col:'#e8643a',desc:'Your hits set bugs on fire so they keep burning.'},
+ {k:'heal',name:'Healing Armor',cost:15,ic:'💚',col:'#58c27a',desc:'Your whole army slowly heals while it fights.'},
+ {k:'gold',name:'Golden Armor',cost:20,ic:'👑',col:'#e0b020',desc:'+10% damage, and every bug you squash gives DOUBLE stars.'},
+ {k:'undead',name:'Undead Armor',cost:30,ic:'💀',col:'#7d9a6a',desc:'The strongest! When one of your soldiers is defeated, it comes back as a ZOMBIE and fights the bugs for 10 seconds!'}];
 const SWORDS=[
  {k:'plain',name:'Plain Sword',cost:0,ic:'🗡',col:null,desc:'The classic Swordy sword.'},
  {k:'fire',name:'Fire Sword',cost:6,ic:'🔥',col:'#ff9a3c',desc:'Every swing sets the bug on fire.'},
@@ -571,12 +571,18 @@ let eggN=0,eggT=0;
 $('titleH1').onclick=()=>{const now=performance.now();if(now-eggT>1500)eggN=0;eggT=now;eggN++;
   if(eggN>=7){eggN=0;partyMode=!partyMode;try{localStorage.setItem('starArmyParty',partyMode?'1':'0');}catch(e){}unlockAudio();sfx('win');
     $('eggMsg').textContent=partyMode?'🥚🎉 You found Felix\'s secret egg! PARTY MODE is ON — your soldiers wear party hats and bugs pop into confetti! (Tap the title 7 times again to turn it off.)':'Party mode is off. Tap the title 7 times to bring it back!';}};
+function armorPic(kind,it){const c=document.createElement('canvas');c.width=180;c.height=160;c.style.width='90px';c.style.height='80px';
+  const saveCtx=ctx,sa=armorCol,sb=bladeCol,sh=partyHat,sk=SB,sc=SC;ctx=c.getContext('2d');ctx.scale(2,2);ctx.lineCap='round';ctx.lineJoin='round';
+  armorCol=kind==='armor'?it.col:null;bladeCol=kind==='sword'?it.col:null;partyHat=-1;seed(5);
+  drawStick(30,72,1,1.35,0,kind==='sword'?-1.1:-0.9,it.k==='big'?33:26,INK,false);
+  if(kind==='armor'&&it.k==='undead'){drawZombie(70,72,-1,0.8,'#4f6b3d',0,0,'');}
+  ctx=saveCtx;armorCol=sa;bladeCol=sb;partyHat=sh;SB=sk;SC=sc;return c;}
 let armReturn=null;
 function showArmory(back){armReturn=back;renderArmory();$('armMsg').innerHTML='&nbsp;';hideAll();$('armOv').classList.add('on');}
 function renderArmory(){$('coinCount').textContent=save.coins||0;
   const fill=(listId,items,own,cur,key)=>{const list=$(listId);list.innerHTML='';
     items.forEach(it=>{const has=!!own[it.k],on=save[cur]===it.k;const row=document.createElement('div');row.className='up';
-      row.innerHTML='<div class="ic">'+it.ic+'</div><div class="tx"><b>'+it.name+'</b><div>'+it.desc+'</div></div>';
+      row.innerHTML='<div class="ic"></div><div class="tx"><b>'+it.name+'</b><div>'+it.desc+'</div></div>';row.firstChild.style.cssText='width:90px;min-width:90px;height:80px';row.firstChild.appendChild(armorPic(cur==='armor'?'armor':'sword',it));
       const b=document.createElement('button');b.textContent=on?'✔ ON':has?'Use':it.cost+' 🪙';b.disabled=on;
       b.onclick=()=>{unlockAudio();
         if(!has){if((save.coins||0)<it.cost){$('armMsg').textContent='You need '+(it.cost-(save.coins||0))+' more 🪙 coins. Win more games!';return;}
