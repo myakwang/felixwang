@@ -1475,15 +1475,15 @@ function musSamba(tr,t,bar,k,spd){const ch=tr.ch[bar],r=ch[0];
  leadAt(tr,bar,k,t,spd,.15,'sawtooth')}
 function musStep(t,st,spd,tr){tr=tr||MUS.tr;const bar=Math.floor(st/16);
  if(tr.kind==='anthem')musAnthem(t,st,spd);else{const k=st%16;({funk:musFunk,parade:musParade,night:musNight,samba:musSamba})[tr.kind](tr,t,bar,k,spd)}}
-function musNowPlaying(tr,delay){setTimeout(()=>{if(MUS_ON&&typeof toast==='function')toast('🎵 Now playing: '+tr.n)},Math.max(0,delay*1000))}
+function musNowPlaying(tr,delay){setTimeout(()=>{if(MUS_ON&&!(typeof M!=='undefined'&&M&&!M.done)&&typeof toast==='function')toast('🎵 Now playing: '+tr.n)},Math.max(0,delay*1000))}
 function musTick(){const c=MUS.ctx;if(!c||!MUS_ON)return;
  while(MUS.next<c.currentTime+.15){if(MUS.next<c.currentTime-.3)MUS.next=c.currentTime+.05;
   if(!MUS.tr||MUS.step>=MUS.tr.bars*16){const first=!MUS.tr;if(!first)MUS.tn=(MUS.tn+1)%MORDER.length;MUS.tr=TRACKS[MORDER[MUS.tn]];MUS.step=0;if(!first||MUS.tn>0)musNowPlaying(MUS.tr,MUS.next-c.currentTime)}
   const spd=60/MUS.tr.bpm/4;musStep(MUS.next,MUS.step,spd);MUS.next+=spd;MUS.step++}
- const inM=typeof P!=='undefined'&&P&&typeof M!=='undefined'&&M&&!M.done;
+ const inM=typeof M!=='undefined'&&M&&!M.done;
  const quiet=(typeof TT!=='undefined'&&TT)||(typeof TRY!=='undefined'&&TRY);                       // training & try-out scenes: no music
  const talk=typeof NG!=='undefined'&&NG;
- let g=quiet?0:talk?.07:inM?.1:.28;if(inM&&COMM_ON&&window.speechSynthesis&&speechSynthesis.speaking)g=.04;
+ let g=quiet?0:talk?.07:inM?0:.28;
  MUS.gain.gain.setTargetAtTime(g*(MUS.tr?MUS.tr.v:1),c.currentTime,.25)}
 function musStart(){if(!MUS_ON||!musInit())return;const c=MUS.ctx;if(c.state==='suspended')c.resume();if(MUS.timer)return;MUS.next=c.currentTime+.08;MUS.timer=setInterval(musTick,40)}
 function musStop(){if(MUS.timer){clearInterval(MUS.timer);MUS.timer=null}if(MUS.ctx){MUS.gain.gain.setTargetAtTime(0,MUS.ctx.currentTime,.1)}}
