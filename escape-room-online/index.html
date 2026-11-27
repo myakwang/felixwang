@@ -492,6 +492,7 @@ const AU=(()=>{
     rumble(){ play(t=>{ noise(t,1.4,'lowpass',170,.55,55); tone(55,t,1.4,'sine',.35,null,36); }); },
     creak(){ play(t=>{ tone(210,t,1,'sawtooth',.05,null,110); noise(t,1,'bandpass',900,.12,380); }); },
     whoosh(){ play(t=>noise(t,.55,'bandpass',350,.16,3200)); },
+    quack(){ play(t=>{ tone(540,t,.12,'sawtooth',.13,null,300); tone(500,t+.17,.16,'sawtooth',.13,null,250); }); },
     fanfare(){ play(t=>{ [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.13,.5,'square',.08)); [523,659,784,1047].forEach(f=>tone(f,t+.62,1.3,'triangle',.1)); }); }
   };
   document.addEventListener('visibilitychange',()=>{ if(!ctx||mode==='off') return; if(document.hidden) ctx.suspend(); else ctx.resume(); });
@@ -501,6 +502,23 @@ const AU=(()=>{
 const SND={on:['🎵','Sound: music and effects on'],sfx:['🔔','Sound: effects only'],off:['🔇','Sound: off']};
 function sndLabel(){ const m=AU.mode(), b=$('#bsnd'); b.textContent=SND[m][0]; b.setAttribute('aria-label',SND[m][1]); b.title=SND[m][1]; }
 $('#bsnd').onclick=()=>{ AU.cycle(); sndLabel(); toast(SND[AU.mode()][1]); }; sndLabel();
+/* ---------- secret Easter eggs (never hinted in the game) ---------- */
+(()=>{
+  const NAMES=['Disco room','Quack','Felix says hi']; let found=[]; try{ found=JSON.parse(localStorage.getItem('escapeRoomEggs')||'[]'); }catch(e){} if(!Array.isArray(found)) found=[];
+  const st=document.createElement('style'); st.textContent='@keyframes eggHue{to{filter:hue-rotate(360deg)}}#cv.disco{animation:eggHue 2.4s linear infinite}@keyframes eggFall{to{transform:translateY(112vh) rotate(540deg)}}@keyframes eggDuck{from{transform:translateX(-20vw)}to{transform:translateX(120vw)}}.eggp{position:fixed;top:-8vh;z-index:99998;pointer-events:none;font-size:26px;animation:eggFall 3.4s linear forwards}.eggd{position:fixed;bottom:16vh;left:0;z-index:99998;pointer-events:none;font-size:54px;animation:eggDuck 4.2s linear forwards}';
+  document.head.appendChild(st);
+  function rain(list,n){ for(let i=0;i<n;i++){ const e=document.createElement('div'); e.className='eggp'; e.textContent=list[i%list.length]; e.style.left=(Math.random()*96)+'vw'; e.style.animationDelay=(Math.random()*1.4)+'s'; e.style.animationDuration=(2.6+Math.random()*1.6)+'s'; document.body.appendChild(e); setTimeout(()=>e.remove(),6500); } }
+  function got(i,msg){ const first=!found.includes(i); if(first){ found.push(i); try{ localStorage.setItem('escapeRoomEggs',JSON.stringify(found)); }catch(e){} }
+    toast(msg+(first?'  ·  Secret '+found.length+' of '+NAMES.length+' found!':'')); }
+  let discoT; function disco(){ const c=$('#cv'); c.classList.add('disco'); clearTimeout(discoT); discoT=setTimeout(()=>c.classList.remove('disco'),12000); rain(['🎉','✨','🎈','⭐','🎊'],36); AU.fanfare(); got(0,'🪩 Disco time!'); }
+  function duck(){ const d=document.createElement('div'); d.className='eggd'; d.textContent='🦆'; document.body.appendChild(d); setTimeout(()=>d.remove(),4600); AU.quack(); setTimeout(()=>AU.quack(),420); got(1,'🦆 Quack quack!'); }
+  function hi(){ rain(['⭐','🌟','💛'],30); AU.item(); got(2,'🌟 Felix says: you are an amazing escaper!'); }
+  function tapper(el,n,fn){ if(!el) return; let c=0,last=0; el.addEventListener('click',()=>{ const t=Date.now(); c=(t-last<1200)?c+1:1; last=t; if(c>=n){ c=0; fn(); } }); }
+  tapper($('#rname'),5,disco);
+  tapper($('#inv')&&$('#inv').firstElementChild,6,duck);
+  tapper($('#time'),5,hi);
+  let typed=''; addEventListener('keydown',e=>{ if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)) return; if(e.key&&e.key.length===1){ typed=(typed+e.key.toLowerCase()).slice(-5); if(typed==='felix') disco(); else if(typed.slice(-4)==='duck') duck(); } });
+})();
 let flashT; function fade(color,ms,to,after){ const f=$('#flash'); f.style.transition='opacity '+ms+'ms ease'; f.style.background=color; f.style.opacity=to; clearTimeout(flashT); if(after) flashT=setTimeout(after,ms); }
 let shake=0, cut=null, doorLight=null, DUST=[];
 function dust(p){ const w=p.G.localToWorld(new T.Vector3(p.pop[0],.25,p.pop[2])); for(let i=0;i<34;i++){ const m=new T.Mesh(BX(.07,.07,.07),new T.MeshBasicMaterial({color:i%3?0xcbb892:0x8a7a5a,transparent:true})); m.position.set(w.x+(Math.random()-.5)*.8,w.y+Math.random()*.3,w.z+(Math.random()-.5)*.8); scene.add(m); DUST.push({m,vx:(Math.random()-.5)*1.6,vy:.8+Math.random()*1.6,vz:(Math.random()-.5)*1.6,t:0}); } }
