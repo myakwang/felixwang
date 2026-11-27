@@ -220,7 +220,11 @@ HS.setOpen=function(i,v,quiet){const o=W&&W.opens[i];if(!o||o.open===!!v)return 
 HS.closeAll=function(){if(W)W.opens.forEach(o=>{o.open=false;o.a=0;applyOpen(o);});};
 HS.tickOpens=function(dt){if(W)W.opens.forEach(o=>{const tg=o.open?1:0;if(o.a!==tg){o.a+=Math.sign(tg-o.a)*Math.min(Math.abs(tg-o.a),dt*3.2);applyOpen(o);}});};
 // which chest/cupboard did I tap? (must be close)
-HS.pickOpen=function(cx_,cy_,far){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=far||3.6;const h=ray.intersectObjects(W.solids,false);return h.length&&h[0].object.userData.openI!=null?h[0].object.userData.openI:-1;};
+HS.pickOpen=function(cx_,cy_,far){ray.setFromCamera(new THREE.Vector2(cx_/innerWidth*2-1,-(cy_/innerHeight)*2+1),camera);ray.far=far||5;const h=ray.intersectObjects(W.solids,false);if(h.length&&h[0].object.userData.openI!=null)return h[0].object.userData.openI;
+  // forgiving tap: a chest or cupboard that is close and near the finger counts (so kids don't have to hit the exact pixels)
+  if(h.length&&h[0].distance<1.2)return -1;let best=-1,bd=1e9;const v=new THREE.Vector3();
+  W.opens.forEach(o=>{v.set(o.x,o.y+o.h*0.5,o.z);const dist=v.distanceTo(camera.position);if(dist>(far||5)+1)return;if(h.length&&h[0].distance<dist-1.5)return;v.project(camera);if(v.z>1)return;
+    const sx=(v.x+1)/2*innerWidth,sy=(1-v.y)/2*innerHeight,d=Math.hypot(sx-cx_,sy-cy_),rad=Math.max(70,Math.min(190,o.w*0.5*innerHeight/Math.max(dist,1)*1.1+30));if(d<rad&&d<bd){bd=d;best=o.i;}});return best;};
 HS.nearOpen=function(x,z,r){let best=-1,bd=1e9;W.opens.forEach(o=>{const dd=Math.hypot(o.x-x,o.z-z)-o.half;if(dd<r&&dd<bd){bd=dd;best=o.i;}});return best;};
 // ground-level view (seeker, dog, paths): floating things high overhead don't count
 HS.floorAt=function(x,z,r){if(r===undefined)r=0.3;let h=0;for(const c of W.cols){if(c.bot>=1.75)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r&&c.top>h)h=c.top;}return h;};
