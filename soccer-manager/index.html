@@ -346,7 +346,10 @@ const LVN=['','Silver','Gold','Amethyst'],LVM=[0,1,1.6,2.3];
 const stsOf=p=>p?(p.sts&&p.sts.length?p.sts:(p.st?[{k:p.st,l:1}]:[])):[];
 const stOf=(p,k)=>stsOf(p).find(x=>x.k===k);const stL=(p,k)=>{const x=stOf(p,k);return x?x.l:0};
 function lvlRoll(o){const r=Math.random(),am=o>=110?.5:o>=95?.25:o>=85?.1:.03,gd=o>=95?.5:o>=80?.4:.2;return r<am?3:r<am+gd?2:1}
-function styleCands(p){const o=ovr(p);if(p.pos==='GK')return shuffle(['cat','captain','engine']).sort((a,b)=>(b==='cat')-(a==='cat'));
+const STREQ={sniper:['sho',60],speedster:['spd',60],joker:['spd',55],playmaker:['pas',60],wall:['def',60],engine:['sta',68]};
+const stOK=(p,k)=>!STREQ[k]||(p.s&&p.s[STREQ[k][0]]>=STREQ[k][1]);
+function styleCands(p){const c=styleCands0(p);return c.filter(k=>stOK(p,k))}
+function styleCands0(p){const o=ovr(p);if(p.pos==='GK')return shuffle(['cat','captain','engine']).sort((a,b)=>(b==='cat')-(a==='cat'));
  const out=[];[...SK].sort((a,b)=>p.s[b]-p.s[a]).forEach(k=>{
   if(k==='sho')out.push(p.pos!=='DEF'?'sniper':'wall');
   if(k==='spd'){out.push(p.pos!=='DEF'&&p.s.pas>=55&&Math.random()<.6?'joker':'speedster');out.push('speedster')}
@@ -354,6 +357,7 @@ function styleCands(p){const o=ovr(p);if(p.pos==='GK')return shuffle(['cat','cap
   if(k==='def')out.push(p.pos==='DEF'?'wall':'engine');
   if(k==='sta')out.push('engine')});
  if(o>=74&&Math.random()<.22)out.unshift('captain');return [...new Set(out)]}
+function fixStyles(p){if(!p||!p.sts)return false;const n=p.sts.filter(x=>stOK(p,x.k));if(n.length===p.sts.length)return false;p.sts=n;p.st=n[0]?n[0].k:'';return true}
 function assignStyle(p){const o=ovr(p),ch=o>=80?.75:o>=74?.45:o>=68?.22:o>=63?.08:0;p.st='';p.sts=[];if(Math.random()>=ch)return p;
  let n=1;if(o>=82&&Math.random()<.45)n=2;if(o>=95&&n===2&&Math.random()<.4)n=3;
  p.sts=styleCands(p).slice(0,n).map(k=>({k,l:lvlRoll(o)}));p.st=p.sts[0]?p.sts[0].k:'';return p}
@@ -663,6 +667,7 @@ function ensureTalker(){if(!S||!S.trials)return;let ch=false;
  if(S.tactic==='super'){S.tactic='attack';ch=true}[S.league&&S.league.teams,S.wc&&S.wc.opps].forEach(l=>(l||[]).forEach(t=>{if(t.sq&&t.sq.tac==='super'){t.sq.tac='attack';ch=true}}));
  if((S.stv||0)<3){S.stv=3;[...S.players,...S.trials].forEach(p=>assignStyle(p));if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(assignStyle)});ch=true}
  [...S.players,...S.trials].forEach(p=>{if(!p.pot){givePot(p);ch=true}});
+ [...S.players,...S.trials].forEach(p=>{if(fixStyles(p))ch=true});if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(fixStyles(p))ch=true})});
  [...S.players,...S.trials].forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}});
  if(S.league)S.league.teams.forEach(t=>{if(t.sq&&t.sq.xi)t.sq.xi.forEach(p=>{if(p.st===undefined){assignStyle(p);ch=true}})});S.trials.forEach(t=>{if(!t.talk){t.talk=true;ch=true}});
  if(S.trials.length&&!S.trials.some(t=>t.talk)){pick(S.trials).talk=true;ch=true}if(ch){save();if(!M&&S.tab==='trials')render()}}
